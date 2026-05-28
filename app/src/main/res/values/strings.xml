@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mantra Siddhi</string>
+    <string name="title_home">Home</string>
+    <string name="title_practice">Practice</string>
+    <string name="title_recitation">Recitation</string>
+    <string name="title_progress">Progress</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_targets">Targets</string>
+    <string name="title_child_progress">Child Progress</string>
+    
+    <!-- Login / Profile Selection -->
+    <string name="profile_selection_title">Select Profile</string>
+    <string name="profile_selection_subtitle">Who is practicing today?</string>
+    <string name="badge_parent">Parent</string>
+    <string name="badge_child">Child</string>
+    <string name="badge_individual">Individual</string>
+    
+    <!-- Home Screen -->
+    <string name="home_greeting">Namaste, %1$s</string>
+    <string name="home_today_summary">Today\'s Recitations</string>
+    <string name="home_active_target">Active Target</string>
+    <string name="home_start_recitation">Start Recitation</string>
+    <string name="home_practice_mode">Practice Mode</string>
+    <string name="home_target_progress">%1$d / %2$d completed</string>
+    
+    <!-- Targets Screen -->
+    <string name="targets_title">Target Goals</string>
+    <string name="target_amount_earned">Earned: $%1$.2f</string>
+    <string name="no_active_targets">No active targets at this time.</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_logout">Logout / Switch Profile</string>
+    
+    <!-- Generic -->
+    <string name="error_unknown">An unknown error occurred.</string>
+    <string name="loading">Loading...</string>
+</resources>

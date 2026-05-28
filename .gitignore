@@ -1,0 +1,37 @@
+# Gradle Files
+.gradle/
+build/
+**/build/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.navigation/
+
+# Local configurations
+local.properties
+
+# Built artifacts
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Signing files
+*.jks
+*.keystore
+*.pepk
+
+# Log files
+*.log
+crashlytics/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+Desktop.ini
