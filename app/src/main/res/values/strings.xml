@@ -33,6 +33,33 @@
     <string name="settings_title">Settings</string>
     <string name="settings_logout">Logout / Switch Profile</string>
     
+    <!-- Practice Mode -->
+    <string name="practice_listen">Listen</string>
+    <string name="practice_start">Start Practice</string>
+    <string name="practice_stop">Stop Recording</string>
+    <string name="practice_try_again">Try Again</string>
+    <string name="practice_toggle_translation">Toggle Transliteration</string>
+    <string name="practice_overall_score">Overall Score</string>
+    <string name="practice_processing">Evaluating recitation...</string>
+    <string name="practice_feedback_title">Pronunciation Feedback</string>
+    <string name="practice_tip_title">Spiritual Tip</string>
+    <string name="practice_intro">Recite the Gayatri Mantra. Tap words after recording to see detailed feedback.</string>
+
+    <!-- Recitation Mode -->
+    <string name="recitation_begin">Begin Recitation</string>
+    <string name="recitation_pause">Pause</string>
+    <string name="recitation_stop">Stop</string>
+    <string name="recitation_correct">Correct!</string>
+    <string name="recitation_try_again">Try again!</string>
+    <string name="recitation_no_target">No active target</string>
+    <string name="recitation_set_target_warning">Please set a recitation target in the targets tab first.</string>
+    <string name="recitation_recent_title">Recent Recitations</string>
+    <string name="recitation_goal_reached">🎉 Goal Reached!</string>
+    <string name="recitation_money_unlocked">₹%1$.2f unlocked!</string>
+    <string name="recitation_money_locked">₹%1$.2f locked</string>
+    <string name="recitation_dismiss">Dismiss</string>
+    <string name="recitation_feedback_format">Score: %1$.0f%% | Tip: %2$s</string>
+
     <!-- Generic -->
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="loading">Loading...</string>
