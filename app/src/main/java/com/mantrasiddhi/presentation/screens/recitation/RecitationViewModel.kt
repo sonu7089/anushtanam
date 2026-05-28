@@ -24,6 +24,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -185,54 +187,81 @@ class RecitationViewModel @Inject constructor(
     private fun runListeningLoop() {
         listeningJob?.cancel()
         listeningJob = viewModelScope.launch {
-            var startTimeMs = System.currentTimeMillis()
-
             while (isListeningLoopActive) {
                 emitActiveState(isListening = true, currentSpeechText = "")
                 var accumulatedText = ""
-                startTimeMs = System.currentTimeMillis()
+                var lastSpeechTimeMs = System.currentTimeMillis()
+                var boundaryReachedText: String? = null
+                val loopStartTimeMs = System.currentTimeMillis()
 
                 try {
-                    speechRecognitionService.startListening()
-                        .flowOn(Dispatchers.Main)
-                        .collect { result ->
-                            when (result) {
-                                is SpeechResult.Partial -> {
-                                    accumulatedText = result.text
-                                    emitActiveState(isListening = true, currentSpeechText = accumulatedText)
+                    kotlinx.coroutines.coroutineScope {
+                        val parentScope = this
+                        
+                        launch {
+                            try {
+                                speechRecognitionService.startListening()
+                                    .flowOn(Dispatchers.Main)
+                                    .collect { result ->
+                                        when (result) {
+                                            is SpeechResult.Partial -> {
+                                                accumulatedText = result.text
+                                                lastSpeechTimeMs = System.currentTimeMillis()
+                                                emitActiveState(isListening = true, currentSpeechText = accumulatedText)
 
-                                    if (detectRecitationBoundaryUseCase(accumulatedText, 0L)) {
-                                        throw BoundaryReachedException(accumulatedText)
+                                                if (detectRecitationBoundaryUseCase(accumulatedText, 0L)) {
+                                                    boundaryReachedText = accumulatedText
+                                                    parentScope.cancel()
+                                                }
+                                            }
+                                            is SpeechResult.Final -> {
+                                                accumulatedText = result.text
+                                                boundaryReachedText = accumulatedText
+                                                parentScope.cancel()
+                                            }
+                                            is SpeechResult.Error -> {
+                                                if (result.code == 8 /* SpeechRecognizer.ERROR_RECOGNIZER_BUSY */) {
+                                                    delay(500)
+                                                }
+                                                if (accumulatedText.isNotBlank()) {
+                                                    boundaryReachedText = accumulatedText
+                                                }
+                                                parentScope.cancel()
+                                            }
+                                        }
                                     }
-                                }
-                                is SpeechResult.Final -> {
-                                    accumulatedText = result.text
-                                    throw BoundaryReachedException(accumulatedText)
-                                }
-                                is SpeechResult.Error -> {
-                                    if (result.code == 8 /* SpeechRecognizer.ERROR_RECOGNIZER_BUSY */) {
-                                        delay(500)
-                                        throw SpeechRecognitionException("Busy")
+                            } catch (e: Exception) {
+                                // Cancel parent scope on speech collection errors
+                                parentScope.cancel()
+                            }
+                        }
+
+                        launch {
+                            while (isActive && isListeningLoopActive) {
+                                delay(200)
+                                val elapsed = System.currentTimeMillis() - lastSpeechTimeMs
+                                if (elapsed >= 2000L && accumulatedText.isNotBlank()) {
+                                    if (detectRecitationBoundaryUseCase(accumulatedText, elapsed)) {
+                                        boundaryReachedText = accumulatedText
+                                        parentScope.cancel()
+                                        break
                                     }
-                                    if (accumulatedText.isNotBlank()) {
-                                        throw BoundaryReachedException(accumulatedText)
-                                    }
-                                    throw SpeechRecognitionException(result.message)
                                 }
                             }
                         }
-                } catch (e: BoundaryReachedException) {
-                    val duration = System.currentTimeMillis() - startTimeMs
-                    evaluateAndProcess(e.text, duration)
-                    // Show feedback for 2.0s
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // coroutineScope cancelled because boundary was detected or error occurred
+                }
+
+                val finalOutputText = boundaryReachedText
+                if (finalOutputText != null && finalOutputText.isNotBlank()) {
+                    val duration = System.currentTimeMillis() - loopStartTimeMs
+                    evaluateAndProcess(finalOutputText, duration)
                     delay(2000)
-                    // Clear the feedback before continuing the loop
                     emitActiveState(isListening = isListeningLoopActive, currentSpeechText = "", lastFeedback = null)
-                } catch (e: SpeechRecognitionException) {
-                    // Retry with a small delay
+                } else {
                     delay(500)
-                } catch (e: Exception) {
-                    break
                 }
             }
         }

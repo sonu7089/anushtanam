@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.components.RecitationFeedbackOverlay
+import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOverlay
 import com.mantrasiddhi.presentation.screens.recitation.components.LiveCounter
 import com.mantrasiddhi.presentation.screens.recitation.components.RecitationFeed
@@ -77,6 +78,20 @@ fun RecitationScreen(
                     LiveCounter(
                         sessionCount = correctCount,
                         isListening = state.isListening
+                    )
+
+                    MicButton(
+                        isRecording = state.isListening,
+                        isProcessing = false,
+                        onClick = {
+                            if (state.activeTarget != null) {
+                                if (state.isListening) {
+                                    viewModel.pauseRecitation()
+                                } else {
+                                    viewModel.startRecitation()
+                                }
+                            }
+                        }
                     )
 
                     if (state.isListening && state.currentSpeechText.isNotBlank()) {

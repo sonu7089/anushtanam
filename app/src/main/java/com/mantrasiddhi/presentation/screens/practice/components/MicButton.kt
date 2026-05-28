@@ -122,6 +122,11 @@ fun MicButton(
                     modifier = Modifier.size(32.dp),
                     strokeWidth = 3.dp
                 )
+            } else if (isRecording) {
+                VoiceWaveform(
+                    color = Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
             } else {
                 MicIcon(
                     tint = Color.White,
@@ -131,6 +136,82 @@ fun MicButton(
         }
     }
 }
+
+@Composable
+private fun VoiceWaveform(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    
+    val bar1Height by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bar1"
+    )
+    val bar2Height by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bar2"
+    )
+    val bar3Height by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(350, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bar3"
+    )
+    val bar4Height by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(450, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bar4"
+    )
+    val bar5Height by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bar5"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val barWidth = w / 9f
+        val gap = w / 18f
+        val heights = listOf(bar1Height, bar2Height, bar3Height, bar4Height, bar5Height)
+        
+        heights.forEachIndexed { index, heightFactor ->
+            val barHeight = h * heightFactor
+            val x = (index * (barWidth + gap)) + (w - (barWidth * 5 + gap * 4)) / 2
+            val y = (h - barHeight) / 2
+            
+            drawRoundRect(
+                color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2, barWidth / 2)
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun MicIcon(
