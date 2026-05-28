@@ -8,9 +8,11 @@ package com.mantrasiddhi.di
 
 import com.mantrasiddhi.data.SessionManager
 import com.mantrasiddhi.data.repository.RecitationRepositoryImpl
+import com.mantrasiddhi.data.repository.SavingsRepositoryImpl
 import com.mantrasiddhi.data.repository.TargetRepositoryImpl
 import com.mantrasiddhi.data.repository.UserRepositoryImpl
 import com.mantrasiddhi.domain.repository.RecitationRepository
+import com.mantrasiddhi.domain.repository.SavingsRepository
 import com.mantrasiddhi.domain.repository.SessionRepository
 import com.mantrasiddhi.domain.repository.TargetRepository
 import com.mantrasiddhi.domain.repository.UserRepository
@@ -47,4 +49,10 @@ abstract class RepositoryModule {
     abstract fun bindSessionRepository(
         impl: SessionManager
     ): SessionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSavingsRepository(
+        impl: SavingsRepositoryImpl
+    ): SavingsRepository
 }

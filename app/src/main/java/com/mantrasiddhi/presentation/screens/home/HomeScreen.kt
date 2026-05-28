@@ -31,12 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.components.MantraCard
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 import com.mantrasiddhi.presentation.components.ProgressRing
+import com.mantrasiddhi.presentation.components.SavingsCard
+import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 
 @Composable
 fun HomeScreen(
@@ -44,6 +45,7 @@ fun HomeScreen(
     onNavigateToRecitation: () -> Unit,
     onNavigateToPractice: () -> Unit,
     onNavigateToTargets: () -> Unit,
+    onNavigateToChildProgress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -65,7 +67,7 @@ fun HomeScreen(
                         .padding(16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Top Greeting Section
+                    // Top Greeting Section with Streak
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -73,19 +75,34 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(id = R.string.home_greeting, state.user.name),
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
-                            Text(
-                                text = "Have a blessed day of recitation",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = "Have a blessed day",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                )
+                                if (state.streakDays > 0) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "• 🔥 ${state.streakDays} Day Streak",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
                         ProfileAvatar(
                             avatarIndex = state.user.avatarIndex,
                             name = state.user.name,
@@ -93,7 +110,13 @@ fun HomeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Savings summary card (if savings exist)
+                    state.savings?.let {
+                        SavingsCard(savings = it)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     // Today's Summary Card
                     MantraCard(modifier = Modifier.fillMaxWidth()) {
@@ -117,7 +140,6 @@ fun HomeScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            // Decorative count ring or indicator
                             Box(
                                 modifier = Modifier.size(48.dp),
                                 contentAlignment = Alignment.Center
@@ -188,9 +210,9 @@ fun HomeScreen(
                                     )
                                     if (target.moneyAmount > 0.0) {
                                         Text(
-                                            text = stringResource(id = R.string.target_amount_earned, target.moneyAmount),
+                                            text = stringResource(id = R.string.recitation_money_locked, target.moneyAmount),
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.tertiary,
+                                            color = MaterialTheme.colorScheme.secondary,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                     }
@@ -205,7 +227,25 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    // Children summary cards (only visible to Parents)
+                    if (state.user.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT && state.childrenProgress.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = stringResource(id = R.string.children_progress_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        state.childrenProgress.forEach { childProgress ->
+                            ChildCard(
+                                childProgress = childProgress,
+                                onClick = onNavigateToChildProgress
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Quick Action Buttons
                     Text(

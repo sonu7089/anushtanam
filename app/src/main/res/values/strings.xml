@@ -63,4 +63,31 @@
     <!-- Generic -->
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="loading">Loading...</string>
+
+    <!-- New Targets and Savings Strings -->
+    <string name="target_set_new">Set New Target</string>
+    <string name="target_abandon">Abandon Target</string>
+    <string name="target_abandon_confirm">Are you sure you want to abandon this target? Your locked ₹%1$.2f will be returned.</string>
+    <string name="target_history">Target History</string>
+    <string name="target_dialog_title">Set New Target</string>
+    <string name="target_dialog_preset">Preset count: %1$d</string>
+    <string name="target_dialog_custom">Custom count</string>
+    <string name="target_dialog_money">Virtual Money Reward (₹)</string>
+    <string name="target_dialog_confirm">Set Target</string>
+    <string name="target_dialog_cancel">Cancel</string>
+    <string name="target_dialog_child_selector">Set target for profile:</string>
+    <string name="savings_total_saved">Total Saved</string>
+    <string name="savings_total_locked">Total Locked</string>
+    <string name="savings_total_unlocked">Total Unlocked</string>
+    <string name="savings_currency_format">₹%1$.2f</string>
+    
+    <!-- Parent Child Strings -->
+    <string name="children_progress_title">Children Progress</string>
+    <string name="child_struggle_words">Struggling Words (Improvement Areas)</string>
+    <string name="child_sessions">Sessions</string>
+    <string name="child_set_target">Set Target</string>
+    <string name="child_daily_recitations">Daily Recitations</string>
+    <string name="child_no_weak_words">Doing great! No major pronunciation struggles.</string>
+    <string name="child_details_title">%1$s\'s Profile</string>
+    <string name="child_total_recitations">Total Recitations: %1$d</string>
 </resources>

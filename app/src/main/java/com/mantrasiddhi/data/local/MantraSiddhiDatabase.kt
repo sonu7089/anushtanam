@@ -12,9 +12,11 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mantrasiddhi.data.local.dao.RecitationDao
+import com.mantrasiddhi.data.local.dao.SavingsDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
+import com.mantrasiddhi.data.local.entity.SavingsEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
 import kotlinx.coroutines.CoroutineScope
@@ -26,9 +28,10 @@ import javax.inject.Provider
     entities = [
         UserProfileEntity::class,
         TargetEntity::class,
-        RecitationSessionEntity::class
+        RecitationSessionEntity::class,
+        SavingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -36,6 +39,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun targetDao(): TargetDao
     abstract fun recitationDao(): RecitationDao
+    abstract fun savingsDao(): SavingsDao
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
@@ -49,6 +53,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
+            .fallbackToDestructiveMigration()
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

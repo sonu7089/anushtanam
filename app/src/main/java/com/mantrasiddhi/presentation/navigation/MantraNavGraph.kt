@@ -92,7 +92,8 @@ fun MantraApp(
                     viewModel = homeViewModel,
                     onNavigateToRecitation = { navController.navigate(Screen.Recitation.route) },
                     onNavigateToPractice = { navController.navigate(Screen.Practice.route) },
-                    onNavigateToTargets = { navController.navigate(Screen.Targets.route) }
+                    onNavigateToTargets = { navController.navigate(Screen.Targets.route) },
+                    onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) }
                 )
             }
 

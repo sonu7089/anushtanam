@@ -40,4 +40,8 @@ class TargetRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
             .flowOn(ioDispatcher)
     }
+
+    override suspend fun delete(targetId: Long) = withContext(ioDispatcher) {
+        targetDao.deleteById(targetId)
+    }
 }

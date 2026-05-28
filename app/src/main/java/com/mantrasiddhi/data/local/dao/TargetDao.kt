@@ -27,4 +27,7 @@ interface TargetDao {
 
     @Query("SELECT * FROM targets WHERE userId = :userId")
     fun getAllForUser(userId: Long): Flow<List<TargetEntity>>
+
+    @Query("DELETE FROM targets WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

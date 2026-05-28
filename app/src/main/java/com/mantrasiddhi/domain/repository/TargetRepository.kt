@@ -14,4 +14,5 @@ interface TargetRepository {
     suspend fun update(target: Target)
     suspend fun getActiveForUser(userId: Long): Target?
     fun getAllForUser(userId: Long): Flow<List<Target>>
+    suspend fun delete(targetId: Long)
 }
