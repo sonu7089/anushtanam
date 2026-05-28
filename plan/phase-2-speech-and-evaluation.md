@@ -10,11 +10,11 @@
 ## 2.1 Speech Recognition Service
 
 ### Tasks
-- [ ] Create `SpeechRecognitionService` wrapper around Android `SpeechRecognizer`
-- [ ] Configure for **offline/on-device** mode (`EXTRA_PREFER_OFFLINE = true`)
-- [ ] Set recognition language to Hindi (`hi-IN`) with English fallback (`en-IN`)
-- [ ] Handle lifecycle: start, partial results, final result, error, stop
-- [ ] Emit results as `Flow<SpeechResult>`:
+- [x] Create `SpeechRecognitionService` wrapper around Android `SpeechRecognizer`
+- [x] Configure for **offline/on-device** mode (`EXTRA_PREFER_OFFLINE = true`)
+- [x] Set recognition language to Hindi (`hi-IN`) with English fallback (`en-IN`)
+- [x] Handle lifecycle: start, partial results, final result, error, stop
+- [x] Emit results as `Flow<SpeechResult>`:
   ```kotlin
   sealed interface SpeechResult {
       data class Partial(val text: String) : SpeechResult
@@ -22,8 +22,8 @@
       data class Error(val code: Int, val message: String) : SpeechResult
   }
   ```
-- [ ] Handle permissions: `RECORD_AUDIO` runtime permission request
-- [ ] Handle edge cases: no speech detected, network unavailable (offline mode), timeout
+- [x] Handle permissions: `RECORD_AUDIO` runtime permission request
+- [x] Handle edge cases: no speech detected, network unavailable (offline mode), timeout
 
 ### Deliverables
 - `data/speech/SpeechRecognitionService.kt`
@@ -41,7 +41,7 @@
 ## 2.2 Text Normalization Pipeline
 
 ### Tasks
-- [ ] Create `TextNormalizer` class with the following pipeline:
+- [x] Create `TextNormalizer` class with the following pipeline:
 
 ```
 Raw STT Output
@@ -61,7 +61,7 @@ Raw STT Output
 Normalized Text
 ```
 
-- [ ] **Phonetic equivalence map** (common STT confusions):
+- [x] **Phonetic equivalence map** (common STT confusions):
   ```
   "bhoor" → "bhur"
   "bhuva" → "bhuvah"  
@@ -73,8 +73,8 @@ Normalized Text
   "prachodayaat" → "prachodayat"
   "aum" → "om"
   ```
-- [ ] Handle both Devanagari and transliterated input
-- [ ] Create Devanagari-to-transliteration converter for uniform comparison
+- [x] Handle both Devanagari and transliterated input
+- [x] Create Devanagari-to-transliteration converter for uniform comparison
 
 ### Deliverables
 - `domain/evaluation/TextNormalizer.kt`
@@ -91,8 +91,8 @@ Normalized Text
 ## 2.3 Word-Level Evaluation Engine
 
 ### Tasks
-- [ ] Create `MantraEvaluator` — the core scoring engine
-- [ ] Define reference mantra as word array:
+- [x] Create `MantraEvaluator` — the core scoring engine
+- [x] Define reference mantra as word array:
   ```kotlin
   val REFERENCE_WORDS = listOf(
       "om", "bhur", "bhuvah", "svah",
@@ -101,7 +101,7 @@ Normalized Text
       "dhiyo", "yo", "nah", "prachodayat"
   )
   ```
-- [ ] **Word matching algorithm**:
+- [x] **Word matching algorithm**:
   1. Normalize both reference and input text
   2. Tokenize into word arrays
   3. Align input words to reference words using **Levenshtein-based alignment**
@@ -110,7 +110,7 @@ Normalized Text
   6. Extra words in input = ignored (user may add words)
   7. Missing words = 0.0 score for that position
 
-- [ ] **Scoring output**:
+- [x] **Scoring output**:
   ```kotlin
   data class MantraEvaluation(
       val overallScore: Float,           // mean of word scores
@@ -129,7 +129,7 @@ Normalized Text
   )
   ```
 
-- [ ] **Feedback generation** — per-word improvement tips:
+- [x] **Feedback generation** — per-word improvement tips:
   ```kotlin
   enum class WordFeedback(val message: String) {
       PRONUNCIATION("Focus on clearer pronunciation of this word"),
@@ -161,13 +161,13 @@ Normalized Text
 ## 2.4 Benchmark Audio System
 
 ### Tasks
-- [ ] Record/source a clear, correct recitation of Gayatri Mantra (audio file)
-- [ ] Bundle as `res/raw/gayatri_mantra_benchmark.mp3`
-- [ ] Create `BenchmarkAudioPlayer` wrapper:
+- [x] Record/source a clear, correct recitation of Gayatri Mantra (audio file)
+- [x] Bundle as `res/raw/gayatri_mantra_benchmark.mp3`
+- [x] Create `BenchmarkAudioPlayer` wrapper:
   - Play / Pause / Stop controls
   - Playback progress tracking
   - Proper `MediaPlayer` lifecycle management (release on screen exit)
-- [ ] Add word-by-word highlight sync (timestamp markers for each word in the audio)
+- [x] Add word-by-word highlight sync (timestamp markers for each word in the audio)
 
 ### Deliverables
 - `res/raw/gayatri_mantra_benchmark.mp3`
@@ -184,14 +184,14 @@ Normalized Text
 ## 2.5 Integration: Wire Speech → Evaluation → Storage
 
 ### Tasks
-- [ ] Create `EvaluateRecitationUseCase`:
+- [x] Create `EvaluateRecitationUseCase`:
   1. Receive raw transcription from `SpeechRecognitionService`
   2. Run through `TextNormalizer`
   3. Pass to `MantraEvaluator`
   4. Save `RecitationSessionEntity` via `RecitationRepository`
   5. If in NORMAL mode and `isCorrect`, increment target count
   6. Return `MantraEvaluation` to presentation layer
-- [ ] Create `IncrementTargetUseCase` — atomic increment of recitation count + completion check
+- [x] Create `IncrementTargetUseCase` — atomic increment of recitation count + completion check
 
 ### Deliverables
 - `domain/usecase/EvaluateRecitationUseCase.kt`
