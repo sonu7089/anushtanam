@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -59,20 +59,20 @@ class BenchmarkAudioPlayer @Inject constructor(
      * Timestamps mapping the 14 words of the Gayatri Mantra in the benchmark audio.
      */
     val wordTimestamps = listOf(
-        WordTimestamp(0, "om", 0, 1000),
-        WordTimestamp(1, "bhur", 1000, 1800),
-        WordTimestamp(2, "bhuvah", 1800, 2600),
-        WordTimestamp(3, "svah", 2600, 3500),
-        WordTimestamp(4, "tat", 3500, 4200),
-        WordTimestamp(5, "savitur", 4200, 5200),
-        WordTimestamp(6, "varenyam", 5200, 6500),
-        WordTimestamp(7, "bhargo", 6500, 7500),
-        WordTimestamp(8, "devasya", 7500, 8500),
-        WordTimestamp(9, "dhimahi", 8500, 9800),
-        WordTimestamp(10, "dhiyo", 9800, 10800),
-        WordTimestamp(11, "yo", 10800, 11500),
-        WordTimestamp(12, "nah", 11500, 12200),
-        WordTimestamp(13, "prachodayat", 12200, 14000)
+        WordTimestamp(0, "om", 1000, 1600),
+        WordTimestamp(1, "bhur", 1600, 2200),
+        WordTimestamp(2, "bhuvah", 2200, 2800),
+        WordTimestamp(3, "svah", 2800, 3500),
+        WordTimestamp(4, "tat", 3800, 4400),
+        WordTimestamp(5, "savitur", 4400, 5000),
+        WordTimestamp(6, "varenyam", 5000, 5800),
+        WordTimestamp(7, "bhargo", 6400, 7100),
+        WordTimestamp(8, "devasya", 7100, 8000),
+        WordTimestamp(9, "dhimahi", 8000, 8900),
+        WordTimestamp(10, "dhiyo", 9400, 10200),
+        WordTimestamp(11, "yo", 10200, 11000),
+        WordTimestamp(12, "nah", 11000, 11800),
+        WordTimestamp(13, "prachodayat", 12200, 15800)
     )
 
     /**

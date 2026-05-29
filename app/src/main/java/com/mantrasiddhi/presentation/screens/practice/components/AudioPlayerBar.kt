@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -40,7 +40,7 @@ fun AudioPlayerBar(
     onPlayPauseClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val totalDurationMs = 14000f // 14 seconds benchmark length
+    val totalDurationMs = 16000f // 16 seconds benchmark length
     val progress = (positionMs / totalDurationMs).coerceIn(0f, 1f)
 
     MantraCard(
@@ -85,7 +85,7 @@ fun AudioPlayerBar(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${(positionMs / 1000)}s / 14s",
+                        text = "${(positionMs / 1000)}s / 16s",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
