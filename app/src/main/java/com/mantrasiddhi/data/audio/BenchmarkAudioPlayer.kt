@@ -58,23 +58,47 @@ class BenchmarkAudioPlayer @Inject constructor(
 
     /**
      * Timestamps mapping the 14 words of the Gayatri Mantra in the benchmark audio.
+     * Loaded dynamically from the assets configuration file.
      */
-    val wordTimestamps = listOf(
-        WordTimestamp(0, "om", 0, 3340),
-        WordTimestamp(1, "bhur", 3390, 4280),
-        WordTimestamp(2, "bhuvah", 4290, 4720),
-        WordTimestamp(3, "svah", 4840, 5690),
-        WordTimestamp(4, "tat", 6420, 6680),
-        WordTimestamp(5, "savitur", 6690, 7220),
-        WordTimestamp(6, "varenyam", 7230, 9050),
-        WordTimestamp(7, "bhargo", 9400, 10080),
-        WordTimestamp(8, "devasya", 10090, 10900),
-        WordTimestamp(9, "dhimahi", 10910, 11920),
-        WordTimestamp(10, "dhiyo", 12060, 12830),
-        WordTimestamp(11, "yo", 12840, 13050),
-        WordTimestamp(12, "nah", 13200, 13400),
-        WordTimestamp(13, "prachodayat", 13570, 16010)
-    )
+    val wordTimestamps = loadWordTimestamps()
+
+    private fun loadWordTimestamps(): List<WordTimestamp> {
+        return try {
+            val jsonString = context.assets.open("benchmark_timestamps.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val jsonArray = org.json.JSONArray(jsonString)
+            val list = mutableListOf<WordTimestamp>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val wordIndex = obj.getInt("wordIndex")
+                val word = obj.getString("word")
+                // Convert centiseconds to milliseconds
+                val startMs = obj.getLong("startMs") * 10L
+                val endMs = obj.getLong("endMs") * 10L
+                list.add(WordTimestamp(wordIndex, word, startMs, endMs))
+            }
+            list
+        } catch (e: Exception) {
+            // Fallback default timestamps
+            listOf(
+                WordTimestamp(0, "om", 0, 3340),
+                WordTimestamp(1, "bhur", 3390, 4280),
+                WordTimestamp(2, "bhuvah", 4290, 4720),
+                WordTimestamp(3, "svah", 4840, 5690),
+                WordTimestamp(4, "tat", 6420, 6680),
+                WordTimestamp(5, "savitur", 6690, 7220),
+                WordTimestamp(6, "varenyam", 7230, 9050),
+                WordTimestamp(7, "bhargo", 9400, 10080),
+                WordTimestamp(8, "devasya", 10090, 10900),
+                WordTimestamp(9, "dhimahi", 10910, 11920),
+                WordTimestamp(10, "dhiyo", 12060, 12830),
+                WordTimestamp(11, "yo", 12840, 13050),
+                WordTimestamp(12, "nah", 13200, 13400),
+                WordTimestamp(13, "prachodayat", 13570, 16010)
+            )
+        }
+    }
 
     /**
      * Starts playing the benchmark audio and the progress tracker.

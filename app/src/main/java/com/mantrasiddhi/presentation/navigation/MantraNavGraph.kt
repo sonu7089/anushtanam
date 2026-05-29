@@ -52,6 +52,16 @@ import com.mantrasiddhi.presentation.screens.settings.SettingsScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsViewModel
 import com.mantrasiddhi.presentation.screens.targets.TargetsScreen
 
+private val NavigationRouteOrder = mapOf(
+    Screen.Login.route to 0,
+    Screen.Home.route to 1,
+    Screen.Practice.route to 2,
+    Screen.Recitation.route to 3,
+    Screen.Progress.route to 4,
+    Screen.ChildProgress.route to 5,
+    Screen.Settings.route to 6
+)
+
 @Composable
 fun MantraApp(
     mainViewModel: MainViewModel,
@@ -79,14 +89,28 @@ fun MantraApp(
             startDestination = Screen.Login.route,
             modifier = Modifier.padding(innerPadding),
             enterTransition = {
+                val initialOrder = NavigationRouteOrder[initialState.destination.route] ?: 0
+                val targetOrder = NavigationRouteOrder[targetState.destination.route] ?: 0
+                val direction = if (targetOrder > initialOrder) {
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                } else {
+                    AnimatedContentTransitionScope.SlideDirection.Right
+                }
                 slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    direction,
                     animationSpec = tween(350, easing = EaseInOutCubic)
                 ) + fadeIn(animationSpec = tween(350))
             },
             exitTransition = {
+                val initialOrder = NavigationRouteOrder[initialState.destination.route] ?: 0
+                val targetOrder = NavigationRouteOrder[targetState.destination.route] ?: 0
+                val direction = if (targetOrder > initialOrder) {
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                } else {
+                    AnimatedContentTransitionScope.SlideDirection.Right
+                }
                 slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    direction,
                     animationSpec = tween(350, easing = EaseInOutCubic)
                 ) + fadeOut(animationSpec = tween(350))
             },
