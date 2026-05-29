@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -40,80 +40,101 @@ class SpeechRecognitionService @Inject constructor(
     fun startListening(): Flow<SpeechResult> = callbackFlow {
         val mainDispatcher = Dispatchers.Main
         var recognizer: SpeechRecognizer? = null
-        launch(mainDispatcher) {
+
+        fun initRecognizer(onDevice: Boolean) {
             if (!SpeechRecognizer.isRecognitionAvailable(context)) {
                 trySend(SpeechResult.Error(-1, "Speech recognition is not available on this device"))
                 close()
-                return@launch
+                return
             }
-            val intent = createSpeechIntent()
-            val rec = createSpeechRecognizer()
+
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
+                putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "hi-IN")
+                putExtra(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES, arrayListOf("hi-IN", "en-IN"))
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                if (onDevice) {
+                    putExtra("android.speech.extra.PREFER_OFFLINE", true)
+                }
+            }
+
+            val rec = if (onDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(context)
+            }
+            
             recognizer = rec
-            rec.setRecognitionListener(createSpeechListener(this@callbackFlow))
+            
+            rec.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {}
+
+                override fun onError(error: Int) {
+                    // Error 13 is SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE (Android 12+)
+                    // Error 14 is SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                    // Error 5 is SpeechRecognizer.ERROR_CLIENT (generic connection/binding issues)
+                    if (onDevice && (error == 13 || error == 14 || error == 5)) {
+                        launch(mainDispatcher) {
+                            try {
+                                rec.destroy()
+                            } catch (e: Exception) {
+                                // ignore
+                            }
+                            initRecognizer(onDevice = false)
+                        }
+                    } else {
+                        val message = getErrorMessage(error)
+                        trySend(SpeechResult.Error(error, message))
+                        close()
+                    }
+                }
+
+                override fun onResults(results: Bundle?) {
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    val confidences = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
+                    val text = matches?.firstOrNull() ?: ""
+                    val confidence = confidences?.firstOrNull() ?: 1.0f
+                    trySend(SpeechResult.Final(text, confidence))
+                    close()
+                }
+
+                override fun onPartialResults(partialResults: Bundle?) {
+                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    val text = matches?.firstOrNull() ?: ""
+                    trySend(SpeechResult.Partial(text))
+                }
+
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+            
             rec.startListening(intent)
         }
+
+        launch(mainDispatcher) {
+            val initialOnDevice = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+            initRecognizer(onDevice = initialOnDevice)
+        }
+
         awaitClose {
             launch(mainDispatcher) {
                 recognizer?.apply {
-                    stopListening()
-                    cancel()
-                    destroy()
+                    try {
+                        stopListening()
+                        cancel()
+                        destroy()
+                    } catch (e: Exception) {
+                        // ignore
+                    }
                 }
             }
-        }
-    }
-
-    private fun createSpeechIntent(): Intent {
-        return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "hi-IN")
-            putExtra(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES, arrayListOf("hi-IN", "en-IN"))
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra("android.speech.extra.PREFER_OFFLINE", true)
-        }
-    }
-
-    private fun createSpeechRecognizer(): SpeechRecognizer {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-        } else {
-            SpeechRecognizer.createSpeechRecognizer(context)
-        }
-    }
-
-    private fun createSpeechListener(scope: ProducerScope<SpeechResult>): RecognitionListener {
-        return object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {}
-            override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {}
-
-            override fun onError(error: Int) {
-                val message = getErrorMessage(error)
-                scope.trySend(SpeechResult.Error(error, message))
-                scope.close()
-            }
-
-            override fun onResults(results: Bundle?) {
-                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                val confidences = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
-                val text = matches?.firstOrNull() ?: ""
-                val confidence = confidences?.firstOrNull() ?: 1.0f
-                scope.trySend(SpeechResult.Final(text, confidence))
-                scope.close()
-            }
-
-            override fun onPartialResults(partialResults: Bundle?) {
-                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                val text = matches?.firstOrNull() ?: ""
-                scope.trySend(SpeechResult.Partial(text))
-            }
-
-            override fun onEvent(eventType: Int, params: Bundle?) {}
         }
     }
 
@@ -125,9 +146,11 @@ class SpeechRecognitionService @Inject constructor(
             SpeechRecognizer.ERROR_NETWORK -> "Network error"
             SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
             SpeechRecognizer.ERROR_NO_MATCH -> "No speech match found"
-            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognition service busy"
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer busy"
             SpeechRecognizer.ERROR_SERVER -> "Server error"
             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech input"
+            13 -> "Hindi offline speech model not downloaded" // ERROR_LANGUAGE_UNAVAILABLE
+            14 -> "Language not supported" // ERROR_LANGUAGE_NOT_SUPPORTED
             else -> "Unknown error ($errorCode)"
         }
     }
