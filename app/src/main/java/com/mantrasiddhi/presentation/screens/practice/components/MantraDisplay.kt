@@ -113,8 +113,6 @@ fun MantraDisplay(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 }
-                val scale = if (isActive) 1.2f else 1.0f
-
                 Text(
                     text = word,
                     style = MaterialTheme.typography.headlineSmall.copy(

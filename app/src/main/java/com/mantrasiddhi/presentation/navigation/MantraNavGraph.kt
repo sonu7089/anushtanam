@@ -8,10 +8,11 @@ package com.mantrasiddhi.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -36,7 +37,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
 import androidx.navigation.compose.NavHost
@@ -201,7 +201,7 @@ fun MantraBottomBar(
         Screen.Home to Pair(Icons.Default.Home, Icons.Outlined.Home),
         Screen.Practice to Pair(Icons.Default.Edit, Icons.Outlined.Edit),
         Screen.Recitation to Pair(Icons.Default.PlayArrow, Icons.Outlined.PlayArrow),
-        Screen.Progress to Pair(Icons.Default.List, Icons.Outlined.List),
+        Screen.Progress to Pair(Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List),
         Screen.Settings to Pair(Icons.Default.Settings, Icons.Outlined.Settings)
     )
 
