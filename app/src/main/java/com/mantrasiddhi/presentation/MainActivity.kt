@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -14,7 +14,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.mantrasiddhi.presentation.navigation.MantraApp
-import com.mantrasiddhi.presentation.theme.MantraSiddhiTheme
+import com.mantrasiddhi.presentation.theme.AnushtanamTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,10 +31,11 @@ class MainActivity : ComponentActivity() {
                 "DARK" -> true
                 else -> isSystemInDarkTheme()
             }
-            MantraSiddhiTheme(darkTheme = darkTheme) {
+            AnushtanamTheme(darkTheme = darkTheme) {
                 MantraApp(mainViewModel = mainViewModel)
             }
         }
     }
 }
+
 

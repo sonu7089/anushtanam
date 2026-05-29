@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: Bold weight for clear emphasis on sacred mantras and counts
         fontWeight = FontWeight.Bold,
         fontSize = 57.sp,
         lineHeight = 64.sp,
@@ -23,6 +24,7 @@ val Typography = Typography(
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: Bold weight for clear emphasis on sacred mantras and counts
         fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
@@ -37,6 +39,7 @@ val Typography = Typography(
     ),
     headlineLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: SemiBold weight for Sanskrit character clarity
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
@@ -44,6 +47,7 @@ val Typography = Typography(
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: SemiBold weight for Sanskrit character clarity
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
@@ -58,6 +62,7 @@ val Typography = Typography(
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: Bold weight for premium card headings
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
@@ -65,6 +70,7 @@ val Typography = Typography(
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
+        // Intentional departure: SemiBold weight for hierarchy separation in list items
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
