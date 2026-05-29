@@ -43,6 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.presentation.theme.AnushtanamSpacing
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * A highly styled button styled using Material Design 3 theme tokens.
@@ -207,7 +211,13 @@ fun ProgressRing(
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
 
     Box(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            progressBarRangeInfo = ProgressBarRangeInfo(
+                current = animatedProgress,
+                range = 0f..1f
+            )
+            contentDescription = "${(animatedProgress * 100).toInt()}% complete"
+        },
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {

@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -31,6 +31,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+
 
 @Composable
 fun MicButton(
@@ -113,7 +116,14 @@ fun MicButton(
                 .size(76.dp)
                 .clip(CircleShape)
                 .background(buttonGradient)
-                .clickable(enabled = !isProcessing, onClick = onClick),
+                .clickable(
+                    enabled = !isProcessing,
+                    onClickLabel = if (isRecording) "Stop recitation" else "Start recitation",
+                    onClick = onClick
+                )
+                .semantics {
+                    contentDescription = if (isRecording) "Stop recitation" else "Start recitation"
+                },
             contentAlignment = Alignment.Center
         ) {
             if (isProcessing) {
