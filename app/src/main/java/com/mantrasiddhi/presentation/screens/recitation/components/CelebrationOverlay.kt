@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,7 +40,7 @@ fun CelebrationOverlay(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(16.dp)
-                .clip(RoundedCornerShape(24.dp)),
+                .clip(MaterialTheme.shapes.extraLarge),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -85,7 +84,7 @@ fun CelebrationOverlay(
                     modifier = Modifier
                         .background(
                             color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = MaterialTheme.shapes.medium
                         )
                         .padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {

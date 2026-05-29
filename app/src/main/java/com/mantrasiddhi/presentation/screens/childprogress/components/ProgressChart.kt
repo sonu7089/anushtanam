@@ -141,7 +141,7 @@ fun ProgressChart(
                             modifier = Modifier
                                 .width(18.dp)
                                 .fillMaxHeight(fraction = animatedProgress.coerceIn(0.01f, 1f))
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                                 .background(
                                     if (count > 0) {
                                         gradient

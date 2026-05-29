@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -73,9 +72,9 @@ fun WordMasteryGrid(
                     modifier = Modifier
                         .padding(6.dp)
                         .width(105.dp)
-                        .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                        .border(1.dp, borderColor, MaterialTheme.shapes.small),
                     colors = CardDefaults.cardColors(containerColor = bgColor),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Column(
                         modifier = Modifier
@@ -109,7 +108,7 @@ private fun LegendItem(label: String, color: Color) {
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .clip(MaterialTheme.shapes.extraSmall)
                 .background(color)
         )
         Spacer(modifier = Modifier.width(6.dp))

@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,9 +69,9 @@ fun WordFeedbackGrid(
             Box(
                 modifier = Modifier
                     .padding(horizontal = 4.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(CircleShape)
                     .background(backgroundColor)
-                    .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                    .border(1.dp, borderColor, CircleShape)
                     .clickable { onWordClick(result, index) }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {

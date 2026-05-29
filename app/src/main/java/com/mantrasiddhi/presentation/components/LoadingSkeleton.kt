@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,7 +94,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .width(80.dp)
                     .height(16.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(MaterialTheme.shapes.extraSmall)
                     .shimmerEffect()
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -102,7 +102,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .width(140.dp)
                     .height(12.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(MaterialTheme.shapes.extraSmall)
                     .shimmerEffect()
             )
         }
@@ -114,7 +114,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .width(40.dp)
                 .height(14.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(MaterialTheme.shapes.extraSmall)
                 .shimmerEffect()
         )
     }
@@ -128,7 +128,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MaterialTheme.shapes.medium)
             .background(Color.White)
             .padding(16.dp)
     ) {
@@ -136,7 +136,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .width(120.dp)
                 .height(18.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(MaterialTheme.shapes.extraSmall)
                 .shimmerEffect()
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -144,7 +144,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(MaterialTheme.shapes.extraSmall)
                 .shimmerEffect()
         )
     }

@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.mantrasiddhi.presentation.theme.AnushtanamSpacing
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -65,7 +65,7 @@ fun MantraButton(
     Box(
         modifier = modifier
             .height(50.dp)
-            .clip(RoundedCornerShape(25.dp))
+            .clip(CircleShape)
             .background(Brush.horizontalGradient(gradientColors))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -98,7 +98,6 @@ fun MantraCard(
 
     Card(
         modifier = cardModifier
-            .shadow(4.dp, RoundedCornerShape(16.dp))
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
@@ -107,15 +106,18 @@ fun MantraCard(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     )
                 ),
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.large
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
         content = {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(AnushtanamSpacing.large),
                 content = content
             )
         }
@@ -139,7 +141,7 @@ fun MantraTextField(
         label = { Text(label) },
         singleLine = singleLine,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
@@ -171,7 +173,6 @@ fun ProfileAvatar(
     Box(
         modifier = modifier
             .size(size)
-            .shadow(4.dp, CircleShape)
             .clip(CircleShape)
             .background(gradient),
         contentAlignment = Alignment.Center

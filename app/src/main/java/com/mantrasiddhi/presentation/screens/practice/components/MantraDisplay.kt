@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -125,7 +124,7 @@ fun MantraDisplay(
                     color = textColor,
                     modifier = Modifier
                         .padding(horizontal = 6.dp, vertical = 2.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
                         .padding(horizontal = 4.dp)
                 )
@@ -160,7 +159,7 @@ fun MantraDisplay(
                         color = textColor,
                         modifier = Modifier
                             .padding(horizontal = 4.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(MaterialTheme.shapes.extraSmall)
                             .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
                             .padding(horizontal = 4.dp)
                     )
