@@ -10,17 +10,17 @@
 ## 5.1 Progress & Analytics Screen
 
 ### Tasks
-- [ ] Create `ProgressScreen` with tabs:
+- [x] Create `ProgressScreen` with tabs:
   - **Overview**: Total recitations, accuracy rate, streak, best session
   - **Daily Chart**: Bar chart of recitations per day (last 7/30 days)
   - **Accuracy Trend**: Line chart of average scores over time
   - **Word Mastery**: Heat map of per-word average scores across all sessions
   - **Session History**: Scrollable list of all sessions with score, mode, timestamp
-- [ ] Charts rendered using **Compose Canvas** (no external library):
+- [x] Charts rendered using **Compose Canvas** (no external library):
   - Animated bar chart with gradient fills
   - Smooth line chart with dot markers
   - Color-coded word mastery grid
-- [ ] Create analytics use cases:
+- [x] Create analytics use cases:
   - `GetRecitationStatsUseCase` — aggregates overall stats
   - `GetDailyRecitationCountsUseCase` — groups sessions by day
   - `GetAccuracyTrendUseCase` — average score per day
@@ -49,7 +49,7 @@
 ## 5.2 Settings Screen
 
 ### Tasks
-- [ ] Create `SettingsScreen`:
+- [x] Create `SettingsScreen`:
   - Profile info (name, type, avatar)
   - Theme toggle (Light/Dark/System)
   - Language preference for mantra display (Devanagari / Transliteration / Both)
@@ -57,8 +57,8 @@
   - About section (app version, credits)
   - "Reset Demo Data" button (re-seeds database)
   - Switch profile (navigate back to login)
-- [ ] Create `SettingsViewModel` with `UserPreferencesDataStore`
-- [ ] Persist preferences using Jetpack DataStore (Preferences)
+- [x] Create `SettingsViewModel` with `UserPreferencesDataStore`
+- [x] Persist preferences using Jetpack DataStore (Preferences)
 
 ### Deliverables
 - `presentation/screens/settings/SettingsScreen.kt`
@@ -76,22 +76,22 @@
 ## 5.3 UI Polish & Animations
 
 ### Tasks
-- [ ] Add screen transition animations (slide, fade)
-- [ ] Add haptic feedback on:
+- [x] Add screen transition animations (slide, fade)
+- [x] Add haptic feedback on:
   - Correct recitation (subtle)
   - Goal reached (strong)
   - Button taps (light)
-- [ ] Add sound effects:
+- [x] Add sound effects:
   - Soft bell on correct recitation
   - Achievement sound on goal completion
-- [ ] Loading skeletons for all data screens
-- [ ] Empty state illustrations:
+- [x] Loading skeletons for all data screens
+- [x] Empty state illustrations:
   - No sessions yet → "Begin your journey" with lotus illustration
   - No target set → "Set your first goal" prompt
   - No children → "Add a child profile" for parent
-- [ ] Splash screen with app logo and warm gradient
-- [ ] Review all screens for visual consistency
-- [ ] Ensure all text uses `strings.xml` (i18n ready)
+- [x] Splash screen with app logo and warm gradient
+- [x] Review all screens for visual consistency
+- [x] Ensure all text uses `strings.xml` (i18n ready)
 
 ### Deliverables
 - Updated composables across all screens
@@ -111,14 +111,14 @@
 ## 5.4 Edge Cases & Error Handling
 
 ### Tasks
-- [ ] Handle STT unavailability gracefully (show message, disable mic)
-- [ ] Handle mic permission denied (explain why needed, deep link to settings)
-- [ ] Handle no active target in recitation mode (prompt to set one)
-- [ ] Handle database errors (show retry option)
-- [ ] Handle very fast/very slow recitations (timeout + minimum duration)
-- [ ] Handle background/foreground transitions during recitation
-- [ ] Handle device rotation during active session
-- [ ] Test with accessibility services (TalkBack)
+- [x] Handle STT unavailability gracefully (show message, disable mic)
+- [x] Handle mic permission denied (explain why needed, deep link to settings)
+- [x] Handle no active target in recitation mode (prompt to set one)
+- [x] Handle database errors (show retry option)
+- [x] Handle very fast/very slow recitations (timeout + minimum duration)
+- [x] Handle background/foreground transitions during recitation
+- [x] Handle device rotation during active session
+- [x] Test with accessibility services (TalkBack)
 
 ### Deliverables
 - Error handling improvements across all ViewModels
@@ -135,12 +135,12 @@
 ## 5.5 Demo Data Polish
 
 ### Tasks
-- [ ] Pre-populate richer demo data:
+- [x] Pre-populate richer demo data:
   - Each profile has 10-20 pre-existing recitation sessions (varied scores)
   - Active targets with partial progress
   - Some completed targets in history
   - Savings balances reflecting completed targets
-- [ ] Ensure demo data tells a story:
+- [x] Ensure demo data tells a story:
   - Arjun (Individual): Consistent practitioner, 85% accuracy, 45/108 target
   - Meera (Parent): Occasional practitioner, has set target for child
   - Aarav (Child): Improving beginner, 65% accuracy, 12/108 target
@@ -159,12 +159,12 @@
 ## 5.6 Final Testing & Demo Readiness
 
 ### Tasks
-- [ ] Full regression test across all screens and flows
-- [ ] Test on at least 2 device sizes (phone + tablet)
-- [ ] Test offline mode end-to-end
-- [ ] Performance profiling (no dropped frames, <2s cold start)
-- [ ] Generate signed demo APK
-- [ ] Create demo walkthrough script (what to show, in what order)
+- [x] Full regression test across all screens and flows
+- [x] Test on at least 2 device sizes (phone + tablet)
+- [x] Test offline mode end-to-end
+- [x] Performance profiling (no dropped frames, <2s cold start)
+- [x] Generate signed demo APK
+- [x] Create demo walkthrough script (what to show, in what order)
 
 ### Deliverables
 - Signed APK in `build/` directory

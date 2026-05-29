@@ -13,6 +13,7 @@ import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.evaluation.MantraEvaluation
 import com.mantrasiddhi.domain.model.RecitationMode
+import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,7 +49,8 @@ class PracticeModeViewModel @Inject constructor(
     private val speechRecognitionService: SpeechRecognitionService,
     private val benchmarkAudioPlayer: BenchmarkAudioPlayer,
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val soundEffectsPlayer: SoundEffectsPlayer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Idle)
@@ -68,6 +70,7 @@ class PracticeModeViewModel @Inject constructor(
      * Starts playing benchmark audio.
      */
     fun playBenchmark() {
+        soundEffectsPlayer.triggerLightHaptic()
         // Stop recording if active
         if (_uiState.value is PracticeUiState.Recording) {
             stopRecording()
@@ -79,6 +82,7 @@ class PracticeModeViewModel @Inject constructor(
      * Pauses benchmark audio.
      */
     fun pauseBenchmark() {
+        soundEffectsPlayer.triggerLightHaptic()
         benchmarkAudioPlayer.pause()
     }
 
@@ -86,6 +90,7 @@ class PracticeModeViewModel @Inject constructor(
      * Starts recording practice recitation.
      */
     fun startRecording() {
+        soundEffectsPlayer.triggerLightHaptic()
         benchmarkAudioPlayer.stop()
         recordingJob?.cancel()
         _uiState.value = PracticeUiState.Recording("", 0)
@@ -137,6 +142,7 @@ class PracticeModeViewModel @Inject constructor(
     fun stopRecording() {
         val current = _uiState.value
         if (current is PracticeUiState.Recording) {
+            soundEffectsPlayer.triggerLightHaptic()
             val text = current.partialText
             recordingJob?.cancel()
             recordingJob = null
@@ -170,6 +176,9 @@ class PracticeModeViewModel @Inject constructor(
                     recitationTimeMs = recitationTime,
                     mode = RecitationMode.PRACTICE
                 )
+                if (evaluation.isCorrect) {
+                    soundEffectsPlayer.playCorrectSound()
+                }
                 _uiState.value = PracticeUiState.ShowingResults(evaluation)
             } catch (e: Exception) {
                 _uiState.value = PracticeUiState.Error(e.message ?: "Failed to evaluate recitation")

@@ -18,6 +18,7 @@ import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.DetectRecitationBoundaryUseCase
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
 import com.mantrasiddhi.domain.usecase.GetActiveTargetUseCase
+import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,7 +81,8 @@ class RecitationViewModel @Inject constructor(
     private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
     private val speechRecognitionService: SpeechRecognitionService,
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
-    private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase
+    private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase,
+    private val soundEffectsPlayer: SoundEffectsPlayer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
@@ -152,6 +154,7 @@ class RecitationViewModel @Inject constructor(
      */
     fun startRecitation() {
         if (isListeningLoopActive) return
+        soundEffectsPlayer.triggerLightHaptic()
         isListeningLoopActive = true
         runListeningLoop()
     }
@@ -160,6 +163,7 @@ class RecitationViewModel @Inject constructor(
      * Pauses the continuous recitation listening loop.
      */
     fun pauseRecitation() {
+        soundEffectsPlayer.triggerLightHaptic()
         isListeningLoopActive = false
         listeningJob?.cancel()
         listeningJob = null
@@ -170,6 +174,7 @@ class RecitationViewModel @Inject constructor(
      * Stops the continuous recitation listening loop and clears feedback overlays.
      */
     fun stopRecitation() {
+        soundEffectsPlayer.triggerLightHaptic()
         isListeningLoopActive = false
         listeningJob?.cancel()
         listeningJob = null
@@ -301,6 +306,12 @@ class RecitationViewModel @Inject constructor(
             activeTarget = newTarget
 
             val triggerCelebration = newTarget != null && newTarget.isCompleted && (oldTarget == null || !oldTarget.isCompleted)
+
+            if (triggerCelebration) {
+                soundEffectsPlayer.playAchievementSound()
+            } else if (evaluation.isCorrect) {
+                soundEffectsPlayer.playCorrectSound()
+            }
 
             emitActiveState(
                 isListening = isListeningLoopActive,

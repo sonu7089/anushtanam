@@ -76,7 +76,7 @@ object MantraEvaluator {
             if (step != null && step.spokenIndex != null) {
                 val spokenWord = spokenWords[step.spokenIndex]
                 val score = LevenshteinAligner.wordSimilarity(REFERENCE_WORDS[i], spokenWord).toFloat()
-                val feedback = determineFeedback(REFERENCE_WORDS[i], spokenWord, score, i, spokenWords)
+                val feedback = determineFeedback(spokenWord, score, i)
                 wordResults.add(WordResult(REFERENCE_WORDS[i], spokenWord, score, feedback))
             } else {
                 wordResults.add(WordResult(REFERENCE_WORDS[i], null, 0.0f, WordFeedback.MISSING))
@@ -89,11 +89,9 @@ object MantraEvaluator {
     }
 
     private fun determineFeedback(
-        refWord: String,
         spokenWord: String,
         score: Float,
-        refIndex: Int,
-        spokenWords: List<String>
+        refIndex: Int
     ): WordFeedback? {
         if (score >= FEEDBACK_THRESHOLD) return null
 

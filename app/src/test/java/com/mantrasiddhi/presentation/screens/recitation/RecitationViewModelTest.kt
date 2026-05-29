@@ -59,13 +59,16 @@ class RecitationViewModelTest {
         evaluateRecitationUseCase = mockk(relaxed = true)
         detectRecitationBoundaryUseCase = mockk(relaxed = true)
 
+        val soundEffectsPlayer = mockk<com.mantrasiddhi.data.audio.SoundEffectsPlayer>(relaxed = true)
+
         viewModel = RecitationViewModel(
             getCurrentUserUseCase = getCurrentUserUseCase,
             getActiveTargetUseCase = getActiveTargetUseCase,
             getSessionsForUserUseCase = getSessionsForUserUseCase,
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
-            detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase
+            detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
+            soundEffectsPlayer = soundEffectsPlayer
         )
     }
 
@@ -84,13 +87,16 @@ class RecitationViewModelTest {
         val nullUserUseCase = mockk<GetCurrentUserUseCase>(relaxed = true)
         coEvery { nullUserUseCase() } returns MutableStateFlow(null)
 
+        val soundEffectsPlayer = mockk<com.mantrasiddhi.data.audio.SoundEffectsPlayer>(relaxed = true)
+
         val errorViewModel = RecitationViewModel(
             getCurrentUserUseCase = nullUserUseCase,
             getActiveTargetUseCase = getActiveTargetUseCase,
             getSessionsForUserUseCase = getSessionsForUserUseCase,
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
-            detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase
+            detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
+            soundEffectsPlayer = soundEffectsPlayer
         )
 
         assertTrue(errorViewModel.uiState.value is RecitationUiState.Error)

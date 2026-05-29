@@ -40,7 +40,7 @@ class SpeechRecognitionService @Inject constructor(
     fun startListening(): Flow<SpeechResult> = callbackFlow {
         val mainDispatcher = Dispatchers.Main
         var recognizer: SpeechRecognizer? = null
-        val job = launch(mainDispatcher) {
+        launch(mainDispatcher) {
             if (!SpeechRecognizer.isRecognitionAvailable(context)) {
                 trySend(SpeechResult.Error(-1, "Speech recognition is not available on this device"))
                 close()

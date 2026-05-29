@@ -144,7 +144,6 @@ class DemoDataSeeder @Inject constructor(
         val priyaSessions = mutableListOf<RecitationSessionEntity>()
         for (i in 0 until 20) {
             val score = 0.88 + (Math.random() * 0.10)
-            val correct = score >= 0.85
             val time = now - (i % 7) * dayMs - (i * 45 * 60 * 1000L)
             priyaSessions.add(
                 generateSession(4, if (i % 5 == 0) "PRACTICE" else "NORMAL", score, time, 7500 + (Math.random() * 1000).toLong())

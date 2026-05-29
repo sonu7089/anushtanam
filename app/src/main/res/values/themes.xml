@@ -4,4 +4,9 @@
         <item name="android:statusBarColor">?android:attr/colorBackground</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style name="Theme.MantraSiddhi.Splash" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#FFFF6F00</item> <!-- Deep Saffron -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>
