@@ -88,6 +88,9 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
 
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+
     // Local/Unit Tests
     testImplementation(libs.junit) // Fallback / standard junit4
     testImplementation(libs.junit5.api)

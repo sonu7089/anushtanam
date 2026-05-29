@@ -10,6 +10,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.mantrasiddhi.presentation.navigation.MantraApp
 import com.mantrasiddhi.presentation.theme.MantraSiddhiTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -22,9 +25,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MantraSiddhiTheme {
+            val themeMode by mainViewModel.themeMode.collectAsState(initial = "SYSTEM")
+            val darkTheme = when (themeMode) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> isSystemInDarkTheme()
+            }
+            MantraSiddhiTheme(darkTheme = darkTheme) {
                 MantraApp(mainViewModel = mainViewModel)
             }
         }
     }
 }
+
