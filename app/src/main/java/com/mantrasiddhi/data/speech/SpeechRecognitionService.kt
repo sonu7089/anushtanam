@@ -81,6 +81,17 @@ class SpeechRecognitionService @Inject constructor(
                     // Error 14 is SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
                     // Error 5 is SpeechRecognizer.ERROR_CLIENT (generic connection/binding issues)
                     if (onDevice && (error == 13 || error == 14 || error == 5)) {
+                        if (error == 13 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            try {
+                                val downloadIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+                                }
+                                val triggerRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+                                triggerRecognizer.triggerModelDownload(downloadIntent)
+                            } catch (e: Exception) {
+                                // ignore
+                            }
+                        }
                         launch(mainDispatcher) {
                             try {
                                 rec.destroy()
