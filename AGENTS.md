@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**App Name**: Mantra Siddhi (मंत्र सिद्धि)  
+**App Name**: Anushtanam (अनुष्ठानम्)  
 **Platform**: Android (Kotlin, Jetpack Compose)  
 **Architecture**: MVVM + Clean Architecture  
 **Database**: Room (on-device SQLite)  
@@ -166,7 +166,7 @@ dhiyo yo nah prachodayat
 Every Kotlin file must start with:
 ```kotlin
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.

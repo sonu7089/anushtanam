@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -96,14 +96,14 @@ fun SplashScreenContent(
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Mantra Siddhi",
+                text = "Anushtanam",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "मंत्र सिद्धि",
+                text = "अनुष्ठानम्",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White.copy(alpha = 0.85f)

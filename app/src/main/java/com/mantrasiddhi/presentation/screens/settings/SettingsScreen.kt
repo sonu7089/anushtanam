@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -372,7 +372,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "About Mantra Siddhi",
+                        text = "About Anushtanam",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface

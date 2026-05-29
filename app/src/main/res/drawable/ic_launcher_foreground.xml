@@ -4,7 +4,76 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Background glowing aura (soft golden radiance) -->
     <path
-        android:fillColor="#FF6F00"
-        android:pathData="M54,20C35.2,20 20,35.2 20,54C20,72.8 35.2,88 54,88C72.8,88 88,72.8 88,54C88,35.2 72.8,20 54,20ZM54,80C39.7,80 28,68.3 28,54C28,39.7 39.7,28 54,28C68.3,28 80,39.7 80,54C80,68.3 68.3,80 54,80Z" />
+        android:fillColor="#FFF8E1"
+        android:pathData="M54,54m-44,0a44,44 0,1 1,88 0a44,44 0,1 1,-88 0" />
+
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M54,54m-38,0a38,38 0,1 1,76 0a38,38 0,1 1,-76 0" />
+
+    <!-- Base supportive leaves (magenta/pink) representing the seat of the lotus -->
+    <path
+        android:fillColor="#880E4F"
+        android:pathData="M24,76 C36,84 72,84 84,76 C72,72 36,72 24,76 Z" />
+    <path
+        android:fillColor="#AD1457"
+        android:pathData="M28,78 C38,85 70,85 80,78 C68,75 40,75 28,78 Z" />
+    <path
+        android:fillColor="#D81B60"
+        android:pathData="M34,80 C42,86 66,86 74,80 C64,78 44,78 34,80 Z" />
+
+    <!-- Lotus Petals Layer 1: Bottom Outer Petals (Deep Pink) -->
+    <path
+        android:fillColor="#C2185B"
+        android:pathData="M54,74 C36,74 22,64 16,50 C14,46 18,43 21,45 C29,50 44,62 54,74 Z" />
+    <path
+        android:fillColor="#C2185B"
+        android:pathData="M54,74 C72,74 86,64 92,50 C94,46 90,43 87,45 C79,50 64,62 54,74 Z" />
+
+    <!-- Lotus Petals Layer 2: Side Outer Petals (Vibrant Rose) -->
+    <path
+        android:fillColor="#E91E63"
+        android:pathData="M54,74 C36,68 28,52 26,36 C25,32 29,31 32,33 C39,38 47,56 54,74 Z" />
+    <path
+        android:fillColor="#E91E63"
+        android:pathData="M54,74 C72,68 80,52 82,36 C83,32 79,31 76,33 C69,38 61,56 54,74 Z" />
+
+    <!-- Lotus Petals Layer 3: Inner Side Petals (Warm Orange-Saffron) -->
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M54,74 C44,62 38,44 39,26 C39,22 43,21 46,23 C50,26 52,42 54,74 Z" />
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M54,74 C64,62 70,44 69,26 C69,22 65,21 62,23 C58,26 56,42 54,74 Z" />
+
+    <!-- Lotus Petals Layer 4: Central Main Petal (Golden Orange) -->
+    <path
+        android:fillColor="#FF8F00"
+        android:pathData="M54,74 C47,56 45,36 54,16 C63,36 61,56 54,74 Z" />
+
+    <!-- Lotus Petals Layer 5: Inner Heart Petal (Luminous Flame/Yellow) -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M54,74 C50,60 49,44 54,26 C59,44 58,60 54,74 Z" />
+
+    <!-- Sacred Center Flame / Bindu Glow -->
+    <path
+        android:fillColor="#FFF59D"
+        android:pathData="M54,74 C52,65 51,52 54,36 C57,52 56,65 54,74 Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,74 C53,68 52,58 54,44 C56,58 55,68 54,74 Z" />
+
+    <!-- Spiritual Bindu (Dot) floating at the very top -->
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M54,10m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#FFF59D"
+        android:pathData="M54,10m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0" />
+
 </vector>
