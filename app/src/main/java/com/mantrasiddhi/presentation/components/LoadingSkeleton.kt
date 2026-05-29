@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -31,11 +31,10 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * Shimmer effect modifier that creates a premium loading reflection.
+ * Shimmer effect modifier that creates a premium loading reflection using theme colors.
  */
 fun Modifier.shimmerEffect(): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "shimmer")
@@ -53,9 +52,9 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     )
 
     val shimmerColors = listOf(
-        Color(0xFFE0E0E0),
-        Color(0xFFF5F5F5),
-        Color(0xFFE0E0E0),
+        MaterialTheme.colorScheme.surfaceContainerHigh,
+        MaterialTheme.colorScheme.surfaceContainerLowest,
+        MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 
     val brush = Brush.linearGradient(
@@ -129,7 +128,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
     ) {
         Box(

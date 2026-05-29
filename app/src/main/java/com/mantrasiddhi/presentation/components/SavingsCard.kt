@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -22,11 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,13 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.Savings
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 
 @Composable
 fun SavingsCard(
@@ -56,6 +53,7 @@ fun SavingsCard(
     // Detect changes in unlocked amount to trigger animation
     var prevUnlocked by remember { mutableStateOf(savings.totalUnlocked) }
     val scaleAnim = remember { Animatable(1f) }
+    val extendedColors = LocalExtendedColors.current
 
     LaunchedEffect(savings.totalUnlocked) {
         if (savings.totalUnlocked > prevUnlocked) {
@@ -85,8 +83,8 @@ fun SavingsCard(
                 width = 1.5.dp,
                 brush = Brush.horizontalGradient(
                     listOf(
-                        Color(0xFFFFA000), // Amber/Gold border
-                        Color(0xFFFFD54F)
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.outlineVariant
                     )
                 ),
                 shape = MaterialTheme.shapes.large
@@ -129,15 +127,18 @@ fun SavingsCard(
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
-                                listOf(Color(0xFFFFD54F), Color(0xFFFFB300))
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primaryContainer
+                                )
                             )
                         )
-                        .border(2.dp, Color.White, CircleShape),
+                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "₹",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -188,7 +189,7 @@ fun SavingsCard(
                         text = stringResource(id = R.string.savings_currency_format, savings.totalUnlocked),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50) // Material Green for unlocked success
+                        color = extendedColors.success
                     )
                 }
             }

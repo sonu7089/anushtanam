@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -37,12 +37,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.screens.recitation.RecitationFeedbackState
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 
 @Composable
 fun RecitationFeedbackOverlay(
     feedback: RecitationFeedbackState?,
     modifier: Modifier = Modifier
 ) {
+    val extendedColors = LocalExtendedColors.current
+
     AnimatedVisibility(
         visible = feedback != null,
         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
@@ -52,15 +55,15 @@ fun RecitationFeedbackOverlay(
         if (feedback != null) {
             val styleData = if (feedback.isCorrect) {
                 FeedbackStyle(
-                    backgroundColor = Color(0xFFE8F5E9),
-                    tintColor = Color(0xFF2E7D32),
+                    backgroundColor = extendedColors.successContainer,
+                    tintColor = extendedColors.onSuccessContainer,
                     icon = Icons.Default.CheckCircle,
                     statusText = stringResource(R.string.recitation_correct)
                 )
             } else {
                 FeedbackStyle(
-                    backgroundColor = Color(0xFFFFEBEE),
-                    tintColor = Color(0xFFC62828),
+                    backgroundColor = MaterialTheme.colorScheme.errorContainer,
+                    tintColor = MaterialTheme.colorScheme.onErrorContainer,
                     icon = Icons.Default.Warning,
                     statusText = stringResource(R.string.recitation_try_again)
                 )
