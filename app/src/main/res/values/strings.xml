@@ -26,7 +26,7 @@
     
     <!-- Targets Screen -->
     <string name="targets_title">Target Goals</string>
-    <string name="target_amount_earned">Earned: $%1$.2f</string>
+    <string name="target_amount_earned">Earned: ₹%1$.2f</string>
     <string name="no_active_targets">No active targets at this time.</string>
     
     <!-- Settings Screen -->

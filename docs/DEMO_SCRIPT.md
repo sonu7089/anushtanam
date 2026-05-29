@@ -21,7 +21,7 @@ This script guides you through demonstrating the core capabilities, user stories
    - Select **Arjun** (Individual profile).
 3. **Explore Dashboard**:
    - Point out the clean Material 3 UI tailored in spiritual saffron (`#FFFF6F00`).
-   - Observe Arjun's savings card showing a **Total Saved** of `$10.00` and current progress on his target: `45/108 recitations`.
+   - Observe Arjun's savings card showing a **Total Saved** of `₹10.00` and current progress on his target: `45/108 recitations`.
 4. **View Progress Analytics**:
    - Tap on the **Progress** navigation tab.
    - Point out the visual analytics drawn using Custom Jetpack Compose Canvas:
@@ -51,16 +51,16 @@ This script guides you through demonstrating the core capabilities, user stories
    - View Aarav's statistics: average score of 65% across 12 recitations.
 3. **Set Child Goal / Incentive**:
    - Tap on **Targets** tab.
-   - Tap **Create Target**, select **Aarav**, set target to `108 recitations`, and input an incentive amount of `$5.00`.
+   - Tap **Create Target**, select **Aarav**, set target to `108 recitations`, and input an incentive amount of `₹5.00`.
    - Tap Save. The new target is successfully saved in the local Room database.
 4. **Log in as Aarav (Child)**:
    - Go to settings, tap **Switch Profile**, and select **Aarav** (Child profile).
    - Point out the tailored child view:
      - **No ability to set targets** or view other profiles.
-     - Visible savings displaying his **Locked Savings** ($0.56) which will unlock once the target set by Meera is completed.
+     - Visible savings displaying his **Locked Savings** (₹0.56) which will unlock once the target set by Meera is completed.
 5. **Simulate Completion**:
    - Recite the mantra in Recitation Mode to show progress increments.
-   - Once the target reaches `108/108`, a full-screen **Celebration Overlay** appears, playing the achievement chimes, vibrating the device, and unlocking the `$5.00` savings.
+   - Once the target reaches `108/108`, a full-screen **Celebration Overlay** appears, playing the achievement chimes, vibrating the device, and unlocking the `₹5.00` savings.
 
 ---
 
