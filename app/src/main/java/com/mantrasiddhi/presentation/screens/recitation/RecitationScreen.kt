@@ -1,11 +1,12 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.presentation.screens.recitation
 
+import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,16 +22,23 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.components.MantraButton
+import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.components.RecitationFeedbackOverlay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOverlay
@@ -44,6 +52,25 @@ fun RecitationScreen(
     viewModel: RecitationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var requestMicPermission by remember { mutableStateOf(false) }
+
+    if (requestMicPermission) {
+        PermissionHandler(
+            onPermissionGranted = {
+                requestMicPermission = false
+                viewModel.startRecitation()
+            },
+            onPermissionDenied = {
+                requestMicPermission = false
+            },
+            rationaleContent = { onRequestPermission ->
+                LaunchedEffect(Unit) {
+                    onRequestPermission()
+                }
+            }
+        )
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         when (val state = uiState) {
@@ -88,7 +115,11 @@ fun RecitationScreen(
                                 if (state.isListening) {
                                     viewModel.pauseRecitation()
                                 } else {
-                                    viewModel.startRecitation()
+                                    if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                        viewModel.startRecitation()
+                                    } else {
+                                        requestMicPermission = true
+                                    }
                                 }
                             }
                         }
@@ -121,7 +152,13 @@ fun RecitationScreen(
                         } else {
                             MantraButton(
                                 text = stringResource(R.string.recitation_begin),
-                                onClick = { viewModel.startRecitation() },
+                                onClick = {
+                                    if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                        viewModel.startRecitation()
+                                    } else {
+                                        requestMicPermission = true
+                                    }
+                                },
                                 enabled = state.activeTarget != null,
                                 modifier = Modifier.fillMaxWidth()
                             )

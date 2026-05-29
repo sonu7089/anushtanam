@@ -1,11 +1,12 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.presentation.screens.practice
 
+import android.content.pm.PackageManager
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,16 +34,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.evaluation.WordResult
 import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.components.MantraCard
+import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.screens.practice.components.AudioPlayerBar
 import com.mantrasiddhi.presentation.screens.practice.components.FeedbackBottomSheet
 import com.mantrasiddhi.presentation.screens.practice.components.MantraDisplay
@@ -62,6 +67,26 @@ fun PracticeScreen(
     val sheetState = rememberModalBottomSheetState()
     var selectedWordResult by remember { mutableStateOf<WordResult?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    var requestMicPermission by remember { mutableStateOf(false) }
+
+    if (requestMicPermission) {
+        PermissionHandler(
+            onPermissionGranted = {
+                requestMicPermission = false
+                viewModel.startRecording()
+            },
+            onPermissionDenied = {
+                requestMicPermission = false
+            },
+            rationaleContent = { onRequestPermission ->
+                LaunchedEffect(Unit) {
+                    onRequestPermission()
+                }
+            }
+        )
+    }
 
     if (showBottomSheet && selectedWordResult != null) {
         FeedbackBottomSheet(
@@ -114,7 +139,13 @@ fun PracticeScreen(
                 MicButton(
                     isRecording = false,
                     isProcessing = false,
-                    onClick = { viewModel.startRecording() }
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            viewModel.startRecording()
+                        } else {
+                            requestMicPermission = true
+                        }
+                    }
                 )
             }
             
