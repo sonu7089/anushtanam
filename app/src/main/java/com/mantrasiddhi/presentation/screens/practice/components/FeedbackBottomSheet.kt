@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -34,6 +34,7 @@ fun FeedbackBottomSheet(
     wordResult: WordResult?,
     onDismissRequest: () -> Unit,
     sheetState: SheetState,
+    onReplayClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (wordResult == null) return
@@ -104,6 +105,15 @@ fun FeedbackBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onReplayClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Listen to Reference Pronunciation")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = onDismissRequest,

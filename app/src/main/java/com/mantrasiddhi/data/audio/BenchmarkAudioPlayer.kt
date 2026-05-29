@@ -33,6 +33,7 @@ class BenchmarkAudioPlayer @Inject constructor(
     private var mediaPlayer: MediaPlayer? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var progressJob: Job? = null
+    private var segmentEndMs: Long? = null
 
     private val _isPlaying = MutableStateFlow(false)
 
@@ -59,26 +60,27 @@ class BenchmarkAudioPlayer @Inject constructor(
      * Timestamps mapping the 14 words of the Gayatri Mantra in the benchmark audio.
      */
     val wordTimestamps = listOf(
-        WordTimestamp(0, "om", 1000, 1600),
-        WordTimestamp(1, "bhur", 1600, 2200),
-        WordTimestamp(2, "bhuvah", 2200, 2800),
-        WordTimestamp(3, "svah", 2800, 3500),
-        WordTimestamp(4, "tat", 3800, 4400),
-        WordTimestamp(5, "savitur", 4400, 5000),
-        WordTimestamp(6, "varenyam", 5000, 5800),
-        WordTimestamp(7, "bhargo", 6400, 7100),
-        WordTimestamp(8, "devasya", 7100, 8000),
-        WordTimestamp(9, "dhimahi", 8000, 8900),
-        WordTimestamp(10, "dhiyo", 9400, 10200),
-        WordTimestamp(11, "yo", 10200, 11000),
-        WordTimestamp(12, "nah", 11000, 11800),
-        WordTimestamp(13, "prachodayat", 12200, 15800)
+        WordTimestamp(0, "om", 0, 3340),
+        WordTimestamp(1, "bhur", 3390, 4280),
+        WordTimestamp(2, "bhuvah", 4290, 4720),
+        WordTimestamp(3, "svah", 4840, 5690),
+        WordTimestamp(4, "tat", 6420, 6680),
+        WordTimestamp(5, "savitur", 6690, 7220),
+        WordTimestamp(6, "varenyam", 7230, 9050),
+        WordTimestamp(7, "bhargo", 9400, 10080),
+        WordTimestamp(8, "devasya", 10090, 10900),
+        WordTimestamp(9, "dhimahi", 10910, 11920),
+        WordTimestamp(10, "dhiyo", 12060, 12830),
+        WordTimestamp(11, "yo", 12840, 13050),
+        WordTimestamp(12, "nah", 13200, 13400),
+        WordTimestamp(13, "prachodayat", 13570, 16010)
     )
 
     /**
      * Starts playing the benchmark audio and the progress tracker.
      */
     fun play() {
+        segmentEndMs = null
         if (mediaPlayer == null) {
             try {
                 mediaPlayer = MediaPlayer.create(context, R.raw.gayatri_mantra_benchmark)?.apply {
@@ -99,9 +101,40 @@ class BenchmarkAudioPlayer @Inject constructor(
     }
 
     /**
+     * Plays a segment of the benchmark audio containing the selected word and its adjacent words.
+     */
+    fun playSegment(wordIndex: Int) {
+        val startWordIndex = (wordIndex - 1).coerceAtLeast(0)
+        val endWordIndex = (wordIndex + 1).coerceAtMost(wordTimestamps.size - 1)
+        val startMs = wordTimestamps[startWordIndex].startMs
+        val endMs = wordTimestamps[endWordIndex].endMs
+
+        if (mediaPlayer == null) {
+            try {
+                mediaPlayer = MediaPlayer.create(context, R.raw.gayatri_mantra_benchmark)?.apply {
+                    setOnCompletionListener {
+                        stopProgressTracker()
+                        _isPlaying.value = false
+                        _currentPositionMs.value = 0L
+                        _activeWordIndex.value = null
+                    }
+                }
+            } catch (e: Exception) {
+                // Graceful fallback
+            }
+        }
+        segmentEndMs = endMs
+        mediaPlayer?.seekTo(startMs.toInt())
+        mediaPlayer?.start()
+        _isPlaying.value = true
+        startProgressTracker()
+    }
+
+    /**
      * Pauses the benchmark audio playback.
      */
     fun pause() {
+        segmentEndMs = null
         mediaPlayer?.pause()
         _isPlaying.value = false
         stopProgressTracker()
@@ -111,6 +144,7 @@ class BenchmarkAudioPlayer @Inject constructor(
      * Stops the benchmark audio and resets playback state.
      */
     fun stop() {
+        segmentEndMs = null
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()
@@ -132,6 +166,7 @@ class BenchmarkAudioPlayer @Inject constructor(
      * Releases the MediaPlayer resources. Call this on screen exit.
      */
     fun release() {
+        segmentEndMs = null
         stopProgressTracker()
         mediaPlayer?.release()
         mediaPlayer = null
@@ -147,6 +182,14 @@ class BenchmarkAudioPlayer @Inject constructor(
                 val pos = mediaPlayer?.currentPosition?.toLong() ?: 0L
                 _currentPositionMs.value = pos
                 updateActiveWordIndex(pos)
+                
+                segmentEndMs?.let { endMs ->
+                    if (pos >= endMs) {
+                        pause()
+                        segmentEndMs = null
+                    }
+                }
+                
                 delay(50)
             }
         }

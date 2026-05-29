@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -31,7 +31,7 @@ import com.mantrasiddhi.domain.evaluation.WordResult
 @Composable
 fun WordFeedbackGrid(
     wordResults: List<WordResult>,
-    onWordClick: (WordResult) -> Unit,
+    onWordClick: (WordResult, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     FlowRow(
@@ -39,7 +39,7 @@ fun WordFeedbackGrid(
         horizontalArrangement = Arrangement.Center,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        wordResults.forEach { result ->
+        wordResults.forEachIndexed { index, result ->
             val score = result.score
             val isMissing = result.spokenWord == null
             
@@ -72,7 +72,7 @@ fun WordFeedbackGrid(
                     .clip(RoundedCornerShape(20.dp))
                     .background(backgroundColor)
                     .border(1.dp, borderColor, RoundedCornerShape(20.dp))
-                    .clickable { onWordClick(result) }
+                    .clickable { onWordClick(result, index) }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(

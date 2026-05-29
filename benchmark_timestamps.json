@@ -1,0 +1,86 @@
+[
+  {
+    "wordIndex": 0,
+    "word": "om",
+    "startMs": 0,
+    "endMs": 334
+  },
+  {
+    "wordIndex": 1,
+    "word": "bhur",
+    "startMs": 339,
+    "endMs": 428
+  },
+  {
+    "wordIndex": 2,
+    "word": "bhuvah",
+    "startMs": 429,
+    "endMs": 472
+  },
+  {
+    "wordIndex": 3,
+    "word": "svah",
+    "startMs": 484,
+    "endMs": 569
+  },
+  {
+    "wordIndex": 4,
+    "word": "tat",
+    "startMs": 642,
+    "endMs": 668
+  },
+  {
+    "wordIndex": 5,
+    "word": "savitur",
+    "startMs": 669,
+    "endMs": 722
+  },
+  {
+    "wordIndex": 6,
+    "word": "varenyam",
+    "startMs": 723,
+    "endMs": 905
+  },
+  {
+    "wordIndex": 7,
+    "word": "bhargo",
+    "startMs": 940,
+    "endMs": 1008
+  },
+  {
+    "wordIndex": 8,
+    "word": "devasya",
+    "startMs": 1009,
+    "endMs": 1090
+  },
+  {
+    "wordIndex": 9,
+    "word": "dhimahi",
+    "startMs": 1091,
+    "endMs": 1192
+  },
+  {
+    "wordIndex": 10,
+    "word": "dhiyo",
+    "startMs": 1206,
+    "endMs": 1283
+  },
+  {
+    "wordIndex": 11,
+    "word": "yo",
+    "startMs": 1284,
+    "endMs": 1305
+  },
+  {
+    "wordIndex": 12,
+    "word": "nah",
+    "startMs": 1320,
+    "endMs": 1340
+  },
+  {
+    "wordIndex": 13,
+    "word": "prachodayat",
+    "startMs": 1357,
+    "endMs": 1601
+  }
+]

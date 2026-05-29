@@ -66,6 +66,7 @@ fun PracticeScreen(
 
     val sheetState = rememberModalBottomSheetState()
     var selectedWordResult by remember { mutableStateOf<WordResult?>(null) }
+    var selectedWordIndex by remember { mutableStateOf<Int?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -94,8 +95,14 @@ fun PracticeScreen(
             onDismissRequest = {
                 showBottomSheet = false
                 selectedWordResult = null
+                selectedWordIndex = null
             },
-            sheetState = sheetState
+            sheetState = sheetState,
+            onReplayClick = {
+                selectedWordIndex?.let { index ->
+                    viewModel.playBenchmarkSegment(index)
+                }
+            }
         )
     }
 
@@ -265,9 +272,11 @@ fun PracticeScreen(
 
                 WordFeedbackGrid(
                     wordResults = state.evaluation.wordResults,
-                    onWordClick = { result ->
+                    onWordClick = { result, index ->
                         selectedWordResult = result
+                        selectedWordIndex = index
                         showBottomSheet = true
+                        viewModel.playBenchmarkSegment(index)
                     }
                 )
 

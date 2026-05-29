@@ -79,6 +79,18 @@ class PracticeModeViewModel @Inject constructor(
     }
 
     /**
+     * Plays a segment of the benchmark audio containing the selected word and its adjacent words.
+     */
+    fun playBenchmarkSegment(wordIndex: Int) {
+        soundEffectsPlayer.triggerLightHaptic()
+        // Stop recording if active
+        if (_uiState.value is PracticeUiState.Recording) {
+            stopRecording()
+        }
+        benchmarkAudioPlayer.playSegment(wordIndex)
+    }
+
+    /**
      * Pauses benchmark audio.
      */
     fun pauseBenchmark() {
