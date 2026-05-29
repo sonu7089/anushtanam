@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -37,10 +37,14 @@ object DevanagariTransliterator {
         "ओम" to "om",
         "भूर्भुवः" to "bhur bhuvah",
         "भूर्" to "bhur",
+        "भूर" to "bhur",
         "भुवः" to "bhuvah",
+        "भुवा" to "bhuvah",
         "स्वः" to "svah",
         "स्वहा" to "svah",
+        "स्वाहा" to "svah",
         "तत्सवितुर्वरेण्यं" to "tat savitur varenyam",
+        "तत्सवितुर्वरेंयं" to "tat savitur varenyam",
         "तत्" to "tat",
         "सवितुः" to "savitur",
         "सवितुर्" to "savitur",
@@ -51,7 +55,9 @@ object DevanagariTransliterator {
         "धियो" to "dhiyo",
         "यो" to "yo",
         "नः" to "nah",
-        "प्रचोदयात्" to "prachodayat"
+        "योना" to "yo nah",
+        "प्रचोदयात्" to "prachodayat",
+        "प्रचोदयात" to "prachodayat"
     )
 
     /**

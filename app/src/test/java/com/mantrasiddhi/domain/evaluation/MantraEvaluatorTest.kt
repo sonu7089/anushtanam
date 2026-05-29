@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -171,5 +171,24 @@ class MantraEvaluatorTest {
                 "Test case ${index + 1} failed for input: '$input'. Score: ${evaluation.overallScore}"
             )
         }
+    }
+
+    @Test
+    fun testBenchmarkAudioTranscription() {
+        val hindiInput = "ओम भूर भुवा स्वाहा तत्सवितुर्वरेंयं भर्गो देवस्य धीमहि धियो योना प्रचोदयात"
+        val normalized = TextNormalizer.normalize(hindiInput)
+        val evaluation = MantraEvaluator.evaluate(hindiInput, 14000L)
+        println("=== BENCHMARK TRANSCRIPTION EVALUATION ===")
+        println("Raw Hindi: $hindiInput")
+        println("Normalized/Transliterated: $normalized")
+        println("Overall Score: ${evaluation.overallScore}")
+        println("Is Correct: ${evaluation.isCorrect}")
+        println("Missing Words: ${evaluation.missingWords}")
+        println("Extra Words: ${evaluation.extraWords}")
+        println("Word Results:")
+        evaluation.wordResults.forEach { wordRes ->
+            println("  - Ref: ${wordRes.referenceWord} | Spoken: ${wordRes.spokenWord} | Score: ${wordRes.score} | Feedback: ${wordRes.feedback}")
+        }
+        println("==========================================")
     }
 }

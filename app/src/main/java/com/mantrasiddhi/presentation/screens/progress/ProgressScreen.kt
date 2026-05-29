@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -248,7 +248,8 @@ private fun OverviewTab(state: ProgressUiState.Success) {
 
         SessionHistoryList(
             sessions = state.sessions.take(3),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isScrollable = false
         )
         
         Spacer(modifier = Modifier.height(16.dp))

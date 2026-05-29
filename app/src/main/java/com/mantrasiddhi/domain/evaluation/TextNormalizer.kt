@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -43,8 +43,17 @@ object TextNormalizer {
 
         if (cleanWhitespace.isEmpty()) return ""
 
-        // 6. Apply phonetic equivalence mapping word-by-word
-        val words = cleanWhitespace.split(" ")
+        // 6. Handle common joined/compound words in English/Latin script transliteration
+        val preprocessed = cleanWhitespace
+            .replace("tatsaviturvarenyam", "tat savitur varenyam")
+            .replace("tatsaviturvarenyan", "tat savitur varenyam")
+            .replace("tatsaviturvareंyam", "tat savitur varenyam")
+            .replace("tatsaviturvanyan", "tat savitur varenyam")
+            .replace("yona", "yo nah")
+            .replace("yonah", "yo nah")
+
+        // 7. Apply phonetic equivalence mapping word-by-word
+        val words = preprocessed.split(" ")
         val normalizedWords = words.map { word ->
             PhoneticMap.getCanonical(word)
         }

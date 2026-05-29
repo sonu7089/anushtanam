@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -45,7 +45,8 @@ import java.util.Locale
 @Composable
 fun SessionHistoryList(
     sessions: List<RecitationSession>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isScrollable: Boolean = true
 ) {
     if (sessions.isEmpty()) {
         Box(
@@ -63,12 +64,22 @@ fun SessionHistoryList(
         return
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        items(sessions) { session ->
-            SessionHistoryItem(session = session)
+    if (isScrollable) {
+        LazyColumn(
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(sessions) { session ->
+                SessionHistoryItem(session = session)
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier.fillMaxWidth()
+        ) {
+            sessions.forEach { session ->
+                SessionHistoryItem(session = session)
+            }
         }
     }
 }
