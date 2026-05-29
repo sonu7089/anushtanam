@@ -26,27 +26,27 @@
 10. "Try Again" button to re-record
 
 ### Tasks
-- [ ] Create `PracticeScreen` composable with sections:
+- [x] Create `PracticeScreen` composable with sections:
   - Mantra display (Devanagari + transliteration, toggleable)
   - Benchmark audio player with play/pause button + progress bar
   - Mic button (animated pulse when recording)
   - Results panel (word grid with color coding)
   - Feedback detail bottom sheet (per-word tips)
   - Overall score with animated counter
-- [ ] Create `PracticeModeViewModel`:
+- [x] Create `PracticeModeViewModel`:
   - States: Idle → Listening → Processing → ShowingResults
   - Manages `SpeechRecognitionService` lifecycle
   - Calls `EvaluateRecitationUseCase`
   - Exposes `MantraEvaluation` as UI state
-- [ ] Animated mic button:
+- [x] Animated mic button:
   - Idle: static mic icon
   - Listening: pulsing rings animation + waveform visualization
   - Processing: spinning indicator
-- [ ] Word feedback grid:
+- [x] Word feedback grid:
   - Each word rendered in a rounded chip
   - Color-coded by score
   - Tap to expand feedback
-- [ ] Benchmark audio integration:
+- [x] Benchmark audio integration:
   - Play/pause toggle
   - Word-by-word highlight during playback
 
@@ -83,24 +83,24 @@
 10. On target completion → celebration animation + money unlocked message
 
 ### Tasks
-- [ ] Create `RecitationScreen` composable:
+- [x] Create `RecitationScreen` composable:
   - Target progress header (circular progress + count)
   - Money locked display
   - Large central mic button
   - Live counter with animation
   - Recent recitation feed (last 5: ✅/❌ with timestamp)
   - Pause/Stop controls
-- [ ] Create `RecitationViewModel`:
+- [x] Create `RecitationViewModel`:
   - States: Idle → Active → Paused → GoalReached
   - Continuous listening mode: auto-restart STT after each result
   - Calls `EvaluateRecitationUseCase` for each detected recitation
   - Calls `IncrementTargetUseCase` on correct recitation
   - Handles edge cases: no active target, target already completed
-- [ ] **Recitation boundary detection**:
+- [x] **Recitation boundary detection**:
   - Detect end of mantra via silence gap (>2 seconds) OR
   - Detect word "prachodayat" (last word) as boundary signal
   - Buffer partial results until boundary detected
-- [ ] **Continuous mode state machine**:
+- [x] **Continuous mode state machine**:
   ```
   IDLE → (start) → LISTENING → (speech detected) → ACCUMULATING
        → (boundary detected) → EVALUATING → (result) → FEEDBACK
@@ -108,7 +108,7 @@
        → (pause pressed) → PAUSED → (resume) → LISTENING
        → (stop pressed) → IDLE
   ```
-- [ ] Celebration animation on goal reached:
+- [x] Celebration animation on goal reached:
   - Confetti particles
   - "🎉 Goal Reached!" message
   - "₹500 unlocked!" with money animation
@@ -136,13 +136,13 @@
 ## 3.3 Real-Time Feedback Overlay (Both Modes)
 
 ### Tasks
-- [ ] Create `RecitationFeedbackOverlay` — shared component:
+- [x] Create `RecitationFeedbackOverlay` — shared component:
   - Brief inline feedback after each recitation
   - Shows: ✅ Correct / ❌ Try again
   - Quick tip for worst-scoring word
   - Auto-dismisses after 2 seconds in normal mode
   - Persists until dismissed in practice mode
-- [ ] Create `ImprovementSuggestionEngine`:
+- [x] Create `ImprovementSuggestionEngine`:
   - Analyzes patterns across multiple sessions
   - Identifies consistently mispronounced words
   - Generates targeted practice suggestions:

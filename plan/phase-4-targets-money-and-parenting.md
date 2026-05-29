@@ -16,16 +16,16 @@
 - View completed target history
 
 ### Tasks
-- [ ] Create `TargetsScreen`:
+- [x] Create `TargetsScreen`:
   - Active target card with circular progress, count, money
   - "Set New Target" button (disabled if active target exists)
   - Completed targets history list
-- [ ] Create `SetTargetDialog`:
+- [x] Create `SetTargetDialog`:
   - Preset options: 108 (Quick), 1008 (Standard), 10008 (Advanced), Custom
   - Money input field with virtual currency (₹ symbol, demo values)
   - For Parent: child selector dropdown
   - Confirmation with summary
-- [ ] Create `TargetsViewModel`:
+- [x] Create `TargetsViewModel`:
   - `GetActiveTargetUseCase`
   - `CreateTargetUseCase` — validates no duplicate active target
   - `GetCompletedTargetsUseCase`
@@ -53,7 +53,7 @@
 ## 4.2 Virtual Money / Savings System
 
 ### Tasks
-- [ ] Create `SavingsEntity` in Room:
+- [x] Create `SavingsEntity` in Room:
   ```kotlin
   @Entity(tableName = "savings")
   data class SavingsEntity(
@@ -63,15 +63,15 @@
       val totalUnlocked: Double = 0.0
   )
   ```
-- [ ] Money flow:
+- [x] Money flow:
   1. User sets target with ₹500 → `totalLocked += 500`
   2. User completes target → `totalLocked -= 500`, `totalUnlocked += 500`, `totalSaved += 500`
   3. If target abandoned → `totalLocked -= 500` (money returned, not saved)
-- [ ] Create `SavingsCard` component:
+- [x] Create `SavingsCard` component:
   - Shows total saved, currently locked, unlocked
   - Animated coin counter on unlock
-- [ ] Create `SavingsRepository` and `UpdateSavingsUseCase`
-- [ ] Add savings card to Home screen
+- [x] Create `SavingsRepository` and `UpdateSavingsUseCase`
+- [x] Add savings card to Home screen
 
 ### Deliverables
 - `data/local/entity/SavingsEntity.kt`
@@ -91,19 +91,19 @@
 ## 4.3 Parent-Child Dashboard
 
 ### Tasks
-- [ ] Create `ChildProgressScreen`:
+- [x] Create `ChildProgressScreen`:
   - Shows list of children (for parent profile)
   - Each child card: name, avatar, active target progress, total recitations, savings
   - Tap child → detailed view
-- [ ] Create `ChildDetailScreen`:
+- [x] Create `ChildDetailScreen`:
   - Full recitation history (sessions list)
   - Progress chart (daily recitation count)
   - Current target status
   - Set new target button
   - Improvement areas (words child struggles with most)
-- [ ] Create `GetChildProgressUseCase`:
+- [x] Create `GetChildProgressUseCase`:
   - Aggregates recitation sessions, target status, and savings for a child
-- [ ] Create `GetChildWeakWordsUseCase`:
+- [x] Create `GetChildWeakWordsUseCase`:
   - Analyzes all of child's sessions
   - Returns top 3 words with lowest average scores
 
@@ -128,14 +128,14 @@
 ## 4.4 Home Screen — Complete
 
 ### Tasks
-- [ ] Update `HomeScreen` with real data (replace Phase 1 placeholders):
+- [x] Update `HomeScreen` with real data (replace Phase 1 placeholders):
   - Greeting with time-of-day context ("Good Morning, Meera 🙏")
   - Today's stats: recitations today, streak days
   - Active target progress ring
   - Savings summary card
   - Quick actions: Start Recitation, Practice Mode
   - For Parent: children summary cards
-- [ ] Create `HomeViewModel` with aggregation use cases
+- [x] Create `HomeViewModel` with aggregation use cases
 
 ### Deliverables
 - Updated `presentation/screens/home/HomeScreen.kt`
