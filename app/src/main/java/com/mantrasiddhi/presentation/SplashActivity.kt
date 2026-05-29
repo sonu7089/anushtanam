@@ -32,6 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.presentation.components.LotusIllustration
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
+import com.mantrasiddhi.presentation.theme.AnushtanamTheme
+import com.mantrasiddhi.presentation.theme.EmphasizedDecelerateEasing
 import kotlinx.coroutines.delay
 
 /**
@@ -40,14 +44,17 @@ import kotlinx.coroutines.delay
 class SplashActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            SplashScreenContent(
-                onTimeout = {
-                    startActivity(Intent(this@SplashActivity, MainActivity::class.java))
-                    finish()
-                }
-            )
+            AnushtanamTheme {
+                SplashScreenContent(
+                    onTimeout = {
+                        startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                        finish()
+                    }
+                )
+            }
         }
     }
 }
@@ -66,7 +73,8 @@ fun SplashScreenContent(
         scale.animateTo(
             targetValue = 1.0f,
             animationSpec = tween(
-                durationMillis = 800
+                durationMillis = 800,
+                easing = EmphasizedDecelerateEasing
             )
         )
         delay(1000)
@@ -79,9 +87,8 @@ fun SplashScreenContent(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFF6F00), // Deep Saffron
-                        Color(0xFFFF8F00), // Saffron Orange
-                        Color(0xFFFFB300)  // Saffron Gold
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
                     )
                 )
             ),
@@ -99,14 +106,14 @@ fun SplashScreenContent(
                 text = "Anushtanam",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "अनुष्ठानम्",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.85f)
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
             )
         }
     }

@@ -36,12 +36,15 @@ import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.presentation.components.MantraCard
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 
 @Composable
 fun RecitationFeed(
     sessions: List<RecitationSession>,
     modifier: Modifier = Modifier
 ) {
+    val extendedColors = LocalExtendedColors.current
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -61,7 +64,7 @@ fun RecitationFeed(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No recent recitations in this session.",
+                        text = stringResource(R.string.recitation_feed_no_sessions),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -75,8 +78,16 @@ fun RecitationFeed(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        val iconBg = if (session.isCorrect) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                        val iconTint = if (session.isCorrect) Color(0xFF2E7D32) else Color(0xFFC62828)
+                        val iconBg = if (session.isCorrect) {
+                            extendedColors.successContainer.copy(alpha = 0.2f)
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                        }
+                        val iconTint = if (session.isCorrect) {
+                            extendedColors.success
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
                         val icon = if (session.isCorrect) Icons.Default.Check else Icons.Default.Close
 
                         Box(
@@ -98,7 +109,7 @@ fun RecitationFeed(
                             modifier = Modifier.weight(1f)
                         ) {
                             val displayText = if (session.transcription.isBlank()) {
-                                "[Silence]"
+                                stringResource(R.string.recitation_feed_silence)
                             } else {
                                 "\"${session.transcription}\""
                             }

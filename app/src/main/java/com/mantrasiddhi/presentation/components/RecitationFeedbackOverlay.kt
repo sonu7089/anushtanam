@@ -103,7 +103,7 @@ fun RecitationFeedbackOverlay(
                                 color = styleData.tintColor
                             )
                             Text(
-                                text = "${(feedback.overallScore * 100).toInt()}% Accuracy",
+                                text = stringResource(R.string.recitation_feedback_accuracy_format, (feedback.overallScore * 100).toInt()),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = styleData.tintColor
@@ -113,7 +113,7 @@ fun RecitationFeedbackOverlay(
                         if (!feedback.isCorrect && feedback.worstWord != null && feedback.suggestion != null) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Focus on \"${feedback.worstWord}\": ${feedback.suggestion}",
+                                text = stringResource(R.string.recitation_feedback_focus_format, feedback.worstWord, feedback.suggestion),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )

@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -29,9 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mantrasiddhi.R
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.usecase.WordMastery
 
 /**
@@ -44,6 +47,7 @@ fun WordMasteryGrid(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        val extendedColors = LocalExtendedColors.current
         // Color Legend
         Row(
             modifier = Modifier
@@ -51,9 +55,9 @@ fun WordMasteryGrid(
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            LegendItem(label = "Mastered (≥85%)", color = Color(0xFF4CAF50))
-            LegendItem(label = "Learning (70-85%)", color = Color(0xFFFF9800))
-            LegendItem(label = "Focus (<70%)", color = Color(0xFFE53935))
+            LegendItem(label = stringResource(R.string.progress_legend_mastered), color = extendedColors.success)
+            LegendItem(label = stringResource(R.string.progress_legend_learning), color = extendedColors.warning)
+            LegendItem(label = stringResource(R.string.progress_legend_focus), color = MaterialTheme.colorScheme.error)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -121,31 +125,33 @@ private fun LegendItem(label: String, color: Color) {
     }
 }
 
+@Composable
 private fun getMasteryColors(score: Double, attempts: Int): Triple<Color, Color, Color> {
+    val extendedColors = LocalExtendedColors.current
     if (attempts == 0) {
-        // Default grey state
+        // Default surfaceVariant state
         return Triple(
-            Color(0xFFF5F5F5),
-            Color(0xFF757575),
-            Color(0xFFE0E0E0)
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            MaterialTheme.colorScheme.outline
         )
     }
 
     return when {
         score >= 0.85 -> Triple(
-            Color(0xFFE8F5E9), // Light green background
-            Color(0xFF2E7D32), // Dark green text
-            Color(0xFFA5D6A7)  // Medium green border
+            extendedColors.successContainer.copy(alpha = 0.2f),
+            extendedColors.success,
+            extendedColors.success.copy(alpha = 0.4f)
         )
         score >= 0.70 -> Triple(
-            Color(0xFFFFF3E0), // Light orange background
-            Color(0xFFE65100), // Dark orange text
-            Color(0xFFFFCC80)  // Medium orange border
+            extendedColors.warningContainer.copy(alpha = 0.2f),
+            extendedColors.warning,
+            extendedColors.warning.copy(alpha = 0.4f)
         )
         else -> Triple(
-            Color(0xFFFFEBEE), // Light red background
-            Color(0xFFC62828), // Dark red text
-            Color(0xFFEF9A9A)  // Medium red border
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+            MaterialTheme.colorScheme.error,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
         )
     }
 }

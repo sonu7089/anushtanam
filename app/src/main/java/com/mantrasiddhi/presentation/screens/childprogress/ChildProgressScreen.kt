@@ -28,7 +28,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,11 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.model.ChildProgress
 import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.components.MantraCard
@@ -60,11 +65,13 @@ import com.mantrasiddhi.presentation.screens.childprogress.components.ProgressCh
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 import com.mantrasiddhi.presentation.screens.targets.components.TargetCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChildProgressScreen(
     modifier: Modifier = Modifier,
     viewModel: ChildProgressViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val detailUiState by viewModel.detailUiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -76,16 +83,27 @@ fun ChildProgressScreen(
             when (event) {
                 is ChildProgressEvent.TargetSetSuccess -> {
                     showSetTargetDialog = false
-                    snackbarHostState.showSnackbar("Target set successfully for child!")
+                    snackbarHostState.showSnackbar(context.getString(R.string.child_target_set_success))
                 }
                 is ChildProgressEvent.ShowError -> {
-                    snackbarHostState.showSnackbar("Error: ${event.message}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.child_error_format, event.message))
                 }
             }
         }
     }
     
     Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.children_progress_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
@@ -117,22 +135,13 @@ fun ChildProgressScreen(
                             .fillMaxSize()
                             .padding(16.dp)
                     ) {
-                        Text(
-                            text = stringResource(id = R.string.children_progress_title),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         if (state.childrenProgress.isEmpty()) {
                             Box(
                                 modifier = Modifier.weight(1f),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "No child profiles associated with this account.",
+                                    text = stringResource(id = R.string.child_no_profiles),
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     style = MaterialTheme.typography.bodyLarge
                                 )
@@ -187,7 +196,7 @@ fun ChildProgressScreen(
                                 Text(text = detailState.message, color = MaterialTheme.colorScheme.error)
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(onClick = { viewModel.clearSelectedChild() }) {
-                                    Text(text = "Go Back")
+                                    Text(text = stringResource(id = R.string.child_button_go_back))
                                 }
                             }
                         }
@@ -218,6 +227,7 @@ fun ChildProgressScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChildDetailView(
     childProgress: ChildProgress,
@@ -226,37 +236,33 @@ fun ChildDetailView(
     onSetTargetClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Custom Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(id = R.string.child_details_title, childProgress.child.name),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+    val extendedColors = LocalExtendedColors.current
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.child_details_title, childProgress.child.name),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = stringResource(id = R.string.child_desc_back)
+                        )
+                    }
+                }
             )
         }
-        
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -270,7 +276,7 @@ fun ChildDetailView(
             // Active Target Card
             item {
                 Text(
-                    text = "Active Target Status",
+                    text = stringResource(id = R.string.child_active_target_status),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -294,13 +300,13 @@ fun ChildDetailView(
                                 .padding(vertical = 16.dp)
                         ) {
                             Text(
-                                text = "No active target is set for ${childProgress.child.name}.",
+                                text = stringResource(id = R.string.child_no_active_target, childProgress.child.name),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             MantraButton(
-                                text = "Set Target",
+                                text = stringResource(id = R.string.child_set_target),
                                 onClick = onSetTargetClick,
                                 modifier = Modifier.fillMaxWidth(0.7f)
                             )
@@ -329,14 +335,14 @@ fun ChildDetailView(
                         Row(verticalAlignment = Alignment.Top) {
                             Icon(
                                 imageVector = Icons.Default.Warning,
-                                contentDescription = "Improvement area",
+                                contentDescription = stringResource(id = R.string.child_desc_improvement_area),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Below is the list of top 3 words ${childProgress.child.name} struggles to pronounce accurately:",
+                                    text = stringResource(id = R.string.child_struggle_words_desc, childProgress.child.name),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -360,7 +366,7 @@ fun ChildDetailView(
                         Text(
                             text = stringResource(id = R.string.child_no_weak_words),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF4CAF50), // Green for success
+                            color = extendedColors.success,
                             fontWeight = FontWeight.SemiBold
                         )
                     }

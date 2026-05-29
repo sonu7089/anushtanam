@@ -82,7 +82,7 @@ fun LoginScreen(
             )
             Text(
                 text = "अनुष्ठानम्",
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,

@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.mantrasiddhi.R
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import java.text.SimpleDateFormat
@@ -55,7 +58,7 @@ fun SessionHistoryList(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No sessions recorded yet.",
+                text = stringResource(R.string.progress_no_sessions),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -85,17 +88,22 @@ fun SessionHistoryList(
 
 @Composable
 private fun SessionHistoryItem(session: RecitationSession) {
+    val extendedColors = LocalExtendedColors.current
     val scorePercent = (session.overallScore * 100).toInt()
     val badgeColor = when {
-        session.isCorrect -> Color(0xFF4CAF50) // Green
-        session.overallScore >= 0.70 -> Color(0xFFFF9800) // Amber
-        else -> Color(0xFFE53935) // Red
+        session.isCorrect -> extendedColors.success
+        session.overallScore >= 0.70 -> extendedColors.warning
+        else -> MaterialTheme.colorScheme.error
     }
 
     val dateFormat = SimpleDateFormat("MMM dd, yyyy · hh:mm a", Locale.getDefault())
     val formattedDate = dateFormat.format(Date(session.createdAt))
 
-    val modeLabel = if (session.mode == RecitationMode.PRACTICE) "Practice" else "Recitation"
+    val modeLabel = if (session.mode == RecitationMode.PRACTICE) {
+        stringResource(R.string.progress_mode_practice)
+    } else {
+        stringResource(R.string.progress_mode_recitation)
+    }
     val modeColor = if (session.mode == RecitationMode.PRACTICE) {
         MaterialTheme.colorScheme.secondary
     } else {
@@ -150,14 +158,14 @@ private fun SessionHistoryItem(session: RecitationSession) {
                         Box(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.extraSmall)
-                                .background(Color(0xFFE8F5E9))
+                                .background(extendedColors.successContainer.copy(alpha = 0.2f))
                                 .padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = "Correct",
+                                text = stringResource(R.string.progress_correct_badge),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E7D32)
+                                color = extendedColors.success
                             )
                         }
                     }

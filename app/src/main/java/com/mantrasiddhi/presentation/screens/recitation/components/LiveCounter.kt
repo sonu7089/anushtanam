@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.components.MantraCard
 
 @Composable
@@ -34,7 +36,7 @@ fun LiveCounter(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Session Recitations",
+                text = stringResource(R.string.recitation_session_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -52,7 +54,11 @@ fun LiveCounter(
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            val statusText = if (isListening) "Listening hands-free..." else "Recitation paused"
+            val statusText = if (isListening) {
+                stringResource(R.string.recitation_status_listening)
+            } else {
+                stringResource(R.string.recitation_status_paused)
+            }
             val statusColor = if (isListening) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             
             Text(

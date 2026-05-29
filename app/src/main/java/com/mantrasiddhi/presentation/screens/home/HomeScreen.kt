@@ -20,9 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import com.mantrasiddhi.presentation.components.ProgressRing
 import com.mantrasiddhi.presentation.components.SavingsCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -50,67 +54,69 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        when (val state = uiState) {
-            is HomeUiState.Loading -> {
+    when (val state = uiState) {
+        is HomeUiState.Loading -> {
+            Surface(
+                modifier = modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            is HomeUiState.Success -> {
+        }
+        is HomeUiState.Success -> {
+            Scaffold(
+                modifier = modifier,
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = stringResource(id = R.string.home_greeting, state.user.name),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        actions = {
+                            ProfileAvatar(
+                                avatarIndex = state.user.avatarIndex,
+                                name = state.user.name,
+                                size = 36.dp,
+                                modifier = Modifier.padding(end = 16.dp)
+                            )
+                        }
+                    )
+                }
+            ) { innerPadding ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Top Greeting Section with Streak
+                    // Sub-header greeting & Streak
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(id = R.string.home_greeting, state.user.name),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                Text(
-                                    text = "Have a blessed day",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                                )
-                                if (state.streakDays > 0) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "• 🔥 ${state.streakDays} Day Streak",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        ProfileAvatar(
-                            avatarIndex = state.user.avatarIndex,
-                            name = state.user.name,
-                            size = 56.dp
+                        Text(
+                            text = stringResource(id = R.string.home_blessed_day),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
+                        if (state.streakDays > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(id = R.string.home_streak, state.streakDays),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Savings summary card (if savings exist)
                     state.savings?.let {
@@ -134,7 +140,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "${state.todayCount} Successful Recitations",
+                                    text = stringResource(id = R.string.home_successful_recitations, state.todayCount),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
@@ -151,6 +157,7 @@ fun HomeScreen(
                                 ) {
                                     Text(
                                         text = state.todayCount.toString(),
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -188,7 +195,7 @@ fun HomeScreen(
                                         strokeWidth = 8.dp
                                     ) {
                                         Text(
-                                            text = "${(target.progress * 100).toInt()}%",
+                                            text = stringResource(id = R.string.targets_percent_format, (target.progress * 100).toInt()),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -249,7 +256,7 @@ fun HomeScreen(
 
                     // Quick Action Buttons
                     Text(
-                        text = "Quick Actions",
+                        text = stringResource(id = R.string.home_quick_actions),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -270,9 +277,16 @@ fun HomeScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
-            is HomeUiState.Error -> {
+        }
+        is HomeUiState.Error -> {
+            Surface(
+                modifier = modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = state.message,

@@ -28,6 +28,8 @@ import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.evaluation.ImprovementSuggestionEngine
 import com.mantrasiddhi.domain.evaluation.WordResult
 
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedbackBottomSheet(
@@ -38,6 +40,8 @@ fun FeedbackBottomSheet(
     modifier: Modifier = Modifier
 ) {
     if (wordResult == null) return
+
+    val extendedColors = LocalExtendedColors.current
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -70,9 +74,9 @@ fun FeedbackBottomSheet(
 
             val scorePercentage = (wordResult.score * 100).toInt()
             val scoreColor = when {
-                wordResult.score >= 0.85f -> Color(0xFF2E7D32)
-                wordResult.score >= 0.50f -> Color(0xFFE65100)
-                else -> Color(0xFFC62828)
+                wordResult.score >= 0.85f -> extendedColors.success
+                wordResult.score >= 0.50f -> extendedColors.warning
+                else -> MaterialTheme.colorScheme.error
             }
 
             Text(
@@ -110,7 +114,7 @@ fun FeedbackBottomSheet(
                 onClick = onReplayClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Listen to Reference Pronunciation")
+                Text(stringResource(R.string.practice_listen_reference))
             }
 
             Spacer(modifier = Modifier.height(8.dp))

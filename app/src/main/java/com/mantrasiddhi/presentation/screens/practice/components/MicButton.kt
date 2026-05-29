@@ -102,7 +102,7 @@ fun MicButton(
         // Inner Mic Button
         val buttonGradient = Brush.verticalGradient(
             if (isRecording) {
-                listOf(Color(0xFFE53935), Color(0xFFC62828)) // Recording red
+                listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer)
             } else {
                 listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
             }

@@ -72,7 +72,7 @@ fun MantraDisplay(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Gayatri Mantra",
+                text = stringResource(R.string.gayatri_mantra),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

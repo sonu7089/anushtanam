@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,6 +62,7 @@ fun SetTargetDialog(
     onConfirm: (count: Int, moneyAmount: Double, targetUserId: Long?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var selectedUserId by remember { mutableStateOf<Long?>(currentUser.id) }
     var selectedPresetCount by remember { mutableStateOf(108) }
     var isCustomCount by remember { mutableStateOf(false) }
@@ -121,7 +123,7 @@ fun SetTargetDialog(
                 
                 // Recitation count configuration
                 Text(
-                    text = "Recitation Count",
+                    text = stringResource(id = R.string.target_dialog_recitation_count),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -182,7 +184,7 @@ fun SetTargetDialog(
                                 customCountString = it
                             }
                         },
-                        label = "Custom Count Amount",
+                        label = stringResource(id = R.string.target_dialog_custom_count_label),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -201,7 +203,7 @@ fun SetTargetDialog(
                             moneyAmountString = it
                         }
                     },
-                    label = "Reward Amount (₹)",
+                    label = stringResource(id = R.string.target_dialog_reward_amount_label),
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -226,11 +228,11 @@ fun SetTargetDialog(
                     val finalMoney = moneyAmountString.toDoubleOrNull() ?: 0.0
                     
                     if (finalCount <= 0) {
-                        errorMsg = "Please enter a valid count greater than 0"
+                        errorMsg = context.getString(R.string.target_dialog_error_invalid_count)
                         return@Button
                     }
                     if (finalMoney < 0.0) {
-                        errorMsg = "Money amount cannot be negative"
+                        errorMsg = context.getString(R.string.target_dialog_error_negative_money)
                         return@Button
                     }
                     

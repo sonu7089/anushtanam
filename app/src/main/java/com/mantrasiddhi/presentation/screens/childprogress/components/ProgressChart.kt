@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,12 +32,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.presentation.components.MantraCard
+import com.mantrasiddhi.presentation.theme.ChartBarShape
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -89,7 +91,7 @@ fun ProgressChart(
     MantraCard(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(8.dp)) {
             Text(
-                text = "Recitation Activity (Last 7 Days)",
+                text = stringResource(id = R.string.progress_chart_recitations_per_day),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -141,7 +143,7 @@ fun ProgressChart(
                             modifier = Modifier
                                 .width(18.dp)
                                 .fillMaxHeight(fraction = animatedProgress.coerceIn(0.01f, 1f))
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                .clip(ChartBarShape)
                                 .background(
                                     if (count > 0) {
                                         gradient

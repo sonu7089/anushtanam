@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -28,6 +30,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +49,7 @@ import com.mantrasiddhi.presentation.screens.targets.components.CompletedTargetI
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 import com.mantrasiddhi.presentation.screens.targets.components.TargetCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TargetsScreen(
     modifier: Modifier = Modifier,
@@ -53,6 +57,7 @@ fun TargetsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     
     var showSetDialog by remember { mutableStateOf(false) }
     var targetToAbandonUserId by remember { mutableStateOf<Long?>(null) }
@@ -62,14 +67,14 @@ fun TargetsScreen(
             when (event) {
                 is TargetsEvent.TargetCreated -> {
                     showSetDialog = false
-                    snackbarHostState.showSnackbar("Target set successfully!")
+                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_set_success))
                 }
                 is TargetsEvent.TargetAbandoned -> {
                     targetToAbandonUserId = null
-                    snackbarHostState.showSnackbar("Target abandoned. Locked money returned.")
+                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_abandoned))
                 }
                 is TargetsEvent.ShowError -> {
-                    snackbarHostState.showSnackbar("Error: ${event.message}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_error, event.message))
                 }
             }
         }
@@ -77,6 +82,17 @@ fun TargetsScreen(
     
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.targets_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            )
+        },
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
         Box(
@@ -104,19 +120,10 @@ fun TargetsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        item {
-                            Text(
-                                text = stringResource(id = R.string.targets_title),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        
                         // Active Target display
                         item {
                             Text(
-                                text = "Active Target",
+                                text = stringResource(id = R.string.home_active_target),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -191,7 +198,7 @@ fun TargetsScreen(
                         
                         AlertDialog(
                             onDismissRequest = { targetToAbandonUserId = null },
-                            title = { Text(text = "Abandon Target") },
+                            title = { Text(text = stringResource(id = R.string.targets_abandon_dialog_title)) },
                             text = { 
                                 Text(
                                     text = stringResource(
@@ -204,12 +211,12 @@ fun TargetsScreen(
                                 TextButton(
                                     onClick = { viewModel.abandonTarget(targetToAbandonUserId) }
                                 ) {
-                                    Text(text = "Abandon", color = MaterialTheme.colorScheme.error)
+                                    Text(text = stringResource(id = R.string.targets_abandon_confirm_btn), color = MaterialTheme.colorScheme.error)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { targetToAbandonUserId = null }) {
-                                    Text(text = "Cancel")
+                                    Text(text = stringResource(id = R.string.targets_abandon_cancel_btn))
                                 }
                             }
                         )

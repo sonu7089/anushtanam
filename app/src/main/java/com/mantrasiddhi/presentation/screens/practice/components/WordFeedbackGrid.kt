@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.domain.evaluation.WordResult
 
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WordFeedbackGrid(
@@ -34,6 +36,11 @@ fun WordFeedbackGrid(
     onWordClick: (WordResult, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val extendedColors = LocalExtendedColors.current
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val errorColor = MaterialTheme.colorScheme.error
+    val errorContainerColor = MaterialTheme.colorScheme.errorContainer
+
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -45,24 +52,24 @@ fun WordFeedbackGrid(
             
             val (backgroundColor, textColor, borderColor) = when {
                 isMissing -> Triple(
-                    Color.Gray.copy(alpha = 0.1f),
-                    Color.Gray,
-                    Color.Gray.copy(alpha = 0.3f)
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f),
+                    outlineColor,
+                    outlineColor.copy(alpha = 0.3f)
                 )
                 score >= 0.85f -> Triple(
-                    Color(0xFFE8F5E9), // Light Green
-                    Color(0xFF2E7D32), // Dark Green
-                    Color(0xFF81C784)
+                    extendedColors.successContainer.copy(alpha = 0.15f),
+                    extendedColors.success,
+                    extendedColors.success.copy(alpha = 0.3f)
                 )
                 score >= 0.50f -> Triple(
-                    Color(0xFFFFFDE7), // Light Yellow/Gold
-                    Color(0xFFE65100), // Orange-Gold
-                    Color(0xFFFFD54F)
+                    extendedColors.warningContainer.copy(alpha = 0.15f),
+                    extendedColors.warning,
+                    extendedColors.warning.copy(alpha = 0.3f)
                 )
                 else -> Triple(
-                    Color(0xFFFFEBEE), // Light Red
-                    Color(0xFFC62828), // Dark Red
-                    Color(0xFFE57373)
+                    errorContainerColor.copy(alpha = 0.15f),
+                    errorColor,
+                    errorColor.copy(alpha = 0.3f)
                 )
             }
 

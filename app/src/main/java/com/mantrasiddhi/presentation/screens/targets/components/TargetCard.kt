@@ -89,7 +89,7 @@ fun TargetCard(
                 strokeWidth = 8.dp
             ) {
                 Text(
-                    text = "${(target.progress * 100).toInt()}%",
+                    text = stringResource(id = R.string.targets_percent_format, (target.progress * 100).toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

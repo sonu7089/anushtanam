@@ -26,13 +26,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -51,6 +57,7 @@ import com.mantrasiddhi.presentation.screens.recitation.RecitationScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsViewModel
 import com.mantrasiddhi.presentation.screens.targets.TargetsScreen
+import com.mantrasiddhi.presentation.theme.EmphasizedEasing
 
 private val NavigationRouteOrder = mapOf(
     Screen.Login.route to 0,
@@ -98,8 +105,8 @@ fun MantraApp(
                 }
                 slideIntoContainer(
                     direction,
-                    animationSpec = tween(350, easing = EaseInOutCubic)
-                ) + fadeIn(animationSpec = tween(350))
+                    animationSpec = tween(500, easing = EmphasizedEasing)
+                ) + fadeIn(animationSpec = tween(500))
             },
             exitTransition = {
                 val initialOrder = NavigationRouteOrder[initialState.destination.route] ?: 0
@@ -111,20 +118,20 @@ fun MantraApp(
                 }
                 slideOutOfContainer(
                     direction,
-                    animationSpec = tween(350, easing = EaseInOutCubic)
-                ) + fadeOut(animationSpec = tween(350))
+                    animationSpec = tween(500, easing = EmphasizedEasing)
+                ) + fadeOut(animationSpec = tween(500))
             },
             popEnterTransition = {
                 slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350, easing = EaseInOutCubic)
-                ) + fadeIn(animationSpec = tween(350))
+                    animationSpec = tween(500, easing = EmphasizedEasing)
+                ) + fadeIn(animationSpec = tween(500))
             },
             popExitTransition = {
                 slideOutOfContainer(
                     AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350, easing = EaseInOutCubic)
-                ) + fadeOut(animationSpec = tween(350))
+                    animationSpec = tween(500, easing = EmphasizedEasing)
+                ) + fadeOut(animationSpec = tween(500))
             }
         ) {
             composable(Screen.Login.route) {
@@ -191,31 +198,35 @@ fun MantraBottomBar(
     isParent: Boolean
 ) {
     val items = mutableListOf(
-        Screen.Home to Pair("Home", Icons.Default.Home),
-        Screen.Practice to Pair("Practice", Icons.Default.Edit),
-        Screen.Recitation to Pair("Recite", Icons.Default.PlayArrow),
-        Screen.Progress to Pair("Progress", Icons.Default.List),
-        Screen.Settings to Pair("Settings", Icons.Default.Settings)
+        Screen.Home to Pair(Icons.Default.Home, Icons.Outlined.Home),
+        Screen.Practice to Pair(Icons.Default.Edit, Icons.Outlined.Edit),
+        Screen.Recitation to Pair(Icons.Default.PlayArrow, Icons.Outlined.PlayArrow),
+        Screen.Progress to Pair(Icons.Default.List, Icons.Outlined.List),
+        Screen.Settings to Pair(Icons.Default.Settings, Icons.Outlined.Settings)
     )
 
     if (isParent) {
         // Insert Children tab before Settings
-        items.add(items.size - 1, Screen.ChildProgress to Pair("Children", Icons.Default.Face))
+        items.add(items.size - 1, Screen.ChildProgress to Pair(Icons.Default.Face, Icons.Outlined.Face))
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
-    ) {
-        items.forEach { (screen, info) ->
-            val (label, icon) = info
+    NavigationBar {
+        items.forEach { (screen, iconPair) ->
+            val (activeIcon, inactiveIcon) = iconPair
+            val isSelected = currentRoute == screen.route
+            val label = stringResource(id = screen.labelResId)
             NavigationBarItem(
-                icon = { Icon(imageVector = icon, contentDescription = label) },
+                icon = { 
+                    Icon(
+                        imageVector = if (isSelected) activeIcon else inactiveIcon, 
+                        contentDescription = label
+                    ) 
+                },
                 label = { Text(text = label) },
-                selected = currentRoute == screen.route,
+                selected = isSelected,
                 onClick = {
                     if (currentRoute != screen.route) {
                         navController.navigate(screen.route) {

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.presentation.components.MantraCard
+import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 
 @Composable
 fun CompletedTargetItem(
@@ -35,6 +36,7 @@ fun CompletedTargetItem(
     modifier: Modifier = Modifier,
     ownerName: String? = null
 ) {
+    val successColor = LocalExtendedColors.current.success
     MantraCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -44,8 +46,8 @@ fun CompletedTargetItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Completed",
-                    tint = Color(0xFF4CAF50)
+                    contentDescription = stringResource(id = R.string.targets_completed_description),
+                    tint = successColor
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -53,14 +55,17 @@ fun CompletedTargetItem(
                         text = if (ownerName != null) {
                             stringResource(id = R.string.child_details_title, ownerName)
                         } else {
-                            "Recitation Goal Complete"
+                            stringResource(id = R.string.targets_completed_goal_title)
                         },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${target.targetRecitationCount} Recitations Completed",
+                        text = stringResource(
+                            id = R.string.targets_completed_recitations_count,
+                            target.targetRecitationCount
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -72,7 +77,7 @@ fun CompletedTargetItem(
                     text = "+₹${String.format("%.2f", target.moneyAmount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4CAF50)
+                    color = successColor
                 )
             }
         }

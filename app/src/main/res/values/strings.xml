@@ -18,11 +18,15 @@
     
     <!-- Home Screen -->
     <string name="home_greeting">Namaste, %1$s</string>
+    <string name="home_blessed_day">Have a blessed day</string>
+    <string name="home_streak">• 🔥 %1$d Day Streak</string>
     <string name="home_today_summary">Today\'s Recitations</string>
+    <string name="home_successful_recitations">%1$d Successful Recitations</string>
     <string name="home_active_target">Active Target</string>
     <string name="home_start_recitation">Start Recitation</string>
     <string name="home_practice_mode">Practice Mode</string>
     <string name="home_target_progress">%1$d / %2$d completed</string>
+    <string name="home_quick_actions">Quick Actions</string>
     
     <!-- Targets Screen -->
     <string name="targets_title">Target Goals</string>
@@ -32,6 +36,38 @@
     <!-- Settings Screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_logout">Logout / Switch Profile</string>
+    <string name="settings_db_reseeded">Database successfully re-seeded with demo data!</string>
+    <string name="settings_change_profile_description">To change active practitioner profiles, click Switch Profile below.</string>
+    <string name="settings_app_settings">App Settings</string>
+    <string name="settings_theme_preference">Theme Preference</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_script_display">Mantra Script Display</string>
+    <string name="settings_script_devanagari">Sanskrit</string>
+    <string name="settings_script_transliteration">English</string>
+    <string name="settings_script_both">Both</string>
+    <string name="settings_evaluation_sensitivity">Evaluation Sensitivity</string>
+    <string name="settings_match_percent">%1$d%% Match</string>
+    <string name="settings_lax_label">Lax (75%)</string>
+    <string name="settings_strict_label">Strict (95%)</string>
+    <string name="settings_sensitivity_lax">Lax (Beginner)</string>
+    <string name="settings_sensitivity_normal">Normal (Recommended)</string>
+    <string name="settings_sensitivity_strict">Strict (Advanced)</string>
+    <string name="settings_demo_administration">Demo Administration</string>
+    <string name="settings_demo_admin_description">Instantly wipe the local Room database and re-seed it with rich mock history, progress targets, and savings balances for test accounts.</string>
+    <string name="settings_reset_db_button">Reset &amp; Re-Seed Database</string>
+    <string name="settings_about_anushtanam">About Anushtanam</string>
+    <string name="settings_about_app_version">App Version</string>
+    <string name="settings_about_speech_engine">Speech Engine</string>
+    <string name="settings_about_speech_engine_value">Offline SpeechRecognizer</string>
+    <string name="settings_about_local_storage">Local Storage</string>
+    <string name="settings_about_local_storage_value">Room SQLite Database</string>
+    <string name="settings_switch_profile">Switch Profile (Log Out)</string>
+    <string name="settings_reset_dialog_title">Reset &amp; Re-Seed Data?</string>
+    <string name="settings_reset_dialog_message">This will wipe all existing recitation logs, goal progress, and virtual currency from the database. It will immediately re-populate Arjun, Aarav, Meera, and Priya with rich analytical details, and log you out. Proceed?</string>
+    <string name="settings_reset_confirm">Yes, Re-Seed</string>
+    <string name="settings_reset_cancel">Cancel</string>
     
     <!-- Practice Mode -->
     <string name="practice_listen">Listen</string>
@@ -44,6 +80,13 @@
     <string name="practice_feedback_title">Pronunciation Feedback</string>
     <string name="practice_tip_title">Spiritual Tip</string>
     <string name="practice_intro">Recite the Gayatri Mantra. Tap words after recording to see detailed feedback.</string>
+    <string name="gayatri_mantra">Gayatri Mantra</string>
+    <string name="practice_tap_word_chip">Tap on any word chip to review details:</string>
+    <string name="practice_time_seconds">Time: %1$ds</string>
+    <string name="practice_listen_reference">Listen to Reference Pronunciation</string>
+    <string name="practice_encouragement_excellent">Excellent recitation! Perfectly aligned with the benchmark.</string>
+    <string name="practice_encouragement_good">Good effort! Tap on the yellow or red words below to see improvements.</string>
+    <string name="practice_encouragement_practice">Keep practicing! Take your time and pronounce each syllable clearly.</string>
 
     <!-- Recitation Mode -->
     <string name="recitation_begin">Begin Recitation</string>
@@ -59,6 +102,49 @@
     <string name="recitation_money_locked">₹%1$.2f locked</string>
     <string name="recitation_dismiss">Dismiss</string>
     <string name="recitation_feedback_format">Score: %1$.0f%% | Tip: %2$s</string>
+    <string name="recitation_celebration_success_msg">Congratulations! You have completed your spiritual recitation target.</string>
+    <string name="recitation_celebration_encouragement">Keep reciting the sacred Gayatri Mantra for spiritual growth and success.</string>
+    <string name="recitation_session_title">Session Recitations</string>
+    <string name="recitation_status_listening">Listening hands-free...</string>
+    <string name="recitation_status_paused">Recitation paused</string>
+    <string name="target_progress_of">of %1$d</string>
+    <string name="target_progress_percent_completed">%1$d%% Completed</string>
+    <string name="recitation_feed_no_sessions">No recent recitations in this session.</string>
+    <string name="recitation_feed_silence">[Silence]</string>
+    <string name="recitation_feedback_accuracy_format">%1$d%% Accuracy</string>
+    <string name="recitation_feedback_focus_format">Focus on \"%1$s\": %2$s</string>
+
+    <!-- Progress Screen -->
+    <string name="progress_tab_overview">Overview</string>
+    <string name="progress_tab_daily_chart">Daily Chart</string>
+    <string name="progress_tab_accuracy">Accuracy</string>
+    <string name="progress_tab_word_mastery">Word Mastery</string>
+    <string name="progress_tab_history">History</string>
+    <string name="progress_empty_title">Begin Your Journey</string>
+    <string name="progress_empty_description">You haven\'t recorded any recitation sessions yet. Head to Practice or Recitation mode to start your mantra practice.</string>
+    <string name="progress_activity_summary">Activity Summary</string>
+    <string name="progress_total_recitations">Total Recitations</string>
+    <string name="progress_out_of_attempts">Out of %1$d attempts</string>
+    <string name="progress_average_accuracy">Average Accuracy</string>
+    <string name="progress_overall_rating">Overall rating</string>
+    <string name="progress_current_streak">Current Streak</string>
+    <string name="progress_streak_days">%1$d Days</string>
+    <string name="progress_streak_keep_up">Keep it up!</string>
+    <string name="progress_best_session">Best Session</string>
+    <string name="progress_highest_score">Highest score</string>
+    <string name="progress_recent_sessions">Recent Sessions</string>
+    <string name="progress_chart_recitations_per_day">Recitations Per Day (Last 7 Days)</string>
+    <string name="progress_chart_accuracy_trend">Accuracy Trend (Last 7 Days)</string>
+    <string name="progress_word_mastery_title">Word Pronunciation Mastery</string>
+    <string name="progress_word_mastery_description">Displays average score per word in the mantra across all of your sessions.</string>
+    <string name="progress_history_title">Recitation Session History</string>
+    <string name="progress_no_sessions">No sessions recorded yet.</string>
+    <string name="progress_mode_practice">Practice</string>
+    <string name="progress_mode_recitation">Recitation</string>
+    <string name="progress_correct_badge">Correct</string>
+    <string name="progress_legend_mastered">Mastered (≥85%)</string>
+    <string name="progress_legend_learning">Learning (70-85%)</string>
+    <string name="progress_legend_focus">Focus (&lt;70%)</string>
 
     <!-- Generic -->
     <string name="error_unknown">An unknown error occurred.</string>
@@ -90,4 +176,33 @@
     <string name="child_no_weak_words">Doing great! No major pronunciation struggles.</string>
     <string name="child_details_title">%1$s\'s Profile</string>
     <string name="child_total_recitations">Total Recitations: %1$d</string>
+
+    <!-- Targets Screen Refactored -->
+    <string name="targets_completed_description">Completed</string>
+    <string name="targets_completed_goal_title">Recitation Goal Complete</string>
+    <string name="targets_completed_recitations_count">%1$d Recitations Completed</string>
+    <string name="targets_snack_set_success">Target set successfully!</string>
+    <string name="targets_snack_abandoned">Target abandoned. Locked money returned.</string>
+    <string name="targets_snack_error">Error: %1$s</string>
+    <string name="targets_abandon_dialog_title">Abandon Target</string>
+    <string name="targets_abandon_confirm_btn">Abandon</string>
+    <string name="targets_abandon_cancel_btn">Cancel</string>
+    <string name="targets_percent_format">%1$d%%</string>
+    <string name="target_dialog_recitation_count">Recitation Count</string>
+    <string name="target_dialog_custom_count_label">Custom Count Amount</string>
+    <string name="target_dialog_reward_amount_label">Reward Amount (₹)</string>
+    <string name="target_dialog_error_invalid_count">Please enter a valid count greater than 0</string>
+    <string name="target_dialog_error_negative_money">Money amount cannot be negative</string>
+
+    <!-- Child Progress screen specific strings -->
+    <string name="child_target_set_success">Target set successfully for child!</string>
+    <string name="child_error_format">Error: %1$s</string>
+    <string name="child_no_profiles">No child profiles associated with this account.</string>
+    <string name="child_button_go_back">Go Back</string>
+    <string name="child_desc_back">Back</string>
+    <string name="child_active_target_status">Active Target Status</string>
+    <string name="child_no_active_target">No active target is set for %1$s.</string>
+    <string name="child_struggle_words_desc">Below is the list of top 3 words %1$s struggles to pronounce accurately:</string>
+    <string name="child_desc_improvement_area">Improvement area</string>
 </resources>
+

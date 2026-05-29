@@ -72,7 +72,7 @@ fun TargetProgressHeader(
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
-                                text = "of ${target.targetRecitationCount}",
+                                text = stringResource(R.string.target_progress_of, target.targetRecitationCount),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -95,7 +95,7 @@ fun TargetProgressHeader(
                     
                     val percent = (target.progress * 100).toInt()
                     Text(
-                        text = "$percent% Completed",
+                        text = stringResource(R.string.target_progress_percent_completed, percent),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )

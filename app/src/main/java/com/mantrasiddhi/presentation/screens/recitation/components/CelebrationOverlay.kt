@@ -74,7 +74,7 @@ fun CelebrationOverlay(
                 )
 
                 Text(
-                    text = "Congratulations! You have completed your spiritual recitation target.",
+                    text = stringResource(R.string.recitation_celebration_success_msg),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -97,7 +97,7 @@ fun CelebrationOverlay(
                 }
 
                 Text(
-                    text = "Keep reciting the sacred Gayatri Mantra for spiritual growth and success.",
+                    text = stringResource(R.string.recitation_celebration_encouragement),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

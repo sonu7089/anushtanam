@@ -17,3 +17,5 @@ val AnushtanamShapes = Shapes(
     large = RoundedCornerShape(16.dp),       // FABs, nav drawer
     extraLarge = RoundedCornerShape(28.dp),  // Dialogs, bottom sheets
 )
+
+val ChartBarShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
