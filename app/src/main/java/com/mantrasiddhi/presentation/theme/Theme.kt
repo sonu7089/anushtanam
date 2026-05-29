@@ -22,6 +22,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import android.content.Context
+import androidx.compose.ui.graphics.Color
+
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
@@ -104,9 +107,16 @@ fun AnushtanamTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    val context = LocalContext.current
+    val contrast = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        uiModeManager?.contrast ?: 0.0f
+    } else {
+        0.0f
+    }
+
+    val baseColorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context)
             else dynamicLightColorScheme(context)
         }
@@ -114,7 +124,34 @@ fun AnushtanamTheme(
         else -> LightColorScheme
     }
 
-
+    // Enhance contrast for static/dynamic color schemes on API 34+ if requested by system (contrast > 0.0f)
+    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && contrast > 0.0f) {
+        if (darkTheme) {
+            baseColorScheme.copy(
+                primary = Color(0xFFFFB691),
+                onPrimary = Color(0xFF000000),
+                background = Color(0xFF000000),
+                surface = Color(0xFF000000),
+                onBackground = Color(0xFFFFFFFF),
+                onSurface = Color(0xFFFFFFFF),
+                outline = Color(0xFFFFFFFF),
+                outlineVariant = Color(0xFFFFFFFF)
+            )
+        } else {
+            baseColorScheme.copy(
+                primary = Color(0xFF9E4200),
+                onPrimary = Color(0xFFFFFFFF),
+                background = Color(0xFFFFFFFF),
+                surface = Color(0xFFFFFFFF),
+                onBackground = Color(0xFF000000),
+                onSurface = Color(0xFF000000),
+                outline = Color(0xFF000000),
+                outlineVariant = Color(0xFF000000)
+            )
+        }
+    } else {
+        baseColorScheme
+    }
 
     val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
 

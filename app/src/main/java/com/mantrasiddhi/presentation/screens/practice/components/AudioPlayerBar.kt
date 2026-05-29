@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+
 @Composable
 fun AudioPlayerBar(
     isPlaying: Boolean,
@@ -54,9 +57,14 @@ fun AudioPlayerBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            val playPauseDescription = if (isPlaying) "Pause benchmark audio" else "Play benchmark audio"
             IconButton(
                 onClick = onPlayPauseClick,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = playPauseDescription
+                    }
             ) {
                 if (isPlaying) {
                     PauseIcon(
@@ -66,7 +74,7 @@ fun AudioPlayerBar(
                 } else {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play benchmark audio",
+                        contentDescription = null, // Handled by IconButton semantics
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )

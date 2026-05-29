@@ -1,49 +1,23 @@
 # Design Decisions — Anushtanam MD3 Theme
 
-This document details the theme customization and deliberate departures from the baseline Material Design 3 specification in the **Anushtanam** application.
+## Color
+- **Seed Color**: #FF6F00 (Deep Saffron) — chosen for cultural significance.
+- **Extended Colors**: success (green) and warning (amber) harmonized with seed.
+- **Avatar Gradients**: preserved as brand identity (not from dynamic scheme) to keep user visual distinction clear.
 
----
+## Typography
+- **Inter Font**: standard Material 3 typography with Outfit/Inter pairing.
+- **Hindu-Devanagari Display**: specialized sizing (large, clear Devanagari fonts) to ensure easy readability of complex Sanskrit ligatures.
 
-## 1. Color System
+## Shape
+- **Expressive Shapes**: Buttons use `CircleShape` (stadium shape) for premium, modern, expressive feeling.
+- **Cards**: medium and large rounded corner shapes (`MaterialTheme.shapes.large`) for smooth, cohesive visual boundaries.
 
-### Saffron Seed Color
-- **Seed**: `#FF6F00` (Deep Saffron)
-- **Rationale**: Chosen for its cultural, traditional, and spiritual significance in Vedic recitation practices. 
-- **Application**: The seed is used to generate the light and dark color schemes via standard Material 3 color utility logic.
+## Motion
+- **Splash Screen**: Emphasized decelerate easing at 400ms.
+- **Navigation Transitions**: Shared-axis transitions at 500ms using `EmphasizedEasing` to feel smooth and tactile.
+- **Celebration Overlay**: Enter transition uses emphasized decelerate to build positive behavioral reinforcement.
 
-### Harmonized Extended Colors
-- Standard MD3 color schemes do not include semantic success (green) or warning (amber) roles in the main color scheme.
-- We defined custom `ExtendedColorScheme` configurations:
-  - **Success**: `#386A20` (Light) / `#9CD67E` (Dark), representing positive evaluation (threshold met).
-  - **Warning**: `#7C5800` (Light) / `#F5BE48` (Dark), representing borderline accuracy or areas for phonetic improvement.
-- These colors are harmonized with the Deep Saffron seed to maintain visual compatibility across themes.
-
-### Avatar Gradients
-- `ProfileAvatar` uses horizontal/vertical gradients spanning primary/secondary/tertiary colors and warning states. 
-- These colorful gradients act as brand identifiers and personal visual signatures for user profiles.
-
----
-
-## 2. Typography
-
-- **Font Family**: Default system fonts (Roboto/Roboto Flex) optimized for readability in Hindi (Devanagari script) and transliterated Sanskrit text.
-- **Display and Headline Weights**: Display titles use extra bold and heavy weights to give the Sanskrit verse displays a solid, premium, and structured look.
-
----
-
-## 3. Shapes & Surfaces
-
-- **Elevation**: Leverages MD3 tonal elevation (`surfaceContainerLow`, `surfaceContainer`, `surfaceContainerHigh`) to build visual hierarchy. Baseline drop shadows are completely avoided in favor of solid contours and outline borders (`outlineVariant`).
-- **Rounded Corners**:
-  - Main action buttons (`MantraButton`) use `CircleShape` (stadium shape) to feel friendly and tactile.
-  - Interactive cards (`MantraCard`, `TargetCard`) use `MaterialTheme.shapes.large` (16dp).
-  - Dialogs and bottom sheets use `MaterialTheme.shapes.extraLarge` (28dp).
-
----
-
-## 4. Motion & Transitions
-
-- **Navigation Transitions**: Employs Emphasized Shared-Axis transitions (`EmphasizedEasing`) with a duration of 500ms for natural side-to-side navigation flow.
-- **Micro-Animations**:
-  - `ProgressRing` uses a standard ease-in-out curve over 800ms for smooth recitation counts.
-  - The recording microphone button (`MicButton`) uses infinite linear pulsing animation rings to indicate active audio tracking.
+## Accessibility & Contrast
+- **Minimum Touch Targets**: All interactive elements (e.g. `MantraButton`, profile items, tab navigation) adhere to the minimum 48dp × 48dp guidelines.
+- **System Contrast Adaptability**: On Android 14+ (API 34), static and dynamic color schemes automatically respond to system high-contrast requests by boosting text-to-background contrast ratios.
