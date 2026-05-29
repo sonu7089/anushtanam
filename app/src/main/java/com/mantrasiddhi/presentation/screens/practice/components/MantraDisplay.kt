@@ -52,14 +52,14 @@ fun MantraDisplay(
 
     val devanagariWords = listOf(
         "ॐ", "भूर्", "भुवः", "स्वः",
-        "तत्", "सवितुर्", "वरेण्यं",
+        "तत्सवितुर्", "वरेण्यं",
         "भर्गो", "देवस्य", "धीमहि",
         "धियो", "यो", "नः", "प्रचोदयात्"
     )
 
     val transliteratedWords = listOf(
         "om", "bhur", "bhuvah", "svah",
-        "tat", "savitur", "varenyam",
+        "tatsavitur", "varenyam",
         "bhargo", "devasya", "dhimahi",
         "dhiyo", "yo", "nah", "prachodayat"
     )

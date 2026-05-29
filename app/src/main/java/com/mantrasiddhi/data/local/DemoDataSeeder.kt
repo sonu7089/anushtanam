@@ -169,7 +169,7 @@ class DemoDataSeeder @Inject constructor(
             mode = mode,
             overallScore = overallScore,
             wordScoresJson = wordScoresStr,
-            transcription = "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+            transcription = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
             isCorrect = isCorrect,
             durationMs = durationMs,
             createdAt = createdAt

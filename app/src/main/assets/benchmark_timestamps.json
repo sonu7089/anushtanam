@@ -25,60 +25,54 @@
   },
   {
     "wordIndex": 4,
-    "word": "tat",
+    "word": "tatsavitur",
     "startMs": 642,
-    "endMs": 668
-  },
-  {
-    "wordIndex": 5,
-    "word": "savitur",
-    "startMs": 669,
     "endMs": 722
   },
   {
-    "wordIndex": 6,
+    "wordIndex": 5,
     "word": "varenyam",
     "startMs": 723,
     "endMs": 905
   },
   {
-    "wordIndex": 7,
+    "wordIndex": 6,
     "word": "bhargo",
     "startMs": 940,
     "endMs": 1008
   },
   {
-    "wordIndex": 8,
+    "wordIndex": 7,
     "word": "devasya",
     "startMs": 1009,
     "endMs": 1090
   },
   {
-    "wordIndex": 9,
+    "wordIndex": 8,
     "word": "dhimahi",
     "startMs": 1091,
     "endMs": 1192
   },
   {
-    "wordIndex": 10,
+    "wordIndex": 9,
     "word": "dhiyo",
     "startMs": 1206,
     "endMs": 1283
   },
   {
-    "wordIndex": 11,
+    "wordIndex": 10,
     "word": "yo",
     "startMs": 1284,
     "endMs": 1305
   },
   {
-    "wordIndex": 12,
+    "wordIndex": 11,
     "word": "nah",
     "startMs": 1320,
     "endMs": 1340
   },
   {
-    "wordIndex": 13,
+    "wordIndex": 12,
     "word": "prachodayat",
     "startMs": 1357,
     "endMs": 1601

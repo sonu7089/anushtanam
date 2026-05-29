@@ -23,7 +23,7 @@ class DetectRecitationBoundaryUseCaseTest {
     @Test
     fun `should_returnTrue_when_finalWordSpoken`() {
         // Given
-        val transcription1 = "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val transcription1 = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         val transcription2 = "dhiyo yo nah prachodayat"
         val transcription3 = "prachodayat"
 

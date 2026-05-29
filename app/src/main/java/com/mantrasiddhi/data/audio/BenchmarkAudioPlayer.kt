@@ -86,16 +86,15 @@ class BenchmarkAudioPlayer @Inject constructor(
                 WordTimestamp(1, "bhur", 3390, 4280),
                 WordTimestamp(2, "bhuvah", 4290, 4720),
                 WordTimestamp(3, "svah", 4840, 5690),
-                WordTimestamp(4, "tat", 6420, 6680),
-                WordTimestamp(5, "savitur", 6690, 7220),
-                WordTimestamp(6, "varenyam", 7230, 9050),
-                WordTimestamp(7, "bhargo", 9400, 10080),
-                WordTimestamp(8, "devasya", 10090, 10900),
-                WordTimestamp(9, "dhimahi", 10910, 11920),
-                WordTimestamp(10, "dhiyo", 12060, 12830),
-                WordTimestamp(11, "yo", 12840, 13050),
-                WordTimestamp(12, "nah", 13200, 13400),
-                WordTimestamp(13, "prachodayat", 13570, 16010)
+                WordTimestamp(4, "tatsavitur", 6420, 7220),
+                WordTimestamp(5, "varenyam", 7230, 9050),
+                WordTimestamp(6, "bhargo", 9400, 10080),
+                WordTimestamp(7, "devasya", 10090, 10900),
+                WordTimestamp(8, "dhimahi", 10910, 11920),
+                WordTimestamp(9, "dhiyo", 12060, 12830),
+                WordTimestamp(10, "yo", 12840, 13050),
+                WordTimestamp(11, "nah", 13200, 13400),
+                WordTimestamp(12, "prachodayat", 13570, 16010)
             )
         }
     }

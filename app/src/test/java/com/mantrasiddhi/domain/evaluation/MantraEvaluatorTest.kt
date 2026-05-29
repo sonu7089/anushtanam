@@ -16,7 +16,7 @@ class MantraEvaluatorTest {
 
     @Test
     fun `should_scorePerfectRecitation_when_exactMantraSpoken`() {
-        val input = "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         val evaluation = MantraEvaluator.evaluate(input, 5000L)
 
         assertEquals(1.0f, evaluation.overallScore, 0.001f)
@@ -43,7 +43,7 @@ class MantraEvaluatorTest {
     @Test
     fun `should_detectMissingWords_when_wordsSkipped`() {
         // Skipping "bhuvah" and "devasya"
-        val input = "om bhur svah tat savitur varenyam bhargo dhimahi dhiyo yo nah prachodayat"
+        val input = "om bhur svah tatsavitur varenyam bhargo dhimahi dhiyo yo nah prachodayat"
         val evaluation = MantraEvaluator.evaluate(input, 4000L)
 
         assertTrue(evaluation.missingWords.contains("bhuvah"))
@@ -57,7 +57,7 @@ class MantraEvaluatorTest {
 
     @Test
     fun `should_detectExtraWords_when_unrelatedWordsAdded`() {
-        val input = "om bhur bhuvah svah extra tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat word"
+        val input = "om bhur bhuvah svah extra tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat word"
         val evaluation = MantraEvaluator.evaluate(input, 6000L)
 
         assertEquals(2, evaluation.extraWords.size)
@@ -69,7 +69,7 @@ class MantraEvaluatorTest {
     @Test
     fun `should_flagSwappedWords_when_wordOrderIncorrect`() {
         // Swapping "bhur" and "bhuvah"
-        val input = "om bhuvah bhur svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val input = "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         val evaluation = MantraEvaluator.evaluate(input, 5000L)
 
         val bhurResult = evaluation.wordResults.first { it.referenceWord == "bhur" }
@@ -84,7 +84,7 @@ class MantraEvaluatorTest {
     @Test
     fun `should_generatePronunciationFeedback_when_wordMispronounced`() {
         // "bhargo" replaced with "xyz" (completely different)
-        val input = "om bhur bhuvah svah tat savitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat"
+        val input = "om bhur bhuvah svah tatsavitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat"
         val evaluation = MantraEvaluator.evaluate(input, 5000L)
 
         val bhargoResult = evaluation.wordResults.first { it.referenceWord == "bhargo" }
@@ -94,66 +94,64 @@ class MantraEvaluatorTest {
 
     @Test
     fun `should_generatePartialFeedback_when_wordClose`() {
-        // "savitur" replaced with "savi" (close match)
-        val input = "om bhur bhuvah svah tat savi varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        // "tatsavitur" replaced with "tatsav" (close match)
+        val input = "om bhur bhuvah svah tatsav varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         val evaluation = MantraEvaluator.evaluate(input, 5000L)
 
-        val saviturResult = evaluation.wordResults.first { it.referenceWord == "savitur" }
+        val saviturResult = evaluation.wordResults.first { it.referenceWord == "tatsavitur" }
         assertEquals(WordFeedback.PARTIAL, saviturResult.feedback)
         assertTrue(saviturResult.score >= 0.4f && saviturResult.score < 0.70f)
     }
 
     @Test
     fun `should_evaluateAccurately_when_variousSingleWordErrorsTested`() {
-        // 40+ variations to verify correct/incorrect classification
-        // We will run a loop of 40 test cases to cover different speech outputs
         val evaluationTestCases = listOf(
             // 1-10: 1 word minor errors (should be correct)
-            "om bhur bhuvah svah tat savitu varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenya bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasy dhimahi dhiyo yo nah prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimah dhiyo yo nah prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiy yo nah prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo na prachodayat" to true,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodaya" to true,
-            "o bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
-            "om bhu bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
-            "om bhur bhuva svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitu varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenya bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasy dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimah dhiyo yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiy yo nah prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo na prachodayat" to true,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodaya" to true,
+            "o bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhu bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            "om bhur bhuva svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
 
             // 11-20: 1 word missing/wrong (should be correct as overallScore >= 0.85)
-            // 1 missing word = 13/14 = 0.928 >= 0.85 (correct)
-            "bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing om
-            "om bhur bhuvah svah tat savitur varenyam devasya dhimahi dhiyo yo nah prachodayat" to true, // missing bhargo
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah" to true, // missing prachodayat
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo prachodayat" to true, // missing nah
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo nah prachodayat" to true, // missing yo
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi yo nah prachodayat" to true, // missing dhiyo
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhiyo yo nah prachodayat" to true, // missing dhimahi
-            "om bhur bhuvah svah tat savitur varenyam bhargo dhimahi dhiyo yo nah prachodayat" to true, // missing devasya
-            "om bhur bhuvah svah tat savitur bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing varenyam
-            "om bhur bhuvah svah varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing tat/savitur (actually 2 missing words: 12/14 = 0.857 -> true!)
+            // 1 missing word = 12/13 = 0.923 >= 0.85 (correct)
+            "bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing om
+            "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat" to true, // missing bhargo
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah" to true, // missing prachodayat
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo prachodayat" to true, // missing nah
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo nah prachodayat" to true, // missing yo
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi yo nah prachodayat" to true, // missing dhiyo
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhiyo yo nah prachodayat" to true, // missing dhimahi
+            "om bhur bhuvah svah tatsavitur varenyam bhargo dhimahi dhiyo yo nah prachodayat" to true, // missing devasya
+            "om bhur bhuvah svah tatsavitur bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing varenyam
+            "om bhur bhuvah svah varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing tatsavitur
 
-            // 21-30: 2 words missing/wrong (around threshold 12/14 = 0.857 -> correct)
-            "bhur bhuvah svah tat savitur varenyam devasya dhimahi dhiyo yo nah prachodayat" to true, // missing om, bhargo
-            "om bhur bhuvah svah tat savitur varenyam bhargo dhimahi dhiyo yo nah" to true, // missing devasya, prachodayat
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhiyo yo" to false, // missing dhimahi, nah, prachodayat -> wait, 3 missing: 11/14 = 0.785 < 0.85 -> false!
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi yo prachodayat" to true, // missing dhiyo, nah (12/14 = 0.857 -> correct)
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhiyo nah prachodayat" to true, // missing dhimahi, yo (12/14 = 0.857 -> correct)
-            "om bhur bhuvah svah tat savitur varenyam bhargo dhimahi yo nah prachodayat" to true, // missing devasya, dhiyo (12/14 = 0.857 -> correct)
-            "om bhur bhuvah svah tat savitur varenyam devasya dhimahi yo nah prachodayat" to true, // missing bhargo, dhiyo (12/14 = 0.857 -> correct)
-            "om bhur bhuvah svah tat varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing savitur
-            "om bhur bhuvah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing svah
-            "om bhur svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing bhuvah
+            // 21-30: 2 words missing/wrong (below threshold 11/13 = 0.846 < 0.85 -> incorrect)
+            "bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat" to false, // missing om, bhargo
+            "om bhur bhuvah svah tatsavitur varenyam bhargo dhimahi dhiyo yo nah" to false, // missing devasya, prachodayat
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhiyo yo" to false, // missing dhimahi, nah, prachodayat
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi yo prachodayat" to false, // missing dhiyo, nah
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhiyo nah prachodayat" to false, // missing dhimahi, yo
+            "om bhur bhuvah svah tatsavitur varenyam bhargo dhimahi yo nah prachodayat" to false, // missing devasya, dhiyo
+            "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi yo nah prachodayat" to false, // missing bhargo, dhiyo
+            "om bhur  tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to false, // missing bhuvah, svah (2 missing -> false)
+            "om bhur bhuvah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing svah (1 missing -> true)
+            "om bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true, // missing bhuvah (1 missing -> true)
 
             // 31-40: 3+ words missing (should be incorrect, overallScore < 0.85)
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi" to false, // missing last 4 words (10/14 = 0.714)
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi" to false, // missing last 4 words (9/13 = 0.692)
             "devasya dhimahi dhiyo yo nah prachodayat" to false, // missing first 8 words
-            "om bhur bhuvah svah tat savitur" to false,
+            "om bhur bhuvah svah tatsavitur" to false,
             "om bhur bhuvah svah" to false,
-            "tat savitur varenyam bhargo" to false,
+            "tatsavitur varenyam bhargo" to false,
             "dhimahi dhiyo yo nah prachodayat" to false,
-            "om bhur bhuvah svah tat savitur varenyam bhargo devasya" to false,
-            "om tat bhargo dhiyo prachodayat" to false,
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya" to false,
+            "om tatsavitur bhargo dhiyo prachodayat" to false,
             "svah varenyam dhimahi prachodayat" to false,
             "om bhur bhuvah xyz abc def bhargo devasya dhimahi dhiyo yo nah prachodayat" to false, // 3 wrong words
 

@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -25,7 +25,7 @@ class TextNormalizerTest {
             "om," to "om",
             "bhur.bhuvah" to "bhur bhuvah",
             "svah!" to "svah",
-            "tat-savitur" to "tat savitur",
+            "tat-savitur" to "tatsavitur",
             "varenyam?" to "varenyam",
             
             // 11-15: Phonetic map corrections
@@ -61,7 +61,7 @@ class TextNormalizerTest {
             "स्वहा" to "svah",
             "देवस्य" to "devasya",
             "धीमहि" to "dhimahi",
-            "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्" to "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+            "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्" to "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         )
 
         testCases.forEachIndexed { index, (input, expected) ->

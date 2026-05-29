@@ -59,8 +59,7 @@ class GetChildWeakWordsUseCaseTest {
                 "bhur" to 0.4,
                 "bhuvah" to 0.9,
                 "svah" to 1.0,
-                "tat" to 1.0,
-                "savitur" to 1.0,
+                "tatsavitur" to 1.0,
                 "varenyam" to 1.0,
                 "bhargo" to 0.3,
                 "devasya" to 1.0,
@@ -85,8 +84,7 @@ class GetChildWeakWordsUseCaseTest {
                 "bhur" to 0.2, // average = 0.3
                 "bhuvah" to 0.9,
                 "svah" to 1.0,
-                "tat" to 1.0,
-                "savitur" to 1.0,
+                "tatsavitur" to 1.0,
                 "varenyam" to 1.0,
                 "bhargo" to 0.5, // average = 0.4
                 "devasya" to 1.0,

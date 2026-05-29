@@ -18,7 +18,7 @@ object MantraEvaluator {
      */
     val REFERENCE_WORDS = listOf(
         "om", "bhur", "bhuvah", "svah",
-        "tat", "savitur", "varenyam",
+        "tatsavitur", "varenyam",
         "bhargo", "devasya", "dhimahi",
         "dhiyo", "yo", "nah", "prachodayat"
     )

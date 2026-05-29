@@ -45,10 +45,11 @@ object TextNormalizer {
 
         // 6. Handle common joined/compound words in English/Latin script transliteration
         val preprocessed = cleanWhitespace
-            .replace("tatsaviturvarenyam", "tat savitur varenyam")
-            .replace("tatsaviturvarenyan", "tat savitur varenyam")
-            .replace("tatsaviturvareंyam", "tat savitur varenyam")
-            .replace("tatsaviturvanyan", "tat savitur varenyam")
+            .replace("tat savitur", "tatsavitur")
+            .replace("tatsaviturvarenyam", "tatsavitur varenyam")
+            .replace("tatsaviturvarenyan", "tatsavitur varenyam")
+            .replace("tatsaviturvareंyam", "tatsavitur varenyam")
+            .replace("tatsaviturvanyan", "tatsavitur varenyam")
             .replace("yona", "yo nah")
             .replace("yonah", "yo nah")
 

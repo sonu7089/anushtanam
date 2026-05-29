@@ -37,7 +37,7 @@ class EvaluateRecitationUseCaseTest {
     @Test
     fun `should_saveSessionAndNotIncrementTarget_when_modeIsPractice`() = runTest {
         // Given
-        val correctInput = "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val correctInput = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         
         // When
         val evaluation = evaluateRecitationUseCase(
@@ -57,7 +57,7 @@ class EvaluateRecitationUseCaseTest {
     @Test
     fun `should_saveSessionAndIncrementTarget_when_modeIsNormalAndRecitationCorrect`() = runTest {
         // Given
-        val correctInput = "om bhur bhuvah svah tat savitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val correctInput = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         
         // When
         val evaluation = evaluateRecitationUseCase(
