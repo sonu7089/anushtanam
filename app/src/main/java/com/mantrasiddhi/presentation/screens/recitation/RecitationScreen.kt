@@ -18,10 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
-import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.components.RecitationFeedbackOverlay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
@@ -49,6 +52,8 @@ import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOv
 import com.mantrasiddhi.presentation.screens.recitation.components.LiveCounter
 import com.mantrasiddhi.presentation.screens.recitation.components.RecitationFeed
 import com.mantrasiddhi.presentation.screens.recitation.components.TargetProgressHeader
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.height
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,19 +167,39 @@ fun RecitationScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (state.isListening) {
-                            MantraButton(
-                                text = stringResource(R.string.recitation_pause),
+                            FilledTonalButton(
                                 onClick = { viewModel.pauseRecitation() },
-                                modifier = Modifier.weight(1f)
-                            )
-                            MantraButton(
-                                text = stringResource(R.string.recitation_stop),
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.recitation_pause),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                            OutlinedButton(
                                 onClick = { viewModel.stopRecitation() },
-                                modifier = Modifier.weight(1f)
-                            )
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.error
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.recitation_stop),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         } else {
-                            MantraButton(
-                                text = stringResource(R.string.recitation_begin),
+                            Button(
                                 onClick = {
                                     if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                         viewModel.startRecitation()
@@ -183,8 +208,16 @@ fun RecitationScreen(
                                     }
                                 },
                                 enabled = state.activeTarget != null,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.recitation_begin),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                     }
 

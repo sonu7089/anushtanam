@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -57,8 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.model.ChildProgress
-import com.mantrasiddhi.presentation.components.MantraButton
-import com.mantrasiddhi.presentation.components.MantraCard
+import androidx.compose.material3.Card
 import com.mantrasiddhi.presentation.components.SavingsCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ProgressChart
@@ -292,12 +291,15 @@ fun ChildDetailView(
                 }
             } else {
                 item {
-                    MantraCard(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp)
+                                .padding(16.dp)
                         ) {
                             Text(
                                 text = stringResource(id = R.string.child_no_active_target, childProgress.child.name),
@@ -305,11 +307,18 @@ fun ChildDetailView(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            MantraButton(
-                                text = stringResource(id = R.string.child_set_target),
+                            Button(
                                 onClick = onSetTargetClick,
-                                modifier = Modifier.fillMaxWidth(0.7f)
-                            )
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.7f)
+                                    .height(48.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.child_set_target),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                     }
                 }
@@ -331,8 +340,14 @@ fun ChildDetailView(
             
             if (weakWords.isNotEmpty()) {
                 item {
-                    MantraCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.Top) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Warning,
                                 contentDescription = stringResource(id = R.string.child_desc_improvement_area),
@@ -362,12 +377,16 @@ fun ChildDetailView(
                 }
             } else {
                 item {
-                    MantraCard(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
                         Text(
                             text = stringResource(id = R.string.child_no_weak_words),
                             style = MaterialTheme.typography.bodyMedium,
                             color = extendedColors.success,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(16.dp)
                         )
                     }
                 }

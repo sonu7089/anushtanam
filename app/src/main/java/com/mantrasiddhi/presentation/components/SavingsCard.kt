@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,7 +76,7 @@ fun SavingsCard(
         prevUnlocked = savings.totalUnlocked
     }
 
-    Card(
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
             .border(
@@ -90,9 +90,7 @@ fun SavingsCard(
                 shape = MaterialTheme.shapes.large
             ),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
+        colors = CardDefaults.elevatedCardColors()
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

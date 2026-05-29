@@ -26,13 +26,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -56,8 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
-import com.mantrasiddhi.presentation.components.MantraButton
-import com.mantrasiddhi.presentation.components.MantraCard
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 import java.util.Locale
 
@@ -122,279 +125,373 @@ fun SettingsScreen(
             ) {
                 // User Profile Section
                 currentUser?.let { user ->
-                    MantraCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                    OutlinedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            ProfileAvatar(
-                                avatarIndex = user.avatarIndex,
-                                name = user.name,
-                                size = 64.dp
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = user.name,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ProfileAvatar(
+                                    avatarIndex = user.avatarIndex,
+                                    name = user.name,
+                                    size = 64.dp
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(MaterialTheme.shapes.extraSmall)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
                                     Text(
-                                        text = user.profileType.name,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        text = user.name,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(MaterialTheme.shapes.extraSmall)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = user.profileType.name,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.settings_change_profile_description),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = stringResource(R.string.settings_change_profile_description),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // App Settings Preferences
-                MantraCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.settings_app_settings),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Theme selection
-                Text(
-                    text = stringResource(R.string.settings_theme_preference),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
+                OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    val themes = listOf("LIGHT", "DARK", "SYSTEM")
-                    themes.forEach { theme ->
-                        val isSelected = themeMode == theme
-                        val itemColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                        val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_app_settings),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        val themeResId = when (theme) {
-                            "LIGHT" -> R.string.settings_theme_light
-                            "DARK" -> R.string.settings_theme_dark
-                            else -> R.string.settings_theme_system
+                        // Theme selection
+                        Text(
+                            text = stringResource(R.string.settings_theme_preference),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val themes = listOf("LIGHT", "DARK", "SYSTEM")
+                            themes.forEach { theme ->
+                                val isSelected = themeMode == theme
+                                val itemColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                                val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
+                                val themeResId = when (theme) {
+                                    "LIGHT" -> R.string.settings_theme_light
+                                    "DARK" -> R.string.settings_theme_dark
+                                    else -> R.string.settings_theme_system
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .background(
+                                            if (isSelected) {
+                                                Brush.horizontalGradient(
+                                                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                                                )
+                                            } else {
+                                                Brush.linearGradient(listOf(itemColor, itemColor))
+                                            }
+                                        )
+                                        .clickable { viewModel.setThemeMode(theme) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(themeResId),
+                                        color = textColor,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(MaterialTheme.shapes.small)
-                                .background(
-                                    if (isSelected) {
-                                        Brush.horizontalGradient(
-                                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Language display preference
+                        Text(
+                            text = stringResource(R.string.settings_script_display),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val options = listOf("DEVANAGARI", "TRANSLITERATION", "BOTH")
+                            options.forEach { option ->
+                                val isSelected = languageDisplay == option
+                                val itemColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                                val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
+                                val labelResId = when (option) {
+                                    "DEVANAGARI" -> R.string.settings_script_devanagari
+                                    "TRANSLITERATION" -> R.string.settings_script_transliteration
+                                    else -> R.string.settings_script_both
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .background(
+                                            if (isSelected) {
+                                                Brush.horizontalGradient(
+                                                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                                                )
+                                            } else {
+                                                Brush.linearGradient(listOf(itemColor, itemColor))
+                                            }
                                         )
-                                    } else {
-                                        Brush.linearGradient(listOf(itemColor, itemColor))
-                                    }
-                                )
-                                .clickable { viewModel.setThemeMode(theme) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
+                                        .clickable { viewModel.setLanguageDisplay(option) }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(labelResId),
+                                        color = textColor,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Sensitivity threshold slider
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(themeResId),
-                                color = textColor,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                text = stringResource(R.string.settings_evaluation_sensitivity),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                text = stringResource(R.string.settings_match_percent, (sensitivityThreshold * 100).toInt()),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Slider(
+                            value = sensitivityThreshold.toFloat(),
+                            onValueChange = { viewModel.setSensitivityThreshold(it.toDouble()) },
+                            valueRange = 0.75f..0.95f,
+                            steps = 19
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = stringResource(R.string.settings_lax_label), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = getSensitivityLabel(sensitivityThreshold),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(text = stringResource(R.string.settings_strict_label), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Language display preference
-                Text(
-                    text = stringResource(R.string.settings_script_display),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val options = listOf("DEVANAGARI", "TRANSLITERATION", "BOTH")
-                    options.forEach { option ->
-                        val isSelected = languageDisplay == option
-                        val itemColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                        val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-
-                        val labelResId = when (option) {
-                            "DEVANAGARI" -> R.string.settings_script_devanagari
-                            "TRANSLITERATION" -> R.string.settings_script_transliteration
-                            else -> R.string.settings_script_both
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(MaterialTheme.shapes.small)
-                                .background(
-                                    if (isSelected) {
-                                        Brush.horizontalGradient(
-                                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-                                        )
-                                    } else {
-                                        Brush.linearGradient(listOf(itemColor, itemColor))
-                                    }
-                                )
-                                .clickable { viewModel.setLanguageDisplay(option) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(labelResId),
-                                color = textColor,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Sensitivity threshold slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_evaluation_sensitivity),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_match_percent, (sensitivityThreshold * 100).toInt()),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Slider(
-                    value = sensitivityThreshold.toFloat(),
-                    onValueChange = { viewModel.setSensitivityThreshold(it.toDouble()) },
-                    valueRange = 0.75f..0.95f,
-                    steps = 19
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(R.string.settings_lax_label), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = getSensitivityLabel(sensitivityThreshold),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(text = stringResource(R.string.settings_strict_label), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Developer Options
-            MantraCard(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(R.string.settings_demo_administration),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.settings_demo_admin_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Box(
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(45.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                        .clickable { showResetDialog = true },
-                    contentAlignment = Alignment.Center
+                        .padding(16.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.settings_reset_db_button),
-                        color = MaterialTheme.colorScheme.error,
+                        text = stringResource(R.string.settings_demo_administration),
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.settings_demo_admin_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = { showResetDialog = true },
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_reset_db_button),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // App Info
-            MantraCard(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.settings_about_anushtanam),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.settings_about_app_version),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Text(
+                                text = "1.0.0-demo",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.settings_about_anushtanam),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.settings_about_speech_engine),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Text(
+                                text = stringResource(R.string.settings_about_speech_engine_value),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.settings_about_local_storage),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Text(
+                                text = stringResource(R.string.settings_about_local_storage_value),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                InfoRow(label = stringResource(R.string.settings_about_app_version), value = "1.0.0-demo")
-                InfoRow(label = stringResource(R.string.settings_about_speech_engine), value = stringResource(R.string.settings_about_speech_engine_value))
-                InfoRow(label = stringResource(R.string.settings_about_local_storage), value = stringResource(R.string.settings_about_local_storage_value))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // Switch Profile Button
-            MantraButton(
-                text = stringResource(R.string.settings_switch_profile),
+            Button(
                 onClick = { viewModel.logout() },
-                modifier = Modifier.fillMaxWidth()
-            )
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_switch_profile),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

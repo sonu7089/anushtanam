@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
-import com.mantrasiddhi.presentation.components.MantraButton
 import com.mantrasiddhi.presentation.screens.targets.components.CompletedTargetItem
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 import com.mantrasiddhi.presentation.screens.targets.components.TargetCard
@@ -154,12 +154,19 @@ fun TargetsScreen(
                             //  so we enable it and handle active target validation in dialog/usecase)
                             val isSetEnabled = state.activeTarget == null || state.currentUser.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT
                             
-                            MantraButton(
-                                text = stringResource(id = R.string.target_set_new),
+                            Button(
                                 onClick = { showSetDialog = true },
                                 enabled = isSetEnabled,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(id = R.string.target_set_new),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                         
                         // Target history

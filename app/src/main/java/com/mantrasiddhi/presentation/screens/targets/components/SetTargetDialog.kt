@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -217,7 +218,7 @@ fun SetTargetDialog(
             }
         },
         confirmButton = {
-            Button(
+            FilledTonalButton(
                 onClick = {
                     val finalCount = if (isCustomCount) {
                         customCountString.toIntOrNull() ?: 0
@@ -229,23 +230,20 @@ fun SetTargetDialog(
                     
                     if (finalCount <= 0) {
                         errorMsg = context.getString(R.string.target_dialog_error_invalid_count)
-                        return@Button
+                        return@FilledTonalButton
                     }
                     if (finalMoney < 0.0) {
                         errorMsg = context.getString(R.string.target_dialog_error_negative_money)
-                        return@Button
+                        return@FilledTonalButton
                     }
                     
                     onConfirm(finalCount, finalMoney, selectedUserId)
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                shape = CircleShape
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(
                     text = stringResource(id = R.string.target_dialog_confirm),
-                    color = Color.White
+                    fontWeight = FontWeight.Bold
                 )
             }
         },

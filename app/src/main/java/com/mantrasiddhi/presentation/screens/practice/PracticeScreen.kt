@@ -45,8 +45,8 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.evaluation.WordResult
-import com.mantrasiddhi.presentation.components.MantraButton
-import com.mantrasiddhi.presentation.components.MantraCard
+import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedCard
 import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.screens.practice.components.AudioPlayerBar
 import com.mantrasiddhi.presentation.screens.practice.components.FeedbackBottomSheet
@@ -236,12 +236,15 @@ fun PracticeScreen(
                         label = "scoreAnimation"
                     )
 
-                    MantraCard(
-                        modifier = Modifier.fillMaxWidth()
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
                             Text(
                                 text = stringResource(R.string.practice_overall_score),
@@ -301,11 +304,18 @@ fun PracticeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    MantraButton(
-                        text = stringResource(R.string.practice_try_again),
+                    Button(
                         onClick = { viewModel.resetPractice() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.practice_try_again),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
                 
                 is PracticeUiState.Error -> {
@@ -320,11 +330,18 @@ fun PracticeScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center
                         )
-                        MantraButton(
-                            text = stringResource(R.string.practice_try_again),
+                        Button(
                             onClick = { viewModel.resetPractice() },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.practice_try_again),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                 }
             }

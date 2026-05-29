@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -192,44 +192,49 @@ fun MantraApp(
     }
 }
 
+private data class NavItem(
+    val screen: Screen,
+    val activeIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    val inactiveIcon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
 @Composable
 fun MantraBottomBar(
     navController: NavHostController,
     isParent: Boolean
 ) {
-    val items = mutableListOf(
-        Screen.Home to Pair(Icons.Default.Home, Icons.Outlined.Home),
-        Screen.Practice to Pair(Icons.Default.Edit, Icons.Outlined.Edit),
-        Screen.Recitation to Pair(Icons.Default.PlayArrow, Icons.Outlined.PlayArrow),
-        Screen.Progress to Pair(Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List),
-        Screen.Settings to Pair(Icons.Default.Settings, Icons.Outlined.Settings)
-    )
-
-    if (isParent) {
-        // Insert Children tab before Settings
-        items.add(items.size - 1, Screen.ChildProgress to Pair(Icons.Default.Face, Icons.Outlined.Face))
+    val items = androidx.compose.runtime.remember(isParent) {
+        buildList {
+            add(NavItem(Screen.Home, Icons.Default.Home, Icons.Outlined.Home))
+            add(NavItem(Screen.Practice, Icons.Default.Edit, Icons.Outlined.Edit))
+            add(NavItem(Screen.Recitation, Icons.Default.PlayArrow, Icons.Outlined.PlayArrow))
+            add(NavItem(Screen.Progress, Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List))
+            if (isParent) {
+                add(NavItem(Screen.ChildProgress, Icons.Default.Face, Icons.Outlined.Face))
+            }
+            add(NavItem(Screen.Settings, Icons.Default.Settings, Icons.Outlined.Settings))
+        }
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar {
-        items.forEach { (screen, iconPair) ->
-            val (activeIcon, inactiveIcon) = iconPair
-            val isSelected = currentRoute == screen.route
-            val label = stringResource(id = screen.labelResId)
+        items.forEach { navItem ->
+            val isSelected = currentRoute == navItem.screen.route
+            val label = stringResource(id = navItem.screen.labelResId)
             NavigationBarItem(
                 icon = { 
                     Icon(
-                        imageVector = if (isSelected) activeIcon else inactiveIcon, 
+                        imageVector = if (isSelected) navItem.activeIcon else navItem.inactiveIcon, 
                         contentDescription = label
                     ) 
                 },
                 label = { Text(text = label) },
                 selected = isSelected,
                 onClick = {
-                    if (currentRoute != screen.route) {
-                        navController.navigate(screen.route) {
+                    if (currentRoute != navItem.screen.route) {
+                        navController.navigate(navItem.screen.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }

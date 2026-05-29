@@ -19,9 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -35,8 +40,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
-import com.mantrasiddhi.presentation.components.MantraButton
-import com.mantrasiddhi.presentation.components.MantraCard
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 import com.mantrasiddhi.presentation.components.ProgressRing
 import com.mantrasiddhi.presentation.components.SavingsCard
@@ -124,10 +127,14 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // Today's Summary Card
-                    MantraCard(modifier = Modifier.fillMaxWidth()) {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -168,69 +175,75 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Active Target Card
-                    MantraCard(
+                    OutlinedCard(
+                        onClick = onNavigateToTargets,
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = onNavigateToTargets
+                        shape = MaterialTheme.shapes.medium
                     ) {
-                        Text(
-                            text = stringResource(id = R.string.home_active_target),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val target = state.activeTarget
-                        if (target != null) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(modifier = Modifier.size(72.dp)) {
-                                    ProgressRing(
-                                        progress = target.progress,
-                                        modifier = Modifier.fillMaxSize(),
-                                        strokeWidth = 8.dp
-                                    ) {
-                                        Text(
-                                            text = stringResource(id = R.string.targets_percent_format, (target.progress * 100).toInt()),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(20.dp))
-
-                                Column {
-                                    Text(
-                                        text = stringResource(
-                                            id = R.string.home_target_progress,
-                                            target.currentRecitationCount,
-                                            target.targetRecitationCount
-                                        ),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    if (target.moneyAmount > 0.0) {
-                                        Text(
-                                            text = stringResource(id = R.string.recitation_money_locked, target.moneyAmount),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
                             Text(
-                                text = stringResource(id = R.string.no_active_targets),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                text = stringResource(id = R.string.home_active_target),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val target = state.activeTarget
+                            if (target != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(modifier = Modifier.size(72.dp)) {
+                                        ProgressRing(
+                                            progress = target.progress,
+                                            modifier = Modifier.fillMaxSize(),
+                                            strokeWidth = 8.dp
+                                        ) {
+                                            Text(
+                                                text = stringResource(id = R.string.targets_percent_format, (target.progress * 100).toInt()),
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(20.dp))
+
+                                    Column {
+                                        Text(
+                                            text = stringResource(
+                                                id = R.string.home_target_progress,
+                                                target.currentRecitationCount,
+                                                target.targetRecitationCount
+                                            ),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        if (target.moneyAmount > 0.0) {
+                                            Text(
+                                                text = stringResource(id = R.string.recitation_money_locked, target.moneyAmount),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.secondary,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = stringResource(id = R.string.no_active_targets),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
 
@@ -266,16 +279,30 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        MantraButton(
-                            text = stringResource(id = R.string.home_start_recitation),
+                        Button(
                             onClick = onNavigateToRecitation,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MantraButton(
-                            text = stringResource(id = R.string.home_practice_mode),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.home_start_recitation),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                        FilledTonalButton(
                             onClick = onNavigateToPractice,
-                            modifier = Modifier.weight(1f)
-                        )
+                            shape = MaterialTheme.shapes.extraLarge,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.home_practice_mode),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))

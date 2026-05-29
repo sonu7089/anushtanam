@@ -1,5 +1,5 @@
 /*
- * Mantra Siddhi - Gayatri Mantra Recitation App
+ * Anushtanam - Gayatri Mantra Recitation App
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.RecitationSession
-import com.mantrasiddhi.presentation.components.MantraCard
 import com.mantrasiddhi.presentation.theme.ChartBarShape
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -88,8 +88,11 @@ fun ProgressChart(
         animateTrigger = true
     }
 
-    MantraCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(8.dp)) {
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
                 text = stringResource(id = R.string.progress_chart_recitations_per_day),
                 style = MaterialTheme.typography.titleMedium,

@@ -21,7 +21,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +45,6 @@ import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
-import com.mantrasiddhi.presentation.components.MantraCard
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 
 @Composable
@@ -143,18 +146,21 @@ fun LoginScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileGridItem(
     profile: UserProfile,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    MantraCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
+    OutlinedCard(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ProfileAvatar(
@@ -182,19 +188,26 @@ fun ProfileGridItem(
                 ProfileType.INDIVIDUAL -> R.string.badge_individual to MaterialTheme.colorScheme.primary
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(badgeColor.copy(alpha = 0.15f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = stringResource(id = badgeTextRes),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = badgeColor
-                )
-            }
+            SuggestionChip(
+                onClick = {},
+                enabled = false,
+                label = {
+                    Text(
+                        text = stringResource(id = badgeTextRes),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    disabledLabelColor = badgeColor,
+                    disabledContainerColor = badgeColor.copy(alpha = 0.12f)
+                ),
+                border = SuggestionChipDefaults.suggestionChipBorder(
+                    enabled = false,
+                    disabledBorderColor = badgeColor.copy(alpha = 0.2f)
+                ),
+                shape = MaterialTheme.shapes.medium
+            )
         }
     }
 }
