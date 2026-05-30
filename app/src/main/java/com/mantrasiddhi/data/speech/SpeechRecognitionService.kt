@@ -55,6 +55,9 @@ class SpeechRecognitionService @Inject constructor(
                 putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "hi-IN")
                 putExtra(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES, arrayListOf("hi-IN", "en-IN"))
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                // Request n-best hypotheses so the evaluator can recover the correct
+                // words when they sit in a lower-ranked alternative.
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, MAX_RESULTS)
                 if (onDevice) {
                     putExtra("android.speech.extra.PREFER_OFFLINE", true)
                 }
@@ -110,9 +113,9 @@ class SpeechRecognitionService @Inject constructor(
                 override fun onResults(results: Bundle?) {
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val confidences = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
-                    val text = matches?.firstOrNull() ?: ""
-                    val confidence = confidences?.firstOrNull() ?: 1.0f
-                    trySend(SpeechResult.Final(text, confidence))
+                    val alternatives = buildAlternatives(matches, confidences)
+                    val best = alternatives.firstOrNull() ?: ("" to DEFAULT_CONFIDENCE)
+                    trySend(SpeechResult.Final(best.first, best.second, alternatives))
                     close()
                 }
 
@@ -149,6 +152,21 @@ class SpeechRecognitionService @Inject constructor(
         }
     }
 
+    /**
+     * Combines the recognizer's n-best transcriptions with their confidence scores
+     * into an ordered, best-first list. When confidences are missing (common on
+     * device), [DEFAULT_CONFIDENCE] is used so downstream scoring still works.
+     */
+    private fun buildAlternatives(
+        matches: List<String>?,
+        confidences: FloatArray?
+    ): List<Pair<String, Float>> {
+        if (matches.isNullOrEmpty()) return emptyList()
+        return matches.mapIndexed { index, text ->
+            text to (confidences?.getOrNull(index) ?: DEFAULT_CONFIDENCE)
+        }
+    }
+
     private fun getErrorMessage(errorCode: Int): String {
         return when (errorCode) {
             SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
@@ -164,5 +182,13 @@ class SpeechRecognitionService @Inject constructor(
             14 -> "Language not supported" // ERROR_LANGUAGE_NOT_SUPPORTED
             else -> "Unknown error ($errorCode)"
         }
+    }
+
+    private companion object {
+        /** Number of n-best hypotheses requested from the recognizer. */
+        const val MAX_RESULTS = 5
+
+        /** Confidence assumed when the recognizer does not report a score. */
+        const val DEFAULT_CONFIDENCE = 1.0f
     }
 }

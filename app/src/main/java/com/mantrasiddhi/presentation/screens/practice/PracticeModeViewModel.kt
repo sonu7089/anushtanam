@@ -137,7 +137,7 @@ class PracticeModeViewModel @Inject constructor(
                         }
                         is SpeechResult.Final -> {
                             timerJob.cancel()
-                            evaluateTranscription(result.text)
+                            evaluateTranscription(result.text, result.confidence, result.alternatives)
                         }
                         is SpeechResult.Error -> {
                             timerJob.cancel()
@@ -176,7 +176,11 @@ class PracticeModeViewModel @Inject constructor(
         _uiState.value = PracticeUiState.Idle
     }
 
-    private fun evaluateTranscription(transcription: String) {
+    private fun evaluateTranscription(
+        transcription: String,
+        confidence: Float = 1.0f,
+        alternatives: List<Pair<String, Float>> = emptyList()
+    ) {
         _uiState.value = PracticeUiState.Processing
         viewModelScope.launch {
             try {
@@ -186,7 +190,9 @@ class PracticeModeViewModel @Inject constructor(
                     userId = userId,
                     transcription = transcription,
                     recitationTimeMs = recitationTime,
-                    mode = RecitationMode.PRACTICE
+                    mode = RecitationMode.PRACTICE,
+                    alternatives = alternatives,
+                    confidence = confidence
                 )
                 if (evaluation.isCorrect) {
                     soundEffectsPlayer.playCorrectSound()

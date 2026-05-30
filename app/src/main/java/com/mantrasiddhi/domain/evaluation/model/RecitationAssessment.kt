@@ -30,7 +30,11 @@ import com.mantrasiddhi.domain.evaluation.WordResult
  * @property wordResults Per-reference-word breakdown (always one entry per reference word).
  * @property padaResults Per-line breakdown.
  * @property extraWords Spoken words that did not align to any reference word.
- * @property isPass Whether [overall] meets the configured pass threshold (sensitivity).
+ * @property isPass Whether the recitation meets the configured pass rule (completeness,
+ *   correctness and sensitivity-driven overall gate).
+ * @property lowConfidence Whether the underlying STT confidence was too low to trust
+ *   the transcription; the UI should ask the user to retry in a quieter spot rather
+ *   than reporting a (false) low pronunciation score.
  * @property recitationTimeMs Duration of the recitation in milliseconds.
  */
 data class RecitationAssessment(
@@ -42,6 +46,7 @@ data class RecitationAssessment(
     val padaResults: List<PadaResult>,
     val extraWords: List<String>,
     val isPass: Boolean,
+    val lowConfidence: Boolean = false,
     val recitationTimeMs: Long
 ) {
     /** Reference words that were not recited at all. */

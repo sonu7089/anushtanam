@@ -62,13 +62,33 @@ object LevenshteinAligner {
 
     /**
      * Aligns a list of spoken words to reference words using Levenshtein alignment.
+     *
+     * The word-sequence alignment only decides *which spoken word maps to which
+     * reference slot*; the per-pair cost it uses is pluggable via [similarityFn].
+     * Phase 2 feeds it the phoneme feature-weighted
+     * [com.mantrasiddhi.domain.evaluation.phonetics.PhoneticDistance.wordSimilarity]
+     * so a mispronounced word still aligns to its correct slot, while the default
+     * char-based [wordSimilarity] is retained for callers that want raw spelling
+     * distance.
+     *
+     * @param reference Ordered reference words.
+     * @param spoken Ordered spoken words.
+     * @param similarityFn Word-pair similarity in `0.0..1.0`; substitution cost is `1 - similarity`.
      */
-    fun align(reference: List<String>, spoken: List<String>): List<AlignmentStep> {
-        val dp = buildDpMatrix(reference, spoken)
-        return backtrack(dp, reference, spoken)
+    fun align(
+        reference: List<String>,
+        spoken: List<String>,
+        similarityFn: (String, String) -> Double = ::wordSimilarity
+    ): List<AlignmentStep> {
+        val dp = buildDpMatrix(reference, spoken, similarityFn)
+        return backtrack(dp, reference, spoken, similarityFn)
     }
 
-    private fun buildDpMatrix(reference: List<String>, spoken: List<String>): Array<DoubleArray> {
+    private fun buildDpMatrix(
+        reference: List<String>,
+        spoken: List<String>,
+        similarityFn: (String, String) -> Double
+    ): Array<DoubleArray> {
         val n = reference.size
         val m = spoken.size
         val dp = Array(n + 1) { DoubleArray(m + 1) }
@@ -78,7 +98,7 @@ object LevenshteinAligner {
 
         for (i in 1..n) {
             for (j in 1..m) {
-                val costSub = 1.0 - wordSimilarity(reference[i - 1], spoken[j - 1])
+                val costSub = 1.0 - similarityFn(reference[i - 1], spoken[j - 1])
                 val sub = dp[i - 1][j - 1] + costSub
                 val del = dp[i - 1][j] + OP_COST_DELETION
                 val ins = dp[i][j - 1] + OP_COST_INSERTION
@@ -91,7 +111,8 @@ object LevenshteinAligner {
     private fun backtrack(
         dp: Array<DoubleArray>,
         reference: List<String>,
-        spoken: List<String>
+        spoken: List<String>,
+        similarityFn: (String, String) -> Double
     ): List<AlignmentStep> {
         val path = mutableListOf<AlignmentStep>()
         var i = reference.size
@@ -99,7 +120,7 @@ object LevenshteinAligner {
 
         while (i > 0 || j > 0) {
             if (i > 0 && j > 0) {
-                val costSub = 1.0 - wordSimilarity(reference[i - 1], spoken[j - 1])
+                val costSub = 1.0 - similarityFn(reference[i - 1], spoken[j - 1])
                 if (abs(dp[i][j] - (dp[i - 1][j - 1] + costSub)) < EPSILON) {
                     path.add(AlignmentStep(i - 1, j - 1))
                     i--

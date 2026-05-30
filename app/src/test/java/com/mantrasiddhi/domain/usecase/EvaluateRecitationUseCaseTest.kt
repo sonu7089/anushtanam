@@ -100,19 +100,20 @@ class EvaluateRecitationUseCaseTest {
 
     @Test
     fun `should_movePassBoundary_when_sensitivityChanged`() = runTest {
-        // Two words missing -> 11/13 = 0.846 overall score.
-        val twoMissing = "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat"
+        // One scattered word missing: passes the completeness/correctness gates, so
+        // the (sensitivity-driven) overall gate is what decides the verdict.
+        val oneMissing = "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat"
 
-        // Default sensitivity 0.85: 0.846 < 0.85 -> fails.
-        every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
-        val strict = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository)
-        val strictResult = strict(1L, twoMissing, 5000L, RecitationMode.PRACTICE)
-        assertFalse(strictResult.isCorrect, "0.846 should fail at sensitivity 0.85")
-
-        // Lower sensitivity 0.80: 0.846 >= 0.80 -> passes. Boundary measurably moved.
-        every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.80)
+        // Lenient sensitivity 0.90: overall clears the gate -> passes.
+        every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.90)
         val lenient = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository)
-        val lenientResult = lenient(1L, twoMissing, 5000L, RecitationMode.PRACTICE)
-        assertTrue(lenientResult.isCorrect, "0.846 should pass at sensitivity 0.80")
+        val lenientResult = lenient(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
+        assertTrue(lenientResult.isCorrect, "should pass at sensitivity 0.90")
+
+        // Strict sensitivity 0.999: overall no longer clears the gate -> fails.
+        every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.999)
+        val strict = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository)
+        val strictResult = strict(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
+        assertFalse(strictResult.isCorrect, "should fail at sensitivity 0.999. Boundary moved.")
     }
 }

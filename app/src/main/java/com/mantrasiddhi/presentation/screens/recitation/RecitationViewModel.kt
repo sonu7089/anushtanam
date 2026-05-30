@@ -61,12 +61,16 @@ sealed interface RecitationUiState {
 
 /**
  * State representing feedback for the latest recitation.
+ *
+ * @property lowConfidence True when the audio was too unclear to score reliably;
+ *   the UI should prompt the user to retry rather than show a low score.
  */
 data class RecitationFeedbackState(
     val isCorrect: Boolean,
     val overallScore: Float,
     val worstWord: String?,
-    val suggestion: String?
+    val suggestion: String?,
+    val lowConfidence: Boolean = false
 )
 
 private class BoundaryReachedException(val text: String) : Exception()
@@ -199,6 +203,8 @@ class RecitationViewModel @Inject constructor(
                 var accumulatedText = ""
                 var lastSpeechTimeMs = System.currentTimeMillis()
                 var boundaryReachedText: String? = null
+                var finalAlternatives: List<Pair<String, Float>> = emptyList()
+                var finalConfidence = 1.0f
                 val loopStartTimeMs = System.currentTimeMillis()
 
                 try {
@@ -224,6 +230,8 @@ class RecitationViewModel @Inject constructor(
                                             is SpeechResult.Final -> {
                                                 accumulatedText = result.text
                                                 boundaryReachedText = accumulatedText
+                                                finalAlternatives = result.alternatives
+                                                finalConfidence = result.confidence
                                                 parentScope.cancel()
                                             }
                                             is SpeechResult.Error -> {
@@ -264,7 +272,7 @@ class RecitationViewModel @Inject constructor(
                 val finalOutputText = boundaryReachedText
                 if (finalOutputText != null && finalOutputText.isNotBlank()) {
                     val duration = System.currentTimeMillis() - loopStartTimeMs
-                    evaluateAndProcess(finalOutputText, duration)
+                    evaluateAndProcess(finalOutputText, duration, finalAlternatives, finalConfidence)
                     delay(2000)
                     emitActiveState(isListening = isListeningLoopActive, currentSpeechText = "", lastFeedback = null)
                 } else {
@@ -274,19 +282,29 @@ class RecitationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun evaluateAndProcess(transcription: String, durationMs: Long) {
+    private suspend fun evaluateAndProcess(
+        transcription: String,
+        durationMs: Long,
+        alternatives: List<Pair<String, Float>> = emptyList(),
+        confidence: Float = 1.0f
+    ) {
         val user = activeUser ?: return
         try {
             val evaluation = evaluateRecitationUseCase(
                 userId = user.id,
                 transcription = transcription,
                 recitationTimeMs = durationMs,
-                mode = RecitationMode.NORMAL
+                mode = RecitationMode.NORMAL,
+                alternatives = alternatives,
+                confidence = confidence
             )
 
             var worstWord: String? = null
             var suggestion: String? = null
-            if (!evaluation.isCorrect) {
+            if (evaluation.lowConfidence) {
+                // Don't punish pronunciation for audio we couldn't hear clearly.
+                suggestion = UNCLEAR_AUDIO_MESSAGE
+            } else if (!evaluation.isCorrect) {
                 val worstResult = evaluation.wordResults
                     .filter { ScoreBands.levelFor(it.score) != ScoreLevel.STRONG }
                     .minByOrNull { it.score }
@@ -300,7 +318,8 @@ class RecitationViewModel @Inject constructor(
                 isCorrect = evaluation.isCorrect,
                 overallScore = evaluation.overallScore,
                 worstWord = worstWord,
-                suggestion = suggestion
+                suggestion = suggestion,
+                lowConfidence = evaluation.lowConfidence
             )
 
             val oldTarget = activeTarget
@@ -329,5 +348,10 @@ class RecitationViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         listeningJob?.cancel()
+    }
+
+    private companion object {
+        /** Shown when STT confidence is too low to trust the transcription. */
+        const val UNCLEAR_AUDIO_MESSAGE = "Unclear audio — try again in a quieter spot."
     }
 }

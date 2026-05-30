@@ -162,4 +162,39 @@ class DevanagariTransliteratorTest {
     fun `should_trimAndSplitOnWhitespace`() {
         assertEquals("om svah", DevanagariTransliterator.transliterate("  ॐ   स्वः  "))
     }
+
+    // ---- Phase 2: phoneme-faithful (IAST) transliteration ----
+
+    @Test
+    fun `should_distinguishRetroflexFromDental_inFaithfulOutput`() {
+        // Dental त and retroflex ट both render 't' in the lossy display path, but
+        // must be distinct in the faithful path.
+        assertEquals("ta", DevanagariTransliterator.transliterateFaithful("तन").take(2))
+        assertEquals("ṭ", DevanagariTransliterator.transliterateFaithful("ट"))
+        assertEquals("t", DevanagariTransliterator.transliterateFaithful("त"))
+    }
+
+    @Test
+    fun `should_preserveAspiration_inFaithfulOutput`() {
+        assertEquals("bh", DevanagariTransliterator.transliterateFaithful("भ"))
+        assertEquals("b", DevanagariTransliterator.transliterateFaithful("ब"))
+    }
+
+    @Test
+    fun `should_preserveVowelLength_inFaithfulOutput`() {
+        assertEquals("ī", DevanagariTransliterator.transliterateFaithful("ई"))
+        assertEquals("i", DevanagariTransliterator.transliterateFaithful("इ"))
+        assertEquals("ū", DevanagariTransliterator.transliterateFaithful("ऊ"))
+    }
+
+    @Test
+    fun `should_emitVisargaAndAnusvara_inFaithfulOutput`() {
+        assertEquals("kaḥ", DevanagariTransliterator.transliterateFaithful("कः"))
+        assertEquals("kaṃ", DevanagariTransliterator.transliterateFaithful("कं"))
+    }
+
+    @Test
+    fun `should_returnEmpty_when_faithfulInputEmpty`() {
+        assertEquals("", DevanagariTransliterator.transliterateFaithful(""))
+    }
 }

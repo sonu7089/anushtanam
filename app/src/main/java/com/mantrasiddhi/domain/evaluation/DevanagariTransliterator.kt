@@ -7,7 +7,17 @@
 package com.mantrasiddhi.domain.evaluation
 
 /**
- * Transliterator that converts Devanagari script to Latin transliteration.
+ * Transliterator that converts Devanagari script to Latin.
+ *
+ * Two output flavours are exposed:
+ * - [transliterate] – the historical **lossy display** transliteration (retroflex
+ *   and dental both render `t`, long and short vowels both render `a`/`i`/`u`).
+ *   Kept for UI display and for the existing matching pipeline.
+ * - [transliterateFaithful] – a **phoneme-faithful** IAST transliteration that
+ *   preserves the distinctions pronunciation scoring needs (retroflex `ṭ` vs
+ *   dental `t`, aspiration `bh` vs `b`, long `ī/ū`, visarga `ḥ`, anusvara `ṃ`).
+ *   This output is what [com.mantrasiddhi.domain.evaluation.phonetics.PhonemeScheme]
+ *   consumes for phonetic tokenization.
  */
 object DevanagariTransliterator {
 
@@ -31,6 +41,34 @@ object DevanagariTransliterator {
         'य' to "y", 'र' to "r", 'ल' to "l", 'व' to "v", 'श' to "sh",
         'ष' to "sh", 'स' to "s", 'ह' to "h"
     )
+
+    // ---- Phoneme-faithful (IAST) tables: distinctions display transliteration drops ----
+
+    private val faithfulVowels = mapOf(
+        'अ' to "a", 'आ' to "ā", 'इ' to "i", 'ई' to "ī", 'उ' to "u", 'ऊ' to "ū",
+        'ऋ' to "ṛ", 'ए' to "e", 'ऐ' to "ai", 'ओ' to "o", 'औ' to "au",
+        'ॐ' to "om"
+    )
+
+    private val faithfulVowelSigns = mapOf(
+        'ा' to "ā", 'ि' to "i", 'ी' to "ī", 'ु' to "u", 'ू' to "ū",
+        'ृ' to "ṛ", 'े' to "e", 'ै' to "ai", 'ो' to "o", 'ौ' to "au"
+    )
+
+    private val faithfulConsonants = mapOf(
+        'क' to "k", 'ख' to "kh", 'ग' to "g", 'घ' to "gh", 'ङ' to "ṅ",
+        'च' to "c", 'छ' to "ch", 'ज' to "j", 'झ' to "jh", 'ञ' to "ñ",
+        'ट' to "ṭ", 'ठ' to "ṭh", 'ड' to "ḍ", 'ढ' to "ḍh", 'ण' to "ṇ",
+        'त' to "t", 'थ' to "th", 'द' to "d", 'ध' to "dh", 'न' to "n",
+        'प' to "p", 'फ' to "ph", 'ब' to "b", 'भ' to "bh", 'म' to "m",
+        'य' to "y", 'र' to "r", 'ल' to "l", 'व' to "v", 'श' to "ś",
+        'ष' to "ṣ", 'स' to "s", 'ह' to "h"
+    )
+
+    private const val ANUSVARA = 'ं'
+    private const val VISARGA = 'ः'
+    private const val VIRAMA = '्'
+    private const val INHERENT_VOWEL = "a"
 
     private val directReplacements = mapOf(
         "ॐ" to "om",
@@ -123,6 +161,54 @@ object DevanagariTransliterator {
         if (index < word.length - 1) {
             sb.append("a")
         }
+        return index + 1
+    }
+
+    /**
+     * Phoneme-faithful IAST transliteration of [text].
+     *
+     * Unlike [transliterate], this preserves retroflex/dental, aspiration, vowel
+     * length, visarga and anusvara as distinct symbols, so the result can be parsed
+     * into faithful phoneme tokens. The lossy whole-word overrides are intentionally
+     * **not** applied here.
+     *
+     * @param text Devanagari (or mixed) input.
+     * @return Faithful IAST transliteration.
+     */
+    fun transliterateFaithful(text: String): String {
+        if (text.isEmpty()) return ""
+        val words = text.trim().split(Regex("\\s+"))
+        return words.joinToString(" ") { transliterateFaithfulWord(it) }
+    }
+
+    private fun transliterateFaithfulWord(word: String): String {
+        val sb = StringBuilder()
+        var i = 0
+        while (i < word.length) {
+            val char = word[i]
+            when {
+                char == 'ॐ' -> { sb.append("om"); i++ }
+                faithfulVowels.containsKey(char) -> { sb.append(faithfulVowels[char]); i++ }
+                faithfulConsonants.containsKey(char) -> i = handleFaithfulConsonant(word, i, sb)
+                else -> { sb.append(char); i++ }
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun handleFaithfulConsonant(word: String, index: Int, sb: StringBuilder): Int {
+        sb.append(faithfulConsonants[word[index]])
+        val nextChar = word.getOrNull(index + 1)
+        if (nextChar != null) {
+            val sign = faithfulVowelSigns[nextChar]
+            when {
+                sign != null -> { sb.append(sign); return index + 2 }
+                nextChar == VIRAMA -> return index + 2
+                nextChar == ANUSVARA -> { sb.append(INHERENT_VOWEL).append("ṃ"); return index + 2 }
+                nextChar == VISARGA -> { sb.append(INHERENT_VOWEL).append("ḥ"); return index + 2 }
+            }
+        }
+        if (index < word.length - 1) sb.append(INHERENT_VOWEL)
         return index + 1
     }
 }

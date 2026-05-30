@@ -58,13 +58,13 @@ class MantraEvaluatorTest {
 
     @Test
     fun `should_detectExtraWords_when_unrelatedWordsAdded`() {
-        val input = "om bhur bhuvah svah extra tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat word"
+        val input = "om bhur bhuvah svah extra tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat random"
         val evaluation = MantraEvaluator.evaluate(input, 6000L)
 
         assertEquals(2, evaluation.extraWords.size)
         assertTrue(evaluation.extraWords.contains("extra"))
-        assertTrue(evaluation.extraWords.contains("word"))
-        assertTrue(evaluation.isCorrect) // Extra words are ignored in wordResults score
+        assertTrue(evaluation.extraWords.contains("random"))
+        assertTrue(evaluation.isCorrect) // A couple of stray words don't fail an otherwise-perfect recitation
     }
 
     @Test
@@ -191,50 +191,87 @@ class MantraEvaluatorTest {
         println("==========================================")
     }
 
-    // ---- Three-axis model (Phase 1) ----
+    // ---- Three-axis model (Phase 2: explicit pass rule) ----
 
     @Test
-    fun `should_matchLegacyOverallScore_when_assessingSameInputs`() {
-        // Proves no behavioral regression: assess().overall.score reproduces the
-        // legacy mean-of-word-scores (== evaluate().overallScore) for every case.
-        val inputs = listOf(
-            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
-            "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat", // 1 missing
-            "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat", // 2 missing
-            "om bhur bhuvah svah tatsavitur", // many missing
-            "completely unrelated text spoken here",
-            "" // empty
+    fun `should_passOnlyWhenCompleteCorrectAndOverallClearGate_when_assessing`() {
+        // The explicit pass rule (EvaluationConfig.isPass) gates on completeness AND
+        // correctness AND the sensitivity-driven overall score — no longer a mean.
+        val cases = listOf(
+            // perfect -> pass
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat" to true,
+            // one scattered word missing (12/13 complete) -> pass
+            "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat" to true,
+            // two words missing (11/13) -> fails the completeness gate
+            "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat" to false,
+            // a whole pada dropped -> fails completeness
+            "om bhur bhuvah svah tatsavitur varenyam dhiyo yo nah prachodayat" to false,
+            // empty -> fail
+            "" to false
         )
-
-        inputs.forEach { input ->
+        cases.forEach { (input, expected) ->
             val assessment = MantraEvaluator.assess(input, 5000L)
-            val legacy = MantraEvaluator.evaluate(input, 5000L)
-            val meanOfWords = legacy.wordResults.map { it.score }.average().toFloat()
-
-            assertEquals(legacy.overallScore, assessment.overall.score, 1e-4f, "overall vs legacy for '$input'")
-            assertEquals(meanOfWords, assessment.overall.score, 1e-4f, "overall vs mean for '$input'")
-            assertEquals(legacy.isCorrect, assessment.isPass, "isPass vs legacy isCorrect for '$input'")
-            // Phase 1: pronunciation axis is defined as the mean word similarity.
-            assertEquals(assessment.pronunciation.score, assessment.overall.score, 1e-4f)
+            assertEquals(expected, assessment.isPass, "pass rule for '$input'")
         }
     }
 
     @Test
-    fun `should_populateAxesIndependently_when_allWordsPresentButMispronounced`() {
+    fun `should_blockPass_when_wordsSwappedEvenThoughComplete`() {
+        // Every word present (high completeness) but two are transposed: the explicit
+        // correctness gate must block the pass. This is impossible to express with a
+        // single mean score.
+        val input = "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val assessment = MantraEvaluator.assess(input, 5000L)
+
+        assertEquals(1.0f, assessment.completeness.score, 1e-4f)
+        assertTrue(assessment.correctness.score < 0.85f, "swaps must lower correctness")
+        assertFalse(assessment.isPass, "a swapped recitation must not pass")
+    }
+
+    @Test
+    fun `should_separatePronunciationFromCompleteness_when_allWordsMispronounced`() {
         // Every reference word is recited (high completeness) but each is mildly
-        // mispronounced via a single-character corruption (lower pronunciation).
+        // mispronounced (lower pronunciation) — the two axes must diverge.
         val input = "on bhor bhuvar svar tatsavitar varanyam bhorgo devesya dhamahi dhayo ya noh prachodayot"
         val assessment = MantraEvaluator.assess(input, 5000L)
 
-        // All 13 reference words aligned to a spoken word.
         assertTrue(assessment.wordResults.all { it.spokenWord != null }, "all words should align")
         assertEquals(1.0f, assessment.completeness.score, 1e-4f)
         assertEquals(ScoreBand.EXCELLENT, assessment.completeness.band)
-
-        // Pronunciation is meaningfully below completeness and below the pass band.
         assertTrue(assessment.pronunciation.score < assessment.completeness.score)
-        assertTrue(assessment.pronunciation.score < 0.85f, "pronunciation should be sub-pass")
         assertTrue(assessment.pronunciation.score > 0.0f)
+    }
+
+    @Test
+    fun `should_movePassBoundary_when_passThresholdChanged`() {
+        // Sensitivity (passThreshold) measurably shifts the overall pass gate.
+        val input = "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat"
+        val overall = MantraEvaluator.assess(input, 5000L).overall.score
+
+        val lenient = EvaluationConfig.DEFAULT.copy(passThreshold = overall - 0.05f)
+        val strict = EvaluationConfig.DEFAULT.copy(passThreshold = overall + 0.05f)
+        assertTrue(MantraEvaluator.assess(input, 5000L, lenient).isPass, "should pass below the gate")
+        assertFalse(MantraEvaluator.assess(input, 5000L, strict).isPass, "should fail above the gate")
+    }
+
+    @Test
+    fun `should_recoverCorrectWords_when_inLowerRankedHypothesis`() {
+        // The 1-best hypothesis has a wrong word; the correct full mantra sits in #2.
+        val wrong = "om bhur bhuvah svah tatsavitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat"
+        val correct = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val alternatives = listOf(wrong to 0.9f, correct to 0.6f)
+
+        val assessment = MantraEvaluator.assessBest(alternatives, 5000L)
+        assertEquals(correct.split(" ").size, assessment.wordResults.size)
+        assertTrue(assessment.isPass, "n-best selection should recover the correct recitation")
+        assertTrue(assessment.overall.score > MantraEvaluator.assess(wrong, 5000L).overall.score)
+    }
+
+    @Test
+    fun `should_flagLowConfidence_when_sttConfidenceBelowThreshold`() {
+        val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val assessment = MantraEvaluator.assess(input, 5000L, confidence = 0.02f)
+        assertTrue(assessment.lowConfidence, "very low confidence should be flagged")
     }
 
     @Test
