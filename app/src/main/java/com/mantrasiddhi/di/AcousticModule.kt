@@ -7,7 +7,9 @@
 package com.mantrasiddhi.di
 
 import com.mantrasiddhi.data.signal.AcousticAnalyzerImpl
+import com.mantrasiddhi.data.signal.SwaraAnalyzerImpl
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
+import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAnalyzer
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -27,4 +29,10 @@ abstract class AcousticModule {
     abstract fun bindAcousticAnalyzer(
         impl: AcousticAnalyzerImpl
     ): AcousticAnalyzer
+
+    @Binds
+    @Singleton
+    abstract fun bindSwaraAnalyzer(
+        impl: SwaraAnalyzerImpl
+    ): SwaraAnalyzer
 }

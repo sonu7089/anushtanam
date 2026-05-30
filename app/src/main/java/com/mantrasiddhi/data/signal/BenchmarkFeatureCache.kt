@@ -37,7 +37,13 @@ class BenchmarkFeatureCache @Inject constructor(
 
     @Volatile
     private var cached: List<AcousticFeatures>? = null
+
+    @Volatile
+    private var cachedPcm: List<FloatArray>? = null
     private val lock = Any()
+
+    /** Sample rate of the per-word PCM returned by [pcmPerWord]. */
+    fun sampleRate(): Int = TARGET_SAMPLE_RATE
 
     /**
      * Returns one [AcousticFeatures] per reference word, in word order.
@@ -56,6 +62,22 @@ class BenchmarkFeatureCache @Inject constructor(
         }
     }
 
+    /**
+     * Returns the decoded benchmark PCM (16 kHz mono, `-1.0..1.0`) sliced per reference
+     * word, in word order. Reused by the optional swara/pitch layer so the benchmark
+     * audio is decoded at most once. On any failure each entry is an empty array.
+     */
+    fun pcmPerWord(): List<FloatArray> {
+        cachedPcm?.let { return it }
+        synchronized(lock) {
+            cachedPcm?.let { return it }
+            val computed = runCatching { computeWordPcm() }
+                .getOrElse { GayatriMantra.words.map { FloatArray(0) } }
+            cachedPcm = computed
+            return computed
+        }
+    }
+
     private fun computeFeatures(): List<AcousticFeatures> {
         val pcm = decodeToMonoPcm() ?: return GayatriMantra.words.map { AcousticFeatures.EMPTY }
         return GayatriMantra.words.map { word ->
@@ -66,6 +88,15 @@ class BenchmarkFeatureCache @Inject constructor(
             } else {
                 mfccExtractor.extract(pcm.copyOfRange(startSample, endSample), TARGET_SAMPLE_RATE)
             }
+        }
+    }
+
+    private fun computeWordPcm(): List<FloatArray> {
+        val pcm = decodeToMonoPcm() ?: return GayatriMantra.words.map { FloatArray(0) }
+        return GayatriMantra.words.map { word ->
+            val startSample = msToSample(word.benchmarkStartMs)
+            val endSample = msToSample(word.benchmarkEndMs).coerceAtMost(pcm.size)
+            if (endSample <= startSample) FloatArray(0) else pcm.copyOfRange(startSample, endSample)
         }
     }
 

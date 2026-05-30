@@ -1,6 +1,7 @@
 [
   {
     "id": "perfect",
+    "errorClass": "clean",
     "transcription": "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
     "audioAsset": null,
     "humanCorrectness": 1.0,
@@ -9,79 +10,8 @@
     "expectedPass": true
   },
   {
-    "id": "one_word_missing",
-    "transcription": "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.95,
-    "humanCompleteness": 0.92,
-    "humanPronunciation": 1.0,
-    "expectedPass": true
-  },
-  {
-    "id": "two_words_missing",
-    "transcription": "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.85,
-    "humanCompleteness": 0.85,
-    "humanPronunciation": 1.0,
-    "expectedPass": false
-  },
-  {
-    "id": "whole_pada_missing",
-    "transcription": "om bhur bhuvah svah tatsavitur varenyam dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.77,
-    "humanCompleteness": 0.77,
-    "humanPronunciation": 1.0,
-    "expectedPass": false
-  },
-  {
-    "id": "swapped_words",
-    "transcription": "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.4,
-    "humanCompleteness": 1.0,
-    "humanPronunciation": 0.85,
-    "expectedPass": false
-  },
-  {
-    "id": "extra_words",
-    "transcription": "hello om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat world",
-    "audioAsset": null,
-    "humanCorrectness": 0.85,
-    "humanCompleteness": 1.0,
-    "humanPronunciation": 1.0,
-    "expectedPass": true
-  },
-  {
-    "id": "mispronounced_right_words",
-    "transcription": "om bhur bhuvah svah tatsavitur varenyam bargo devasya dimahi dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.95,
-    "humanCompleteness": 1.0,
-    "humanPronunciation": 0.6,
-    "expectedPass": true
-  },
-  {
-    "id": "single_word_wrong",
-    "transcription": "om bhur bhuvah svah tatsavitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat",
-    "audioAsset": null,
-    "humanCorrectness": 0.92,
-    "humanCompleteness": 0.92,
-    "humanPronunciation": 0.85,
-    "expectedPass": true
-  },
-  {
-    "id": "gibberish",
-    "transcription": "completely unrelated text spoken here",
-    "audioAsset": null,
-    "humanCorrectness": 0.0,
-    "humanCompleteness": 0.0,
-    "humanPronunciation": 0.0,
-    "expectedPass": false
-  },
-  {
     "id": "devanagari_full",
+    "errorClass": "clean",
     "transcription": "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्",
     "audioAsset": null,
     "humanCorrectness": 1.0,
@@ -91,20 +21,248 @@
   },
   {
     "id": "mixed_script",
+    "errorClass": "clean",
     "transcription": "om भूर् bhuvah स्वः tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
     "audioAsset": null,
     "humanCorrectness": 1.0,
     "humanCompleteness": 1.0,
-    "humanPronunciation": 0.95,
+    "humanPronunciation": 1.0,
     "expectedPass": true
   },
   {
-    "id": "near_miss_phonetics",
-    "transcription": "om bhoor bhuva swaha tatsavitur varenyam bhargo devasya dheemahi dhiyo yo nah prachodayaat",
+    "id": "one_word_missing",
+    "errorClass": "missing-word",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat",
     "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.92,
+    "humanPronunciation": 1.0,
+    "expectedPass": true
+  },
+  {
+    "id": "last_word_missing",
+    "errorClass": "missing-word",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.92,
+    "humanPronunciation": 1.0,
+    "expectedPass": true
+  },
+  {
+    "id": "two_words_missing",
+    "errorClass": "missing-word",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.85,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "three_words_scattered_missing",
+    "errorClass": "missing-word",
+    "transcription": "om bhur bhuvah tatsavitur varenyam devasya dhimahi dhiyo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.77,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "whole_pada_missing",
+    "errorClass": "missing-pada",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.70,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "two_padas_missing",
+    "errorClass": "missing-pada",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.40,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "first_pada_only",
+    "errorClass": "missing-pada",
+    "transcription": "om bhur bhuvah svah",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.25,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "partial_recitation",
+    "errorClass": "missing-pada",
+    "transcription": "om bhur bhuvah",
+    "audioAsset": null,
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 0.22,
+    "humanPronunciation": 1.0,
+    "expectedPass": false
+  },
+  {
+    "id": "swap_adjacent",
+    "errorClass": "swap",
+    "transcription": "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.60,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.95,
+    "expectedPass": false
+  },
+  {
+    "id": "swap_two_pairs",
+    "errorClass": "swap",
+    "transcription": "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi yo dhiyo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.40,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.92,
+    "expectedPass": false
+  },
+  {
+    "id": "reversed_first_pada",
+    "errorClass": "swap",
+    "transcription": "svah bhuvah bhur om tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.25,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.92,
+    "expectedPass": false
+  },
+  {
+    "id": "single_word_wrong",
+    "errorClass": "substitution",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.92,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.88,
+    "expectedPass": true
+  },
+  {
+    "id": "two_words_wrong",
+    "errorClass": "substitution",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam xyz abcd dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.84,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.78,
+    "expectedPass": false
+  },
+  {
+    "id": "three_words_wrong",
+    "errorClass": "substitution",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam xyz abcd qwerty dhiyo yo nah prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.77,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.68,
+    "expectedPass": false
+  },
+  {
+    "id": "extra_words",
+    "errorClass": "extra",
+    "transcription": "hello om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat world",
+    "audioAsset": null,
+    "humanCorrectness": 0.90,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 1.0,
+    "expectedPass": true
+  },
+  {
+    "id": "many_extra_words",
+    "errorClass": "extra",
+    "transcription": "om bhur foo bhuvah svah bar tatsavitur varenyam bhargo baz devasya dhimahi dhiyo yo nah qux prachodayat",
+    "audioAsset": null,
+    "humanCorrectness": 0.80,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.95,
+    "expectedPass": false
+  },
+  {
+    "id": "near_miss_phonetics",
+    "errorClass": "phonetic",
+    "transcription": "om bhoor bhuva swaha tatsavitur varenyam bhargo devasya dheemahi dhiyo yo nah prachodayaat",
+    "audioAsset": "audio/learner_nearmiss.pcm",
     "humanCorrectness": 0.95,
     "humanCompleteness": 1.0,
-    "humanPronunciation": 0.8,
-    "expectedPass": true
+    "humanPronunciation": 0.82,
+    "expectedPass": true,
+    "pronunciationNeedsAudio": true
+  },
+  {
+    "id": "vowel_length",
+    "errorClass": "vowel-length",
+    "transcription": "om bhuur bhuvah svah tatsavitur varenyam bhargo devasya dhiimahi dhiyo yo nah prachodayaat",
+    "audioAsset": "audio/learner_vowel_length.pcm",
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.86,
+    "expectedPass": true,
+    "pronunciationNeedsAudio": true
+  },
+  {
+    "id": "visarga_dropped",
+    "errorClass": "visarga",
+    "transcription": "om bhur bhuva sva tatsavitur varenyam bhargo devasya dhimahi dhiyo yo na prachodayat",
+    "audioAsset": "audio/learner_visarga.pcm",
+    "humanCorrectness": 0.92,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.80,
+    "expectedPass": true,
+    "pronunciationNeedsAudio": true
+  },
+  {
+    "id": "gibberish",
+    "errorClass": "gibberish",
+    "transcription": "completely unrelated text spoken here",
+    "audioAsset": null,
+    "humanCorrectness": 0.0,
+    "humanCompleteness": 0.0,
+    "humanPronunciation": 0.0,
+    "expectedPass": false
+  },
+  {
+    "id": "mispronounced_deaspiration",
+    "errorClass": "de-aspiration",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": "audio/learner_deaspirated.pcm",
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.55,
+    "expectedPass": false,
+    "pronunciationNeedsAudio": true
+  },
+  {
+    "id": "mispronounced_retroflex",
+    "errorClass": "retroflex",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": "audio/learner_retroflex.pcm",
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.65,
+    "expectedPass": false,
+    "pronunciationNeedsAudio": true
+  },
+  {
+    "id": "flat_pacing",
+    "errorClass": "pacing",
+    "transcription": "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+    "audioAsset": "audio/learner_rushed.pcm",
+    "humanCorrectness": 1.0,
+    "humanCompleteness": 1.0,
+    "humanPronunciation": 0.72,
+    "expectedPass": true,
+    "pronunciationNeedsAudio": true
   }
 ]

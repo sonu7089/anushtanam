@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -241,6 +242,22 @@ fun PracticeScreen(
                 }
                 
                 is PracticeUiState.ShowingResults -> {
+                    // Phase 5.4: clearly communicate a degraded/partial assessment
+                    // instead of presenting an unreliable score as if it were solid.
+                    if (state.evaluation.lowConfidence) {
+                        DegradationNotice(
+                            text = stringResource(R.string.practice_unclear_audio_banner),
+                            container = MaterialTheme.colorScheme.errorContainer,
+                            content = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    } else if (hasSelfAudio && !state.evaluation.acousticAssessed) {
+                        DegradationNotice(
+                            text = stringResource(R.string.practice_pronunciation_not_assessed),
+                            container = MaterialTheme.colorScheme.secondaryContainer,
+                            content = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+
                     val score = state.evaluation.overallScore
                     val animatedScore by animateFloatAsState(
                         targetValue = score * 100f,
@@ -296,6 +313,13 @@ fun PracticeScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
+                    }
+
+                    // Phase 5.5: opt-in Vedic swara/pitch score, shown only when the
+                    // user enabled Advanced mode and pitch could be tracked. Separate
+                    // from the headline score — it never changes it.
+                    state.evaluation.swara?.takeIf { it.assessed }?.let { swara ->
+                        SwaraCard(swara)
                     }
 
                     Text(
@@ -358,6 +382,81 @@ fun PracticeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * A small, full-width banner used to clearly communicate a degraded or partial
+ * assessment (Phase 5.4): unclear audio prompting a retry, or pronunciation that
+ * could not be assessed acoustically.
+ */
+@Composable
+private fun DegradationNotice(
+    text: String,
+    container: androidx.compose.ui.graphics.Color,
+    content: androidx.compose.ui.graphics.Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = container,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = content,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        )
+    }
+}
+
+/**
+ * Opt-in Vedic swara/pitch score card (Phase 5.5). Shows the pitch-match percentage
+ * and a directional coaching hint. Purely additive — it does not affect the headline
+ * recitation score.
+ */
+@Composable
+private fun SwaraCard(swara: com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment) {
+    val hintRes = when (swara.hint) {
+        com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment.Hint.GOOD -> R.string.practice_swara_hint_good
+        com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment.Hint.FLAT -> R.string.practice_swara_hint_flat
+        com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment.Hint.WRONG_DIRECTION -> R.string.practice_swara_hint_direction
+        com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment.Hint.UNKNOWN -> R.string.practice_swara_not_assessed
+    }
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = stringResource(R.string.practice_swara_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.practice_swara_accuracy, (swara.overallScore * 100).toInt()),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = stringResource(hintRes),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+            )
         }
     }
 }

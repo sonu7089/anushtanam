@@ -23,4 +23,7 @@ class AppPreferencesRepositoryImpl @Inject constructor(
 
     override val isRecitationSensitivityExplicit: Flow<Boolean> =
         preferencesDataStore.recitationSensitivityIsSetFlow
+
+    override val advancedVedicMode: Flow<Boolean> =
+        preferencesDataStore.advancedVedicModeFlow
 }

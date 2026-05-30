@@ -241,5 +241,20 @@
     <string name="child_no_active_target">No active target is set for %1$s.</string>
     <string name="child_struggle_words_desc">Below is the list of top 3 words %1$s struggles to pronounce accurately:</string>
     <string name="child_desc_improvement_area">Improvement area</string>
+
+    <!-- Phase 5: robustness / graceful degradation -->
+    <string name="practice_unclear_audio_banner">We couldn\'t hear you clearly. Find a quieter spot and try again — your score may not be reliable.</string>
+    <string name="practice_pronunciation_not_assessed">Pronunciation wasn\'t assessed from audio (too quiet or noisy). Completeness and correctness were still scored.</string>
+
+    <!-- Phase 5.5: Advanced / Vedic (swara) mode -->
+    <string name="settings_advanced_section">Advanced (Vedic)</string>
+    <string name="settings_advanced_vedic_mode">Swara / Pitch accuracy</string>
+    <string name="settings_advanced_vedic_mode_desc">Assess Vedic pitch accents (udātta / anudātta / svarita) from your audio. Adds a separate swara score; does not change your normal pronunciation score. Best enabled once you are comfortable with the syllables.</string>
+    <string name="practice_swara_title">Swara (Pitch) Accuracy</string>
+    <string name="practice_swara_accuracy">%1$d%% pitch match</string>
+    <string name="practice_swara_not_assessed">Swara not assessed — needs clear audio.</string>
+    <string name="practice_swara_hint_good">Your pitch contour closely follows the benchmark recitation.</string>
+    <string name="practice_swara_hint_flat">Your recitation is fairly flat — let the pitch rise and fall with the benchmark.</string>
+    <string name="practice_swara_hint_direction">Watch the accent direction — you are rising where the benchmark falls (or vice-versa).</string>
 </resources>
 

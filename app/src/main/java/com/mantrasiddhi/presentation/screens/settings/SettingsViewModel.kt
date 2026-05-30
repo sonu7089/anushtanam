@@ -51,6 +51,10 @@ class SettingsViewModel @Inject constructor(
     val sensitivityThreshold: StateFlow<Double> = preferencesDataStore.recitationSensitivityFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_SENSITIVITY)
 
+    /** Whether the opt-in Advanced/Vedic (swara/pitch) mode is enabled (§5.5). */
+    val advancedVedicMode: StateFlow<Boolean> = preferencesDataStore.advancedVedicModeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
@@ -69,6 +73,12 @@ class SettingsViewModel @Inject constructor(
     fun setSensitivityThreshold(threshold: Double) {
         viewModelScope.launch {
             preferencesDataStore.setRecitationSensitivity(threshold)
+        }
+    }
+
+    fun setAdvancedVedicMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataStore.setAdvancedVedicMode(enabled)
         }
     }
 

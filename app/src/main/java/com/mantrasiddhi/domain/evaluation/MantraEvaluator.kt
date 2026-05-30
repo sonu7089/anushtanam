@@ -168,7 +168,8 @@ object MantraEvaluator {
         missingWords = assessment.missingWords,
         extraWords = assessment.extraWords,
         recitationTimeMs = assessment.recitationTimeMs,
-        lowConfidence = assessment.lowConfidence
+        lowConfidence = assessment.lowConfidence,
+        acousticAssessed = assessment.acousticAssessed
     )
 
     private fun splitToWords(normalized: String): List<String> =

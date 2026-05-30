@@ -28,4 +28,10 @@ interface AppPreferencesRepository {
      * explicit choice always overrides the automatic level (§4.3: explicit > auto).
      */
     val isRecitationSensitivityExplicit: Flow<Boolean>
+
+    /**
+     * Whether the opt-in Advanced/Vedic mode (swara/pitch accuracy, §5.5) is enabled.
+     * Default `false`; when off, no pitch analysis runs and scoring is unchanged.
+     */
+    val advancedVedicMode: Flow<Boolean>
 }

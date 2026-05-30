@@ -9,6 +9,7 @@ package com.mantrasiddhi.data.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -29,6 +30,7 @@ class UserPreferencesDataStore @Inject constructor(
         private val KEY_THEME = stringPreferencesKey("theme_mode")
         private val KEY_LANGUAGE_DISPLAY = stringPreferencesKey("language_display")
         private val KEY_RECITATION_SENSITIVITY = doublePreferencesKey("recitation_sensitivity")
+        private val KEY_ADVANCED_VEDIC_MODE = booleanPreferencesKey("advanced_vedic_mode")
     }
 
     val themeModeFlow: Flow<String> = context.dataStore.data.map { preferences ->
@@ -48,6 +50,11 @@ class UserPreferencesDataStore @Inject constructor(
         preferences.contains(KEY_RECITATION_SENSITIVITY)
     }
 
+    /** Whether the opt-in Advanced/Vedic (swara/pitch) mode is enabled. Default off. */
+    val advancedVedicModeFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[KEY_ADVANCED_VEDIC_MODE] ?: false
+    }
+
     suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_THEME] = mode
@@ -63,6 +70,12 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setRecitationSensitivity(sensitivity: Double) {
         context.dataStore.edit { preferences ->
             preferences[KEY_RECITATION_SENSITIVITY] = sensitivity
+        }
+    }
+
+    suspend fun setAdvancedVedicMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ADVANCED_VEDIC_MODE] = enabled
         }
     }
 }

@@ -7,6 +7,9 @@
 package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
+import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
+import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAnalyzer
+import com.mantrasiddhi.domain.evaluation.diagnostics.EvaluationDiagnostics
 import com.mantrasiddhi.domain.model.LearnerLevel
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,6 +34,8 @@ class EvaluateRecitationUseCaseTest {
     private lateinit var appPreferencesRepository: AppPreferencesRepository
     private lateinit var acousticAnalyzer: AcousticAnalyzer
     private lateinit var determineLearnerLevelUseCase: DetermineLearnerLevelUseCase
+    private lateinit var evaluationDiagnostics: EvaluationDiagnostics
+    private lateinit var swaraAnalyzer: SwaraAnalyzer
     private lateinit var evaluateRecitationUseCase: EvaluateRecitationUseCase
 
     @BeforeEach
@@ -39,15 +45,20 @@ class EvaluateRecitationUseCaseTest {
         appPreferencesRepository = mockk()
         acousticAnalyzer = mockk(relaxed = true)
         determineLearnerLevelUseCase = mockk(relaxed = true)
+        evaluationDiagnostics = mockk(relaxed = true)
+        swaraAnalyzer = mockk(relaxed = true)
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
         // Default: an explicit sensitivity is set, preserving the legacy gate behaviour.
         every { appPreferencesRepository.isRecitationSensitivityExplicit } returns flowOf(true)
+        every { appPreferencesRepository.advancedVedicMode } returns flowOf(false)
         evaluateRecitationUseCase = EvaluateRecitationUseCase(
             recitationRepository,
             incrementTargetUseCase,
             appPreferencesRepository,
             acousticAnalyzer,
-            determineLearnerLevelUseCase
+            determineLearnerLevelUseCase,
+            evaluationDiagnostics,
+            swaraAnalyzer
         )
     }
 
@@ -56,7 +67,9 @@ class EvaluateRecitationUseCaseTest {
         incrementTargetUseCase,
         appPreferencesRepository,
         acousticAnalyzer,
-        determineLearnerLevelUseCase
+        determineLearnerLevelUseCase,
+        evaluationDiagnostics,
+        swaraAnalyzer
     )
 
     @Test
@@ -152,5 +165,29 @@ class EvaluateRecitationUseCaseTest {
         coEvery { determineLearnerLevelUseCase(1L) } returns LearnerLevel.ADVANCED
         val advancedResult = useCase()(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
         assertFalse(advancedResult.isCorrect, "advanced should be flagged for improvement")
+    }
+
+    @Test
+    fun `should_notRunSwara_when_advancedModeOff`() = runTest {
+        // Opt-in feature off: no pitch analysis runs and the result carries no swara.
+        every { appPreferencesRepository.advancedVedicMode } returns flowOf(false)
+        val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val audio = RecordedAudio(FloatArray(16_000) { 0.1f }, 16_000)
+
+        val evaluation = useCase()(1L, input, 5000L, RecitationMode.PRACTICE, audio = audio)
+
+        assertNull(evaluation.swara, "swara must be absent when Advanced/Vedic mode is off")
+        coVerify(exactly = 0) { swaraAnalyzer.analyze(any(), any()) }
+    }
+
+    @Test
+    fun `should_runSwara_when_advancedModeOnAndAudioPresent`() = runTest {
+        every { appPreferencesRepository.advancedVedicMode } returns flowOf(true)
+        val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val audio = RecordedAudio(FloatArray(16_000) { 0.1f }, 16_000)
+
+        useCase()(1L, input, 5000L, RecitationMode.PRACTICE, audio = audio)
+
+        coVerify(exactly = 1) { swaraAnalyzer.analyze(any(), any()) }
     }
 }

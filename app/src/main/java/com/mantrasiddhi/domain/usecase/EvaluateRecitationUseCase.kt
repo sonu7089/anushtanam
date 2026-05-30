@@ -12,6 +12,10 @@ import com.mantrasiddhi.domain.evaluation.MantraEvaluator
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAssessment
 import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
+import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAnalyzer
+import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment
+import com.mantrasiddhi.domain.evaluation.diagnostics.DiagnosticEvent
+import com.mantrasiddhi.domain.evaluation.diagnostics.EvaluationDiagnostics
 import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
@@ -29,7 +33,9 @@ class EvaluateRecitationUseCase @Inject constructor(
     private val incrementTargetUseCase: IncrementTargetUseCase,
     private val appPreferencesRepository: AppPreferencesRepository,
     private val acousticAnalyzer: AcousticAnalyzer,
-    private val determineLearnerLevelUseCase: DetermineLearnerLevelUseCase
+    private val determineLearnerLevelUseCase: DetermineLearnerLevelUseCase,
+    private val evaluationDiagnostics: EvaluationDiagnostics,
+    private val swaraAnalyzer: SwaraAnalyzer
 ) {
 
     /**
@@ -70,8 +76,10 @@ class EvaluateRecitationUseCase @Inject constructor(
         val hypotheses = alternatives.ifEmpty { listOf(transcription to confidence) }
         val acoustic = analyzeAudio(audio, hypotheses, config)
         val assessment = MantraEvaluator.assessBest(hypotheses, recitationTimeMs, config, acoustic)
-        val evaluation = MantraEvaluator.toEvaluation(assessment)
+        val swara = analyzeSwara(audio, config)
+        val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
         saveSession(userId, mode, transcription, recitationTimeMs, assessment)
+        recordDiagnostics(transcription, assessment, acoustic, audio)
 
         if (mode == RecitationMode.NORMAL && evaluation.isCorrect) {
             incrementTargetUseCase(userId)
@@ -129,5 +137,48 @@ class EvaluateRecitationUseCase @Inject constructor(
         if (audio == null || audio.isEmpty) return null
         val confidence = hypotheses.firstOrNull()?.second ?: 1.0f
         return acousticAnalyzer.analyze(audio, confidence, config)
+    }
+
+    /**
+     * Runs the optional swara/pitch layer (§5.5) only when the user has enabled
+     * Advanced/Vedic mode and audio was captured. Returns `null` otherwise so default
+     * scoring is entirely unaffected when the feature is off.
+     */
+    private suspend fun analyzeSwara(audio: RecordedAudio?, config: EvaluationConfig): SwaraAssessment? {
+        if (audio == null || audio.isEmpty) return null
+        if (!appPreferencesRepository.advancedVedicMode.first()) return null
+        return swaraAnalyzer.analyze(audio, config)
+    }
+
+    /**
+     * Records on-device diagnostics (§5.4) for recitations the engine could not score
+     * with full confidence — low STT confidence, or captured audio that was dropped /
+     * too noisy to assess acoustically. These flag real-world captures worth adding to
+     * the calibration corpus. Clean, fully-assessed recitations are not recorded to
+     * keep the on-device log focused and small.
+     */
+    private suspend fun recordDiagnostics(
+        transcription: String,
+        assessment: RecitationAssessment,
+        acoustic: AcousticAssessment?,
+        audio: RecordedAudio?
+    ) {
+        val audioCaptured = audio != null && !audio.isEmpty
+        val degraded = assessment.lowConfidence || (audioCaptured && !assessment.acousticAssessed)
+        if (!degraded) return
+        evaluationDiagnostics.record(
+            DiagnosticEvent(
+                transcription = transcription,
+                overall = assessment.overall.score,
+                correctness = assessment.correctness.score,
+                completeness = assessment.completeness.score,
+                pronunciation = assessment.pronunciation.score,
+                lowConfidence = assessment.lowConfidence,
+                audioCaptured = audioCaptured,
+                acousticAssessed = assessment.acousticAssessed,
+                snrDb = acoustic?.snrDb,
+                timestampMs = System.currentTimeMillis()
+            )
+        )
     }
 }

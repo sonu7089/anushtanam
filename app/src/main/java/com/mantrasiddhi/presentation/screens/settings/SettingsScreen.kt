@@ -41,6 +41,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -76,6 +77,7 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
     val sensitivityThreshold by viewModel.sensitivityThreshold.collectAsState()
+    val advancedVedicMode by viewModel.advancedVedicMode.collectAsState()
 
     var showResetDialog by remember { mutableStateOf(false) }
 
@@ -346,6 +348,52 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Advanced (Vedic) — opt-in swara/pitch accuracy (Phase 5.5)
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_advanced_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_advanced_vedic_mode),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_advanced_vedic_mode_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = advancedVedicMode,
+                            onCheckedChange = { viewModel.setAdvancedVedicMode(it) }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
