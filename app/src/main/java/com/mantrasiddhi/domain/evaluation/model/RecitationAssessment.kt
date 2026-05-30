@@ -35,6 +35,9 @@ import com.mantrasiddhi.domain.evaluation.WordResult
  * @property lowConfidence Whether the underlying STT confidence was too low to trust
  *   the transcription; the UI should ask the user to retry in a quieter spot rather
  *   than reporting a (false) low pronunciation score.
+ * @property acousticAssessed Whether the pronunciation axis was grounded in the
+ *   Phase-3 acoustic (audio-vs-benchmark) signal. `false` means it is the Phase-2
+ *   text-only estimate (no audio captured, or audio gated out as too noisy).
  * @property recitationTimeMs Duration of the recitation in milliseconds.
  */
 data class RecitationAssessment(
@@ -47,6 +50,7 @@ data class RecitationAssessment(
     val extraWords: List<String>,
     val isPass: Boolean,
     val lowConfidence: Boolean = false,
+    val acousticAssessed: Boolean = false,
     val recitationTimeMs: Long
 ) {
     /** Reference words that were not recited at all. */

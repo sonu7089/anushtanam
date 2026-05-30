@@ -45,6 +45,18 @@ import com.mantrasiddhi.domain.evaluation.model.ScoreBand
  * @property extraWordPenalty Correctness penalty for an inserted extra word.
  * @property inversionPenalty Correctness penalty per order inversion in the alignment.
  * @property wholePadaPenalty Extra completeness penalty for each fully-missing pada.
+ * @property acousticPronunciationWeight Share of the pronunciation axis taken from the
+ *   **acoustic** (DTW-vs-benchmark) signal when audio is assessed; the remainder comes
+ *   from the text-phonetic estimate. Acoustic is the primary signal (§3.4), text is the
+ *   graceful-degradation fallback when audio is missing or noisy.
+ * @property acousticDistanceScale DTW-distance scaling used to map a per-word distance
+ *   `d` to an acoustic score `exp(-d / scale)`; larger is more forgiving.
+ * @property acousticEnergyThresholdRatio Fraction of the dynamic energy range above the
+ *   noise floor that counts as voiced during word segmentation.
+ * @property acousticMinVoicedFrames Minimum voiced frames required before acoustic
+ *   scoring is attempted (too-short captures are not assessed).
+ * @property minSnrDb Minimum estimated SNR (dB) for audio to be assessed acoustically;
+ *   below it the capture is flagged "noisy" and pronunciation falls back to text.
  */
 data class EvaluationConfig(
     val passThreshold: Float = 0.85f,
@@ -64,7 +76,12 @@ data class EvaluationConfig(
     val swappedWordPenalty: Float = 1.5f,
     val extraWordPenalty: Float = 0.5f,
     val inversionPenalty: Float = 0.5f,
-    val wholePadaPenalty: Float = 0.05f
+    val wholePadaPenalty: Float = 0.05f,
+    val acousticPronunciationWeight: Float = 0.70f,
+    val acousticDistanceScale: Float = 8.0f,
+    val acousticEnergyThresholdRatio: Float = 0.15f,
+    val acousticMinVoicedFrames: Int = 10,
+    val minSnrDb: Float = 6.0f
 ) {
 
     /** Maps a 0..1 [score] to a qualitative [ScoreBand] using the configured cutoffs. */

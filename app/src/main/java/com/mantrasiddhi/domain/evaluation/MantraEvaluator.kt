@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAssessment
 import com.mantrasiddhi.domain.evaluation.model.PadaResult
 import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
 import com.mantrasiddhi.domain.evaluation.phonetics.PhoneticDistance
@@ -45,25 +46,31 @@ object MantraEvaluator {
      * @param config Tunable thresholds/weights (notably the sensitivity-driven pass threshold).
      * @param confidence STT confidence of the transcription (`0.0..1.0`); below
      *   [EvaluationConfig.minConfidence] the result is flagged [RecitationAssessment.lowConfidence].
+     * @param acoustic Optional Phase-3 acoustic assessment. When present and
+     *   [AcousticAssessment.assessed], the pronunciation axis is fused from audio
+     *   (primary) and text (fallback); otherwise the engine uses the text-only
+     *   estimate so it degrades cleanly when audio is unavailable.
      * @return A [RecitationAssessment] with independently-scored axes.
      */
     fun assess(
         transcription: String,
         recitationTimeMs: Long,
         config: EvaluationConfig = EvaluationConfig.DEFAULT,
-        confidence: Float = 1.0f
+        confidence: Float = 1.0f,
+        acoustic: AcousticAssessment? = null
     ): RecitationAssessment {
         val spokenWords = splitToWords(TextNormalizer.normalize(transcription))
         val alignment = LevenshteinAligner.align(reference, spokenWords, phoneticSimilarity)
 
         val wordResults = mutableListOf<WordResult>()
         val extraWords = mutableListOf<String>()
-        evaluateWords(alignment, spokenWords, wordResults, extraWords, config)
+        evaluateWords(alignment, spokenWords, wordResults, extraWords, config, acoustic)
         val padaResults = buildPadaResults(wordResults)
 
+        val acousticAssessed = acoustic != null && acoustic.assessed
         val completenessScore = CompletenessScorer.score(wordResults, padaResults, config.wholePadaPenalty)
         val correctnessScore = SequenceScorer.score(wordResults, alignment, extraWords.size, config)
-        val pronunciationScore = PronunciationScorer.score(wordResults)
+        val pronunciationScore = PronunciationScorer.score(wordResults, acoustic, config)
         val overallScore = config.fuseOverall(correctnessScore, completenessScore, pronunciationScore)
 
         return RecitationAssessment(
@@ -76,6 +83,7 @@ object MantraEvaluator {
             extraWords = extraWords,
             isPass = config.isPass(correctnessScore, completenessScore, overallScore),
             lowConfidence = confidence < config.minConfidence,
+            acousticAssessed = acousticAssessed,
             recitationTimeMs = recitationTimeMs
         )
     }
@@ -90,18 +98,22 @@ object MantraEvaluator {
      *   ordered best-first.
      * @param recitationTimeMs Time taken in milliseconds for the recitation.
      * @param config Tunable thresholds/weights.
+     * @param acoustic Optional Phase-3 acoustic assessment fused into pronunciation.
      * @return The assessment of the chosen hypothesis (an empty-input assessment when
      *   no hypothesis is usable).
      */
     fun assessBest(
         alternatives: List<Pair<String, Float>>,
         recitationTimeMs: Long,
-        config: EvaluationConfig = EvaluationConfig.DEFAULT
+        config: EvaluationConfig = EvaluationConfig.DEFAULT,
+        acoustic: AcousticAssessment? = null
     ): RecitationAssessment {
+        // The acoustic signal is independent of which text hypothesis we pick, so
+        // hypothesis selection still uses the text-only overall score.
         val chosen = HypothesisSelector.select(alternatives) { text ->
             assess(text, recitationTimeMs, config).overall.score
-        } ?: return assess("", recitationTimeMs, config, confidence = 0.0f)
-        return assess(chosen.first, recitationTimeMs, config, confidence = chosen.second)
+        } ?: return assess("", recitationTimeMs, config, confidence = 0.0f, acoustic = acoustic)
+        return assess(chosen.first, recitationTimeMs, config, confidence = chosen.second, acoustic = acoustic)
     }
 
     /**
@@ -114,15 +126,17 @@ object MantraEvaluator {
      * @param recitationTimeMs Time taken in milliseconds for the recitation.
      * @param config Tunable thresholds/weights.
      * @param confidence STT confidence of the transcription (`0.0..1.0`).
+     * @param acoustic Optional Phase-3 acoustic assessment fused into pronunciation.
      * @return Evaluation details including word breakdown and overall score.
      */
     fun evaluate(
         transcription: String,
         recitationTimeMs: Long,
         config: EvaluationConfig = EvaluationConfig.DEFAULT,
-        confidence: Float = 1.0f
+        confidence: Float = 1.0f,
+        acoustic: AcousticAssessment? = null
     ): MantraEvaluation {
-        val assessment = assess(transcription, recitationTimeMs, config, confidence)
+        val assessment = assess(transcription, recitationTimeMs, config, confidence, acoustic)
         return assessment.toEvaluation()
     }
 
@@ -132,12 +146,14 @@ object MantraEvaluator {
      * @param alternatives Candidate transcriptions paired with their confidence.
      * @param recitationTimeMs Time taken in milliseconds for the recitation.
      * @param config Tunable thresholds/weights.
+     * @param acoustic Optional Phase-3 acoustic assessment fused into pronunciation.
      */
     fun evaluateBest(
         alternatives: List<Pair<String, Float>>,
         recitationTimeMs: Long,
-        config: EvaluationConfig = EvaluationConfig.DEFAULT
-    ): MantraEvaluation = assessBest(alternatives, recitationTimeMs, config).toEvaluation()
+        config: EvaluationConfig = EvaluationConfig.DEFAULT,
+        acoustic: AcousticAssessment? = null
+    ): MantraEvaluation = assessBest(alternatives, recitationTimeMs, config, acoustic).toEvaluation()
 
     private fun RecitationAssessment.toEvaluation(): MantraEvaluation = MantraEvaluation(
         overallScore = overall.score,
@@ -157,17 +173,29 @@ object MantraEvaluator {
         spokenWords: List<String>,
         wordResults: MutableList<WordResult>,
         extraWords: MutableList<String>,
-        config: EvaluationConfig
+        config: EvaluationConfig,
+        acoustic: AcousticAssessment?
     ) {
         val stepMap = alignment.filter { it.refIndex != null }.associateBy { it.refIndex!! }
+        val useAcoustic = acoustic != null && acoustic.assessed
 
         for (i in reference.indices) {
             val step = stepMap[i]
+            val acousticWord = if (useAcoustic) acoustic?.wordScoreFor(i) else null
             if (step != null && step.spokenIndex != null) {
                 val spokenWord = spokenWords[step.spokenIndex]
                 val score = phoneticSimilarity(reference[i], spokenWord).toFloat()
                 val feedback = determineFeedback(spokenWord, score, i, config)
-                wordResults.add(WordResult(reference[i], spokenWord, score, feedback))
+                wordResults.add(
+                    WordResult(
+                        referenceWord = reference[i],
+                        spokenWord = spokenWord,
+                        score = score,
+                        feedback = feedback,
+                        acousticScore = acousticWord?.score,
+                        pacingRatio = acousticWord?.pacingRatio
+                    )
+                )
             } else {
                 wordResults.add(WordResult(reference[i], null, 0.0f, WordFeedback.MISSING))
             }

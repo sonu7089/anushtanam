@@ -8,10 +8,12 @@ package com.mantrasiddhi.presentation.screens.practice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.data.audio.AudioCaptureService
 import com.mantrasiddhi.data.audio.BenchmarkAudioPlayer
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.evaluation.MantraEvaluation
+import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
@@ -50,7 +52,8 @@ class PracticeModeViewModel @Inject constructor(
     private val benchmarkAudioPlayer: BenchmarkAudioPlayer,
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val soundEffectsPlayer: SoundEffectsPlayer
+    private val soundEffectsPlayer: SoundEffectsPlayer,
+    private val audioCaptureService: AudioCaptureService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Idle)
@@ -107,6 +110,9 @@ class PracticeModeViewModel @Inject constructor(
         recordingJob?.cancel()
         _uiState.value = PracticeUiState.Recording("", 0)
         startTimeMs = System.currentTimeMillis()
+        // Capture raw audio in parallel with STT so pronunciation can be measured
+        // acoustically; if the mic is unavailable this degrades to the text path.
+        audioCaptureService.start()
 
         recordingJob = viewModelScope.launch {
             val timerJob = launch {
@@ -125,6 +131,7 @@ class PracticeModeViewModel @Inject constructor(
                 .flowOn(Dispatchers.Main)
                 .catch { e ->
                     timerJob.cancel()
+                    audioCaptureService.stop()
                     _uiState.value = PracticeUiState.Error(e.message ?: "Speech recognition failed")
                 }
                 .collect { result ->
@@ -137,10 +144,12 @@ class PracticeModeViewModel @Inject constructor(
                         }
                         is SpeechResult.Final -> {
                             timerJob.cancel()
-                            evaluateTranscription(result.text, result.confidence, result.alternatives)
+                            val audio = audioCaptureService.stop()
+                            evaluateTranscription(result.text, result.confidence, result.alternatives, audio)
                         }
                         is SpeechResult.Error -> {
                             timerJob.cancel()
+                            audioCaptureService.stop()
                             _uiState.value = PracticeUiState.Error(result.message)
                         }
                     }
@@ -158,8 +167,9 @@ class PracticeModeViewModel @Inject constructor(
             val text = current.partialText
             recordingJob?.cancel()
             recordingJob = null
+            val audio = audioCaptureService.stop()
             if (text.isNotBlank()) {
-                evaluateTranscription(text)
+                evaluateTranscription(text, audio = audio)
             } else {
                 _uiState.value = PracticeUiState.Idle
             }
@@ -171,6 +181,7 @@ class PracticeModeViewModel @Inject constructor(
      */
     fun resetPractice() {
         benchmarkAudioPlayer.stop()
+        audioCaptureService.stop()
         recordingJob?.cancel()
         recordingJob = null
         _uiState.value = PracticeUiState.Idle
@@ -179,7 +190,8 @@ class PracticeModeViewModel @Inject constructor(
     private fun evaluateTranscription(
         transcription: String,
         confidence: Float = 1.0f,
-        alternatives: List<Pair<String, Float>> = emptyList()
+        alternatives: List<Pair<String, Float>> = emptyList(),
+        audio: RecordedAudio? = null
     ) {
         _uiState.value = PracticeUiState.Processing
         viewModelScope.launch {
@@ -192,7 +204,8 @@ class PracticeModeViewModel @Inject constructor(
                     recitationTimeMs = recitationTime,
                     mode = RecitationMode.PRACTICE,
                     alternatives = alternatives,
-                    confidence = confidence
+                    confidence = confidence,
+                    audio = audio
                 )
                 if (evaluation.isCorrect) {
                     soundEffectsPlayer.playCorrectSound()
@@ -207,6 +220,7 @@ class PracticeModeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         benchmarkAudioPlayer.release()
+        audioCaptureService.release()
         recordingJob?.cancel()
     }
 }

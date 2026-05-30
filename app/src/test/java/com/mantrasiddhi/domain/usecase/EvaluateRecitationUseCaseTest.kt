@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.domain.usecase
 
+import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
@@ -25,6 +26,7 @@ class EvaluateRecitationUseCaseTest {
     private lateinit var recitationRepository: RecitationRepository
     private lateinit var incrementTargetUseCase: IncrementTargetUseCase
     private lateinit var appPreferencesRepository: AppPreferencesRepository
+    private lateinit var acousticAnalyzer: AcousticAnalyzer
     private lateinit var evaluateRecitationUseCase: EvaluateRecitationUseCase
 
     @BeforeEach
@@ -32,11 +34,13 @@ class EvaluateRecitationUseCaseTest {
         recitationRepository = mockk(relaxed = true)
         incrementTargetUseCase = mockk(relaxed = true)
         appPreferencesRepository = mockk()
+        acousticAnalyzer = mockk(relaxed = true)
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
         evaluateRecitationUseCase = EvaluateRecitationUseCase(
             recitationRepository,
             incrementTargetUseCase,
-            appPreferencesRepository
+            appPreferencesRepository,
+            acousticAnalyzer
         )
     }
 
@@ -106,13 +110,13 @@ class EvaluateRecitationUseCaseTest {
 
         // Lenient sensitivity 0.90: overall clears the gate -> passes.
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.90)
-        val lenient = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository)
+        val lenient = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository, acousticAnalyzer)
         val lenientResult = lenient(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
         assertTrue(lenientResult.isCorrect, "should pass at sensitivity 0.90")
 
         // Strict sensitivity 0.999: overall no longer clears the gate -> fails.
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.999)
-        val strict = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository)
+        val strict = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository, acousticAnalyzer)
         val strictResult = strict(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
         assertFalse(strictResult.isCorrect, "should fail at sensitivity 0.999. Boundary moved.")
     }
