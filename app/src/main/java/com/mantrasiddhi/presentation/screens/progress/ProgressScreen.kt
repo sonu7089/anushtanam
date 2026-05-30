@@ -58,7 +58,9 @@ import com.mantrasiddhi.presentation.components.EmptyState
 import com.mantrasiddhi.presentation.components.SkeletonCardItem
 import com.mantrasiddhi.presentation.components.SkeletonSessionItem
 import com.mantrasiddhi.presentation.screens.progress.components.AccuracyLineChart
+import com.mantrasiddhi.presentation.screens.progress.components.AxisTrendChart
 import com.mantrasiddhi.presentation.screens.progress.components.DailyBarChart
+import com.mantrasiddhi.presentation.screens.progress.components.FocusDrillCard
 import com.mantrasiddhi.presentation.screens.progress.components.SessionHistoryList
 import com.mantrasiddhi.presentation.screens.progress.components.WordMasteryGrid
 
@@ -267,7 +269,12 @@ private fun OverviewTab(state: ProgressUiState.Success) {
             modifier = Modifier.fillMaxWidth(),
             isScrollable = false
         )
-        
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Focused, spaced-repetition practice plan (Phase 4.4).
+        FocusDrillCard(plan = state.practicePlan)
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
@@ -325,7 +332,28 @@ private fun AccuracyTab(state: ProgressUiState.Success) {
                 AccuracyLineChart(data = state.accuracyTrend)
             }
         }
-        
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Per-axis trends: correctness / completeness / pronunciation (Phase 4.4).
+        Text(
+            text = stringResource(R.string.progress_axis_trends_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                AxisTrendChart(data = state.axisTrends)
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

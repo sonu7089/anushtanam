@@ -8,6 +8,7 @@ package com.mantrasiddhi.domain.evaluation
 
 import com.mantrasiddhi.domain.evaluation.model.AxisScore
 import com.mantrasiddhi.domain.evaluation.model.ScoreBand
+import com.mantrasiddhi.domain.model.LearnerLevel
 
 /**
  * All tunable thresholds and axis weights for the evaluation engine in one place.
@@ -121,8 +122,43 @@ data class EvaluationConfig(
             correctness >= correctnessPassThreshold &&
             overall >= passThreshold
 
+    /**
+     * Returns a copy whose pass gate is shifted to the learner's adaptive [level]
+     * (§4.3): lenient for [LearnerLevel.BEGINNER] so early progress is achievable,
+     * stricter for [LearnerLevel.ADVANCED] so improvement stays visible.
+     *
+     * Only the *gates* move (overall/correctness/completeness pass thresholds); the
+     * qualitative [goodBand]/[needsWorkBand] cutoffs are preserved so the score-to-band
+     * mapping stays comparable across levels.
+     *
+     * @param level The learner's current adaptive difficulty tier.
+     */
+    fun adaptedForLevel(level: LearnerLevel): EvaluationConfig = when (level) {
+        LearnerLevel.BEGINNER -> copy(
+            passThreshold = BEGINNER_PASS,
+            completenessPassThreshold = BEGINNER_COMPLETENESS,
+            correctnessPassThreshold = BEGINNER_CORRECTNESS
+        )
+        LearnerLevel.INTERMEDIATE -> this
+        LearnerLevel.ADVANCED -> copy(
+            passThreshold = ADVANCED_PASS,
+            completenessPassThreshold = ADVANCED_COMPLETENESS,
+            correctnessPassThreshold = ADVANCED_CORRECTNESS
+        )
+    }
+
     companion object {
         /** Default configuration. */
         val DEFAULT = EvaluationConfig()
+
+        // Beginner: forgiving gate to build confidence.
+        private const val BEGINNER_PASS = 0.72f
+        private const val BEGINNER_COMPLETENESS = 0.80f
+        private const val BEGINNER_CORRECTNESS = 0.72f
+
+        // Advanced: demanding gate so mastery is earned.
+        private const val ADVANCED_PASS = 0.92f
+        private const val ADVANCED_COMPLETENESS = 0.95f
+        private const val ADVANCED_CORRECTNESS = 0.92f
     }
 }

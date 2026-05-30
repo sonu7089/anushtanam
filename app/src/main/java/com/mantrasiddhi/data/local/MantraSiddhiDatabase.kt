@@ -10,6 +10,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SavingsDao
@@ -31,7 +32,7 @@ import javax.inject.Provider
         RecitationSessionEntity::class,
         SavingsEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -44,6 +45,23 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
 
+        /**
+         * v2 → v3: adds per-axis (correctness/completeness/pronunciation) scores to
+         * recitation sessions (Phase 4.4) and backfills existing rows with the overall
+         * score so historical trends remain coherent.
+         */
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN correctness REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN completeness REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN pronunciation REAL NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "UPDATE recitation_sessions SET correctness = overallScore, " +
+                        "completeness = overallScore, pronunciation = overallScore"
+                )
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -53,6 +71,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
+            .addMigrations(MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

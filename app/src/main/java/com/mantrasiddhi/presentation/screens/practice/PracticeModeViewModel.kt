@@ -10,10 +10,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.data.audio.AudioCaptureService
 import com.mantrasiddhi.data.audio.BenchmarkAudioPlayer
+import com.mantrasiddhi.data.audio.RecordedAudioPlayer
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.evaluation.MantraEvaluation
 import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
+import com.mantrasiddhi.domain.evaluation.acoustic.SelfAudioSegmenter
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
@@ -53,7 +56,8 @@ class PracticeModeViewModel @Inject constructor(
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val soundEffectsPlayer: SoundEffectsPlayer,
-    private val audioCaptureService: AudioCaptureService
+    private val audioCaptureService: AudioCaptureService,
+    private val recordedAudioPlayer: RecordedAudioPlayer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Idle)
@@ -65,6 +69,18 @@ class PracticeModeViewModel @Inject constructor(
     val isPlayingBenchmark = benchmarkAudioPlayer.isPlaying
     val benchmarkPositionMs = benchmarkAudioPlayer.currentPositionMs
     val activeBenchmarkWordIndex = benchmarkAudioPlayer.activeWordIndex
+
+    private val _hasSelfAudio = MutableStateFlow(false)
+
+    /** Whether a captured recording from the last attempt is available for A/B playback. */
+    val hasSelfAudio: StateFlow<Boolean> = _hasSelfAudio.asStateFlow()
+
+    /** The learner's last captured recitation, retained for "hear yourself" playback. */
+    private var lastAudio: RecordedAudio? = null
+
+    /** Benchmark per-word durations (ms), used to slice the learner's own recording. */
+    private val benchmarkWordDurationsMs: List<Double> =
+        GayatriMantra.words.map { (it.benchmarkEndMs - it.benchmarkStartMs).toDouble() }
 
     private var recordingJob: Job? = null
     private var startTimeMs = 0L
@@ -91,6 +107,36 @@ class PracticeModeViewModel @Inject constructor(
             stopRecording()
         }
         benchmarkAudioPlayer.playSegment(wordIndex)
+    }
+
+    /**
+     * Plays *exactly* the selected reference word from the benchmark recording so the
+     * learner can hear just that word (Phase 4.2 "tap to hear").
+     */
+    fun playReferenceWord(wordIndex: Int) {
+        soundEffectsPlayer.triggerLightHaptic()
+        recordedAudioPlayer.stop()
+        if (_uiState.value is PracticeUiState.Recording) {
+            stopRecording()
+        }
+        benchmarkAudioPlayer.playWord(wordIndex)
+    }
+
+    /**
+     * Plays back the learner's own recording of the selected word for A/B comparison
+     * with the reference. Falls back to the whole recording when the word segment
+     * cannot be isolated. No-op when no audio buffer was captured.
+     */
+    fun playSelfWord(wordIndex: Int) {
+        val audio = lastAudio ?: return
+        soundEffectsPlayer.triggerLightHaptic()
+        benchmarkAudioPlayer.pause()
+        val range = SelfAudioSegmenter.sampleRangeFor(audio, benchmarkWordDurationsMs, wordIndex)
+        if (range != null) {
+            recordedAudioPlayer.play(audio, range)
+        } else {
+            recordedAudioPlayer.play(audio)
+        }
     }
 
     /**
@@ -181,9 +227,12 @@ class PracticeModeViewModel @Inject constructor(
      */
     fun resetPractice() {
         benchmarkAudioPlayer.stop()
+        recordedAudioPlayer.stop()
         audioCaptureService.stop()
         recordingJob?.cancel()
         recordingJob = null
+        lastAudio = null
+        _hasSelfAudio.value = false
         _uiState.value = PracticeUiState.Idle
     }
 
@@ -198,6 +247,8 @@ class PracticeModeViewModel @Inject constructor(
             try {
                 val userId = currentUser.value?.id ?: 1L
                 val recitationTime = System.currentTimeMillis() - startTimeMs
+                lastAudio = audio?.takeIf { !it.isEmpty }
+                _hasSelfAudio.value = lastAudio != null
                 val evaluation = evaluateRecitationUseCase(
                     userId = userId,
                     transcription = transcription,
@@ -220,6 +271,7 @@ class PracticeModeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         benchmarkAudioPlayer.release()
+        recordedAudioPlayer.release()
         audioCaptureService.release()
         recordingJob?.cancel()
     }

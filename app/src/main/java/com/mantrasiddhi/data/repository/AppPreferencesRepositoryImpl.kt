@@ -20,4 +20,7 @@ class AppPreferencesRepositoryImpl @Inject constructor(
 
     override val recitationSensitivity: Flow<Double> =
         preferencesDataStore.recitationSensitivityFlow
+
+    override val isRecitationSensitivityExplicit: Flow<Boolean> =
+        preferencesDataStore.recitationSensitivityIsSetFlow
 }

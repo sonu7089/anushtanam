@@ -48,6 +48,9 @@ object PhoneticFeatures {
     /** Cost of substituting a vowel for a consonant (maximally dissimilar classes). */
     private const val CROSS_CLASS_COST = 1.0
 
+    /** Max height/backness delta still treated as "the same vowel quality" (length-only change). */
+    private const val QUALITY_EPSILON = 0.2
+
     private val placeSpan = (Place.values().size - 1).toDouble()
     private val vowelQualitySpan = sqrt(2.0) // max distance on the unit height/backness grid
 
@@ -104,6 +107,86 @@ object PhoneticFeatures {
 
     /** True if [symbol] is a known vowel phoneme. */
     fun isVowel(symbol: String): Boolean = vowels.containsKey(symbol)
+
+    /** True if [symbol] is an aspirated consonant (e.g. `bh`, `dh`, `th`). */
+    fun isAspirated(symbol: String): Boolean = consonants[symbol]?.aspirated == true
+
+    /** True if [symbol] is a nasal consonant (`m`, `n`, `ṇ`, `ṅ`, `ñ`, anusvara `ṃ`). */
+    fun isNasal(symbol: String): Boolean = consonants[symbol]?.manner == Manner.NASAL
+
+    /** True if [symbol] is the visarga (`ḥ`). */
+    fun isVisarga(symbol: String): Boolean = symbol == "ḥ"
+
+    /** True if [symbol] is a long vowel (`ā`, `ī`, `ū`, `ai`, `au`). */
+    fun isLongVowel(symbol: String): Boolean = vowels[symbol]?.long == true
+
+    /**
+     * A human-meaningful classification of how the [spoken] phoneme differs from the
+     * [reference] phoneme, used to drive contrastive, syllable-level feedback.
+     *
+     * Unlike [substitutionCost] (a scalar for scoring) this names *what* changed
+     * (lost aspiration, dental↔retroflex swap, shortened long vowel, …) so the UI can
+     * phrase a targeted tip instead of a generic sentence.
+     *
+     * @param reference The canonical phoneme that should have been produced.
+     * @param spoken The canonical phoneme the learner actually produced.
+     */
+    fun contrast(reference: String, spoken: String): Contrast {
+        if (reference == spoken) return Contrast.IDENTICAL
+        val r = consonants[reference]
+        val s = consonants[spoken]
+        if (r != null && s != null) return consonantContrast(r, s)
+        val rv = vowels[reference]
+        val sv = vowels[spoken]
+        if (rv != null && sv != null) return vowelContrast(rv, sv)
+        return Contrast.UNRELATED
+    }
+
+    private fun consonantContrast(r: Consonant, s: Consonant): Contrast {
+        val samePlace = r.place == s.place
+        val sameManner = r.manner == s.manner
+        val sameVoicing = r.voiced == s.voiced
+        return when {
+            samePlace && sameManner && sameVoicing && r.aspirated != s.aspirated ->
+                if (r.aspirated) Contrast.DROPPED_ASPIRATION else Contrast.ADDED_ASPIRATION
+            sameManner && sameVoicing && r.aspirated == s.aspirated &&
+                r.place == Place.RETROFLEX && s.place == Place.DENTAL -> Contrast.DENTAL_FOR_RETROFLEX
+            sameManner && sameVoicing && r.aspirated == s.aspirated &&
+                r.place == Place.DENTAL && s.place == Place.RETROFLEX -> Contrast.RETROFLEX_FOR_DENTAL
+            samePlace && sameManner && !sameVoicing -> Contrast.VOICING
+            !samePlace -> Contrast.PLACE_SHIFT
+            else -> Contrast.MANNER_SHIFT
+        }
+    }
+
+    private fun vowelContrast(r: Vowel, s: Vowel): Contrast {
+        val sameQuality = abs(r.height - s.height) < QUALITY_EPSILON &&
+            abs(r.backness - s.backness) < QUALITY_EPSILON
+        return when {
+            r.long != s.long && sameQuality ->
+                if (r.long) Contrast.SHORTENED_VOWEL else Contrast.LENGTHENED_VOWEL
+            else -> Contrast.VOWEL_QUALITY
+        }
+    }
+
+    /**
+     * Named articulatory contrasts between a reference phoneme and a spoken one,
+     * phrased from the reference's point of view (what the learner should fix).
+     */
+    enum class Contrast {
+        IDENTICAL,
+        DROPPED_ASPIRATION,
+        ADDED_ASPIRATION,
+        DENTAL_FOR_RETROFLEX,
+        RETROFLEX_FOR_DENTAL,
+        SHORTENED_VOWEL,
+        LENGTHENED_VOWEL,
+        VOWEL_QUALITY,
+        VOICING,
+        PLACE_SHIFT,
+        MANNER_SHIFT,
+        UNRELATED
+    }
 
     /**
      * Feature-weighted substitution cost between two phoneme symbols, in `0.0..1.0`.

@@ -72,4 +72,10 @@ object GayatriMantra {
 
     /** Returns the words belonging to the given 1-based [pada]. */
     fun wordsForPada(pada: Int): List<MantraWord> = words.filter { it.pada == pada }
+
+    /** Returns the [MantraWord] whose transliteration matches [transliteration], or `null`. */
+    fun wordFor(transliteration: String): MantraWord? {
+        val key = transliteration.trim().lowercase()
+        return words.firstOrNull { it.transliteration.lowercase() == key }
+    }
 }

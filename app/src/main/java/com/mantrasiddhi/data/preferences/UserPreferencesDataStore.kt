@@ -43,6 +43,11 @@ class UserPreferencesDataStore @Inject constructor(
         preferences[KEY_RECITATION_SENSITIVITY] ?: 0.85
     }
 
+    /** Emits whether the user has explicitly persisted a recitation-sensitivity value. */
+    val recitationSensitivityIsSetFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences.contains(KEY_RECITATION_SENSITIVITY)
+    }
+
     suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_THEME] = mode

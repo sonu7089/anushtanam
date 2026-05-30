@@ -9,11 +9,14 @@ package com.mantrasiddhi.presentation.screens.progress
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.GetAccuracyTrendUseCase
+import com.mantrasiddhi.domain.usecase.GetAxisTrendsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.GetDailyRecitationCountsUseCase
+import com.mantrasiddhi.domain.usecase.GetPracticePlanUseCase
 import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
 import com.mantrasiddhi.domain.usecase.GetWordMasteryUseCase
+import com.mantrasiddhi.domain.usecase.PracticePlan
 import com.mantrasiddhi.domain.usecase.RecitationOverviewStats
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -45,6 +48,8 @@ class ProgressViewModelTest {
     private lateinit var getAccuracyTrendUseCase: GetAccuracyTrendUseCase
     private lateinit var getWordMasteryUseCase: GetWordMasteryUseCase
     private lateinit var getSessionsForUserUseCase: GetSessionsForUserUseCase
+    private lateinit var getAxisTrendsUseCase: GetAxisTrendsUseCase
+    private lateinit var getPracticePlanUseCase: GetPracticePlanUseCase
 
     private lateinit var viewModel: ProgressViewModel
 
@@ -65,6 +70,8 @@ class ProgressViewModelTest {
         getAccuracyTrendUseCase = mockk()
         getWordMasteryUseCase = mockk()
         getSessionsForUserUseCase = mockk()
+        getAxisTrendsUseCase = mockk()
+        getPracticePlanUseCase = mockk()
     }
 
     @AfterEach
@@ -82,7 +89,9 @@ class ProgressViewModelTest {
             getDailyRecitationCountsUseCase,
             getAccuracyTrendUseCase,
             getWordMasteryUseCase,
-            getSessionsForUserUseCase
+            getSessionsForUserUseCase,
+            getAxisTrendsUseCase,
+            getPracticePlanUseCase
         )
 
         assertTrue(viewModel.uiState.value is ProgressUiState.Loading)
@@ -105,6 +114,8 @@ class ProgressViewModelTest {
         coEvery { getAccuracyTrendUseCase(testUser.id) } returns flowOf(emptyList())
         coEvery { getWordMasteryUseCase(testUser.id) } returns flowOf(emptyList())
         coEvery { getSessionsForUserUseCase(testUser.id) } returns flowOf(emptyList())
+        coEvery { getAxisTrendsUseCase(testUser.id) } returns flowOf(emptyList())
+        coEvery { getPracticePlanUseCase(testUser.id) } returns flowOf(PracticePlan(emptyList()))
 
         viewModel = ProgressViewModel(
             getCurrentUserUseCase,
@@ -112,7 +123,9 @@ class ProgressViewModelTest {
             getDailyRecitationCountsUseCase,
             getAccuracyTrendUseCase,
             getWordMasteryUseCase,
-            getSessionsForUserUseCase
+            getSessionsForUserUseCase,
+            getAxisTrendsUseCase,
+            getPracticePlanUseCase
         )
 
         val job = launch {

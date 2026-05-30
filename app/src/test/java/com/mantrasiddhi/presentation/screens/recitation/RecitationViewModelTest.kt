@@ -68,7 +68,8 @@ class RecitationViewModelTest {
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
             detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
-            soundEffectsPlayer = soundEffectsPlayer
+            soundEffectsPlayer = soundEffectsPlayer,
+            feedbackStringProvider = mockk(relaxed = true)
         )
     }
 
@@ -96,7 +97,8 @@ class RecitationViewModelTest {
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
             detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
-            soundEffectsPlayer = soundEffectsPlayer
+            soundEffectsPlayer = soundEffectsPlayer,
+            feedbackStringProvider = mockk(relaxed = true)
         )
 
         assertTrue(errorViewModel.uiState.value is RecitationUiState.Error)

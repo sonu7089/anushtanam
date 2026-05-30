@@ -146,6 +146,43 @@
     <string name="progress_legend_learning">Learning (70-85%)</string>
     <string name="progress_legend_focus">Focus (&lt;70%)</string>
 
+    <!-- Per-axis trends &amp; focus drill (Phase 4.4) -->
+    <string name="progress_axis_trends_title">Axis Trends (Last 7 Days)</string>
+    <string name="progress_axis_correctness">Correctness</string>
+    <string name="progress_axis_completeness">Completeness</string>
+    <string name="progress_axis_pronunciation">Pronunciation</string>
+    <string name="progress_focus_drill_title">Today\'s Focus Drill</string>
+    <string name="progress_focus_drill_subtitle">Practice these words next — your weakest and most overdue.</string>
+    <string name="progress_focus_drill_mastery">%1$d%%</string>
+    <string name="progress_focus_reason_new">Line %1$d • Not practiced yet</string>
+    <string name="progress_focus_reason_weak">Line %1$d • Needs work</string>
+    <string name="progress_focus_reason_overdue">Line %1$d • Time to review</string>
+
+    <!-- Syllable-level contrastive feedback (Phase 4.1).
+         Placeholders (positional): %1$s spoken fragment, %2$s reference syllable,
+         %3$s key sound, %4$s correction hint, %5$s reference word. -->
+    <string name="feedback_dropped_aspiration">You said \"%1$s\" — the \"%3$s\" in \"%2$s\" needs a breath of air: say \"%4$s\".</string>
+    <string name="feedback_added_aspiration">You said \"%1$s\" — soften the \"%3$s\" in \"%2$s\"; it shouldn\'t be breathy.</string>
+    <string name="feedback_dental_for_retroflex">You said \"%1$s\" — \"%2$s\" uses a soft dental \"%3$s\" (tongue on the teeth), not a hard retroflex.</string>
+    <string name="feedback_retroflex_for_dental">You said \"%1$s\" — \"%2$s\" uses a hard retroflex \"%3$s\" (tongue curled back), not a dental.</string>
+    <string name="feedback_shortened_vowel">You said \"%1$s\" — hold the long vowel in \"%2$s\" a little longer.</string>
+    <string name="feedback_lengthened_vowel">You said \"%1$s\" — keep the vowel in \"%2$s\" short and crisp.</string>
+    <string name="feedback_vowel_quality">You said \"%1$s\" — adjust the vowel sound in \"%2$s\".</string>
+    <string name="feedback_missing_visarga">You said \"%1$s\" — end \"%2$s\" with a soft visarga echo (a gentle \"ah\").</string>
+    <string name="feedback_missing_nasal">You said \"%1$s\" — include the nasal sound in \"%2$s\".</string>
+    <string name="feedback_missing_sound">You said \"%1$s\" — the \"%3$s\" sound in \"%2$s\" was dropped.</string>
+    <string name="feedback_place_or_manner">You said \"%1$s\" — focus on the \"%3$s\" sound in \"%2$s\".</string>
+    <string name="feedback_voicing">You said \"%1$s\" — check the voicing of \"%3$s\" in \"%2$s\".</string>
+    <string name="feedback_missing_word">You skipped \"%5$s\" — try to include it, starting with \"%2$s\".</string>
+    <string name="feedback_generic">Focus on the \"%2$s\" syllable of \"%5$s\" for clearer pronunciation.</string>
+    <string name="feedback_word_accurate">Beautifully done — \"%5$s\" was clear and accurate.</string>
+    <string name="feedback_unclear_audio">Unclear audio — try again in a quieter spot.</string>
+    <string name="practice_listen_self">Hear Yourself</string>
+    <string name="practice_listen_reference_word">Hear Reference Word</string>
+    <string name="practice_feedback_spoken">Spoken: %1$s</string>
+    <string name="practice_feedback_skipped">— (Skipped)</string>
+    <string name="practice_feedback_accuracy">Accuracy: %1$d%%</string>
+
     <!-- Generic -->
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="loading">Loading...</string>

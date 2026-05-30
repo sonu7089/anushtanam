@@ -164,6 +164,12 @@ class DemoDataSeeder @Inject constructor(
             val score = (overallScore + (Math.random() * 0.1 - 0.05)).coerceIn(0.4, 1.0)
             String.format(Locale.US, "%s:%.2f", word, score)
         }
+        // Spread the three axes around the overall score so the per-axis progress
+        // trends (Phase 4.4) are distinct: completeness tends highest, pronunciation
+        // lags slightly behind correctness.
+        val completeness = (overallScore + 0.05 + (Math.random() * 0.04 - 0.02)).coerceIn(0.4, 1.0)
+        val correctness = (overallScore + (Math.random() * 0.04 - 0.02)).coerceIn(0.4, 1.0)
+        val pronunciation = (overallScore - 0.05 + (Math.random() * 0.04 - 0.02)).coerceIn(0.4, 1.0)
         return RecitationSessionEntity(
             userId = userId,
             mode = mode,
@@ -172,7 +178,10 @@ class DemoDataSeeder @Inject constructor(
             transcription = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
             isCorrect = isCorrect,
             durationMs = durationMs,
-            createdAt = createdAt
+            createdAt = createdAt,
+            correctness = correctness,
+            completeness = completeness,
+            pronunciation = pronunciation
         )
     }
 }

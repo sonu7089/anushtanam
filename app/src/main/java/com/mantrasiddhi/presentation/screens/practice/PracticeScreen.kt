@@ -67,6 +67,7 @@ fun PracticeScreen(
     val isPlayingBenchmark by viewModel.isPlayingBenchmark.collectAsState()
     val benchmarkPositionMs by viewModel.benchmarkPositionMs.collectAsState()
     val activeBenchmarkWordIndex by viewModel.activeBenchmarkWordIndex.collectAsState()
+    val hasSelfAudio by viewModel.hasSelfAudio.collectAsState()
 
     val sheetState = rememberModalBottomSheetState()
     var selectedWordResult by remember { mutableStateOf<WordResult?>(null) }
@@ -106,8 +107,17 @@ fun PracticeScreen(
             sheetState = sheetState,
             onReplayClick = {
                 selectedWordIndex?.let { index ->
-                    viewModel.playBenchmarkSegment(index)
+                    viewModel.playReferenceWord(index)
                 }
+            },
+            onPlaySelfClick = if (hasSelfAudio) {
+                {
+                    selectedWordIndex?.let { index ->
+                        viewModel.playSelfWord(index)
+                    }
+                }
+            } else {
+                null
             }
         )
     }
@@ -301,7 +311,7 @@ fun PracticeScreen(
                             selectedWordResult = result
                             selectedWordIndex = index
                             showBottomSheet = true
-                            viewModel.playBenchmarkSegment(index)
+                            viewModel.playReferenceWord(index)
                         }
                     )
 

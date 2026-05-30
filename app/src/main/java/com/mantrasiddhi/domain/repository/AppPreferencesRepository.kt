@@ -21,4 +21,11 @@ interface AppPreferencesRepository {
      * threshold — higher values demand a more accurate recitation to pass.
      */
     val recitationSensitivity: Flow<Double>
+
+    /**
+     * Whether the user has *explicitly* chosen a recitation sensitivity. When `false`
+     * the evaluation engine may auto-adapt the pass gate to the learner's level; an
+     * explicit choice always overrides the automatic level (§4.3: explicit > auto).
+     */
+    val isRecitationSensitivityExplicit: Flow<Boolean>
 }

@@ -136,7 +136,23 @@ class BenchmarkAudioPlayer @Inject constructor(
         val endWordIndex = (wordIndex + 1).coerceAtMost(wordTimestamps.size - 1)
         val startMs = wordTimestamps[startWordIndex].startMs
         val endMs = wordTimestamps[endWordIndex].endMs
+        playRange(startMs, endMs)
+    }
 
+    /**
+     * Plays *exactly* the selected word from the benchmark recording (Phase 4.2
+     * "tap to hear"): the playback window is that word's own
+     * `benchmarkStartMs..benchmarkEndMs`, with no neighbouring words.
+     *
+     * @param wordIndex Zero-based reference word index to hear.
+     */
+    fun playWord(wordIndex: Int) {
+        val timestamp = wordTimestamps.getOrNull(wordIndex) ?: return
+        playRange(timestamp.startMs, timestamp.endMs)
+    }
+
+    /** Seeks to [startMs] and plays until [endMs], lazily creating the player. */
+    private fun playRange(startMs: Long, endMs: Long) {
         if (mediaPlayer == null) {
             try {
                 mediaPlayer = MediaPlayer.create(context, R.raw.gayatri_mantra_benchmark)?.apply {

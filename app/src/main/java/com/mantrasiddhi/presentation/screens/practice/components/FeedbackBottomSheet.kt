@@ -28,6 +28,7 @@ import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.evaluation.ImprovementSuggestionEngine
 import com.mantrasiddhi.domain.evaluation.WordResult
 
+import com.mantrasiddhi.presentation.feedback.contrastiveTipText
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.presentation.theme.ScoreBands
 import com.mantrasiddhi.presentation.theme.ScoreLevel
@@ -39,7 +40,8 @@ fun FeedbackBottomSheet(
     onDismissRequest: () -> Unit,
     sheetState: SheetState,
     onReplayClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPlaySelfClick: (() -> Unit)? = null
 ) {
     if (wordResult == null) return
 
@@ -67,7 +69,10 @@ fun FeedbackBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "Spoken: ${wordResult.spokenWord ?: "— (Skipped)"}",
+                text = stringResource(
+                    R.string.practice_feedback_spoken,
+                    wordResult.spokenWord ?: stringResource(R.string.practice_feedback_skipped)
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -82,7 +87,7 @@ fun FeedbackBottomSheet(
             }
 
             Text(
-                text = "Accuracy: $scorePercentage%",
+                text = stringResource(R.string.practice_feedback_accuracy, scorePercentage),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = scoreColor
@@ -90,24 +95,16 @@ fun FeedbackBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val suggestion = wordResult.feedback?.message 
-                ?: "Perfect pronunciation! Continue chanting with the same devotion."
-            
-            val spiritualTip = ImprovementSuggestionEngine.getSuggestionForWord(wordResult.referenceWord)
+            // Syllable-level, contrastive coaching (Phase 4.1): names the specific
+            // syllable/feature that needs work, sourced from strings.xml.
+            val tip = ImprovementSuggestionEngine.tipForWordResult(wordResult)
+            val feedbackText = tip?.let { contrastiveTipText(it) }
+                ?: stringResource(R.string.feedback_word_accurate, wordResult.referenceWord)
 
             Text(
-                text = suggestion,
+                text = feedbackText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "${stringResource(R.string.practice_tip_title)}: $spiritualTip",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Light,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -116,7 +113,18 @@ fun FeedbackBottomSheet(
                 onClick = onReplayClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(R.string.practice_listen_reference))
+                Text(stringResource(R.string.practice_listen_reference_word))
+            }
+
+            if (onPlaySelfClick != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onPlaySelfClick,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.practice_listen_self))
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

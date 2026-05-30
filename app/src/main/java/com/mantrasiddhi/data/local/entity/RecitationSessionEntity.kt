@@ -21,7 +21,12 @@ data class RecitationSessionEntity(
     val transcription: String,
     val isCorrect: Boolean,
     val durationMs: Long,
-    val createdAt: Long
+    val createdAt: Long,
+    // Per-axis scores (Phase 4.4). Default to the overall score so rows written by
+    // older code (and the v2→v3 migration backfill) remain coherent.
+    val correctness: Double = overallScore,
+    val completeness: Double = overallScore,
+    val pronunciation: Double = overallScore
 ) {
     fun toDomain(): RecitationSession {
         return RecitationSession(
@@ -33,6 +38,9 @@ data class RecitationSessionEntity(
             transcription = transcription,
             isCorrect = isCorrect,
             durationMs = durationMs,
+            correctness = correctness,
+            completeness = completeness,
+            pronunciation = pronunciation,
             createdAt = createdAt
         )
     }
@@ -48,7 +56,10 @@ data class RecitationSessionEntity(
                 transcription = domain.transcription,
                 isCorrect = domain.isCorrect,
                 durationMs = domain.durationMs,
-                createdAt = domain.createdAt
+                createdAt = domain.createdAt,
+                correctness = domain.correctness,
+                completeness = domain.completeness,
+                pronunciation = domain.pronunciation
             )
         }
 

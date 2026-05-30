@@ -137,7 +137,7 @@ object MantraEvaluator {
         acoustic: AcousticAssessment? = null
     ): MantraEvaluation {
         val assessment = assess(transcription, recitationTimeMs, config, confidence, acoustic)
-        return assessment.toEvaluation()
+        return toEvaluation(assessment)
     }
 
     /**
@@ -153,16 +153,22 @@ object MantraEvaluator {
         recitationTimeMs: Long,
         config: EvaluationConfig = EvaluationConfig.DEFAULT,
         acoustic: AcousticAssessment? = null
-    ): MantraEvaluation = assessBest(alternatives, recitationTimeMs, config, acoustic).toEvaluation()
+    ): MantraEvaluation = toEvaluation(assessBest(alternatives, recitationTimeMs, config, acoustic))
 
-    private fun RecitationAssessment.toEvaluation(): MantraEvaluation = MantraEvaluation(
-        overallScore = overall.score,
-        wordResults = wordResults,
-        isCorrect = isPass,
-        missingWords = missingWords,
-        extraWords = extraWords,
-        recitationTimeMs = recitationTimeMs,
-        lowConfidence = lowConfidence
+    /**
+     * Converts a rich [RecitationAssessment] into the legacy single-scalar
+     * [MantraEvaluation]. Exposed so callers that need *both* the three-axis breakdown
+     * (e.g. to persist per-axis scores) and the legacy result can derive them from a
+     * single assessment without re-evaluating.
+     */
+    fun toEvaluation(assessment: RecitationAssessment): MantraEvaluation = MantraEvaluation(
+        overallScore = assessment.overall.score,
+        wordResults = assessment.wordResults,
+        isCorrect = assessment.isPass,
+        missingWords = assessment.missingWords,
+        extraWords = assessment.extraWords,
+        recitationTimeMs = assessment.recitationTimeMs,
+        lowConfidence = assessment.lowConfidence
     )
 
     private fun splitToWords(normalized: String): List<String> =

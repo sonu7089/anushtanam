@@ -51,14 +51,16 @@ class PracticeModeViewModelTest {
         
         val soundEffectsPlayer = mockk<com.mantrasiddhi.data.audio.SoundEffectsPlayer>(relaxed = true)
         val audioCaptureService = mockk<com.mantrasiddhi.data.audio.AudioCaptureService>(relaxed = true)
-        
+        val recordedAudioPlayer = mockk<com.mantrasiddhi.data.audio.RecordedAudioPlayer>(relaxed = true)
+
         viewModel = PracticeModeViewModel(
             speechRecognitionService = speechRecognitionService,
             benchmarkAudioPlayer = benchmarkAudioPlayer,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
             getCurrentUserUseCase = getCurrentUserUseCase,
             soundEffectsPlayer = soundEffectsPlayer,
-            audioCaptureService = audioCaptureService
+            audioCaptureService = audioCaptureService,
+            recordedAudioPlayer = recordedAudioPlayer
         )
     }
 

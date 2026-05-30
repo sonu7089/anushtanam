@@ -15,12 +15,12 @@ the app actively coaches improvement.
 **Problem addressed**: §2.9 — `WordFeedback` enums map to static, non-actionable strings.
 
 ### Tasks
-- [ ] Generate a **syllable-level diff** for weak words from the Phase-2 phoneme alignment: identify *which
+- [x] Generate a **syllable-level diff** for weak words from the Phase-2 phoneme alignment: identify *which
   syllable/feature* was wrong (dropped aspiration on `bh`, dental↔retroflex swap, missing visarga echo,
   shortened long vowel).
-- [ ] Produce **contrastive** tips: "You said *bargo* — the *bh* needs a breath: *b-h-argo*." Templated from
+- [x] Produce **contrastive** tips: "You said *bargo* — the *bh* needs a breath: *b-h-argo*." Templated from
   the feature that mismatched, not a fixed per-word string.
-- [ ] Localize all feedback in `strings.xml` (per AGENTS.md: no hardcoded UI strings), with placeholders for
+- [x] Localize all feedback in `strings.xml` (per AGENTS.md: no hardcoded UI strings), with placeholders for
   the detected syllable/feature. Keep `ImprovementSuggestionEngine` as the orchestrator but drive it from the
   new diff instead of the static `WORD_SUGGESTIONS` table.
 
@@ -40,11 +40,11 @@ the app actively coaches improvement.
 **Problem addressed**: §2.7 — benchmark timestamps exist but only drive playback highlighting.
 
 ### Tasks
-- [ ] For each weak word, expose its benchmark segment (`benchmarkStartMs..benchmarkEndMs` from the Phase-1
+- [x] For each weak word, expose its benchmark segment (`benchmarkStartMs..benchmarkEndMs` from the Phase-1
   reference) so the UI can play *just that word* from `gayatri_mantra_benchmark.mp3`.
-- [ ] Optionally play back the learner's own recorded segment (Phase 3 buffer) next to the reference for A/B
+- [x] Optionally play back the learner's own recorded segment (Phase 3 buffer) next to the reference for A/B
   comparison.
-- [ ] Wire into `FeedbackBottomSheet` / `WordFeedbackGrid`: tap a weak word → hear reference (and self).
+- [x] Wire into `FeedbackBottomSheet` / `WordFeedbackGrid`: tap a weak word → hear reference (and self).
 
 ### Deliverables
 - `data/audio/BenchmarkAudioPlayer.kt` (add segment playback API)
@@ -61,10 +61,10 @@ the app actively coaches improvement.
 **Problem addressed**: §2.4, §2.8 — one fixed gate for everyone; sensitivity underused.
 
 ### Tasks
-- [ ] Use mastery history (`GetWordMasteryUseCase`) to set a **learner level** (beginner → advanced) that
+- [x] Use mastery history (`GetWordMasteryUseCase`) to set a **learner level** (beginner → advanced) that
   shifts `EvaluationConfig` band cutoffs: lenient pronunciation gate for beginners, strict for advanced.
-- [ ] Combine the user `recitationSensitivity` preference with the adaptive level (explicit override > auto).
-- [ ] Distinguish "passed for *your level*" from "passed at *mastery* standard" so progress feels earned but
+- [x] Combine the user `recitationSensitivity` preference with the adaptive level (explicit override > auto).
+- [x] Distinguish "passed for *your level*" from "passed at *mastery* standard" so progress feels earned but
   improvement is always visible.
 
 ### Deliverables
@@ -82,11 +82,11 @@ the app actively coaches improvement.
 **Problem addressed**: §2.3 — progress tracking is single-score; no targeted practice loop.
 
 ### Tasks
-- [ ] Persist per-axis scores per session (extend `RecitationSession`/entity with completeness, correctness,
+- [x] Persist per-axis scores per session (extend `RecitationSession`/entity with completeness, correctness,
   pronunciation; provide a Room migration).
-- [ ] Compute per-word and per-pada mastery trends; surface the weakest 1–3 items and **schedule** them
+- [x] Compute per-word and per-pada mastery trends; surface the weakest 1–3 items and **schedule** them
   (simple spaced-repetition: resurface words that are weak or overdue).
-- [ ] Feed weakest items into Practice mode as a focused drill ("practice *dhimahi* and *varenyam* today").
+- [x] Feed weakest items into Practice mode as a focused drill ("practice *dhimahi* and *varenyam* today").
 
 ### Deliverables
 - Migration + updated `RecitationSessionEntity`, `RecitationSession`, `RecitationDao`.

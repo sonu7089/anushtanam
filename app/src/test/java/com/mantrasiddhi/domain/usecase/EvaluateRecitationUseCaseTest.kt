@@ -7,9 +7,11 @@
 package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
+import com.mantrasiddhi.domain.model.LearnerLevel
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -27,6 +29,7 @@ class EvaluateRecitationUseCaseTest {
     private lateinit var incrementTargetUseCase: IncrementTargetUseCase
     private lateinit var appPreferencesRepository: AppPreferencesRepository
     private lateinit var acousticAnalyzer: AcousticAnalyzer
+    private lateinit var determineLearnerLevelUseCase: DetermineLearnerLevelUseCase
     private lateinit var evaluateRecitationUseCase: EvaluateRecitationUseCase
 
     @BeforeEach
@@ -35,14 +38,26 @@ class EvaluateRecitationUseCaseTest {
         incrementTargetUseCase = mockk(relaxed = true)
         appPreferencesRepository = mockk()
         acousticAnalyzer = mockk(relaxed = true)
+        determineLearnerLevelUseCase = mockk(relaxed = true)
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
+        // Default: an explicit sensitivity is set, preserving the legacy gate behaviour.
+        every { appPreferencesRepository.isRecitationSensitivityExplicit } returns flowOf(true)
         evaluateRecitationUseCase = EvaluateRecitationUseCase(
             recitationRepository,
             incrementTargetUseCase,
             appPreferencesRepository,
-            acousticAnalyzer
+            acousticAnalyzer,
+            determineLearnerLevelUseCase
         )
     }
+
+    private fun useCase() = EvaluateRecitationUseCase(
+        recitationRepository,
+        incrementTargetUseCase,
+        appPreferencesRepository,
+        acousticAnalyzer,
+        determineLearnerLevelUseCase
+    )
 
     @Test
     fun `should_saveSessionAndNotIncrementTarget_when_modeIsPractice`() = runTest {
@@ -110,14 +125,32 @@ class EvaluateRecitationUseCaseTest {
 
         // Lenient sensitivity 0.90: overall clears the gate -> passes.
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.90)
-        val lenient = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository, acousticAnalyzer)
+        val lenient = useCase()
         val lenientResult = lenient(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
         assertTrue(lenientResult.isCorrect, "should pass at sensitivity 0.90")
 
         // Strict sensitivity 0.999: overall no longer clears the gate -> fails.
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.999)
-        val strict = EvaluateRecitationUseCase(recitationRepository, incrementTargetUseCase, appPreferencesRepository, acousticAnalyzer)
+        val strict = useCase()
         val strictResult = strict(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
         assertFalse(strictResult.isCorrect, "should fail at sensitivity 0.999. Boundary moved.")
+    }
+
+    @Test
+    fun `should_adaptGateToLearnerLevel_when_sensitivityNotExplicit`() = runTest {
+        // No explicit sensitivity -> the gate auto-adapts to the learner's level.
+        every { appPreferencesRepository.isRecitationSensitivityExplicit } returns flowOf(false)
+        // One scattered word missing: completeness/correctness pass, the overall gate decides.
+        val oneMissing = "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat"
+
+        // Beginner: lenient gate -> the same recitation passes.
+        coEvery { determineLearnerLevelUseCase(1L) } returns LearnerLevel.BEGINNER
+        val beginnerResult = useCase()(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
+        assertTrue(beginnerResult.isCorrect, "beginner should pass")
+
+        // Advanced: strict gate -> the same recitation is flagged as needing work.
+        coEvery { determineLearnerLevelUseCase(1L) } returns LearnerLevel.ADVANCED
+        val advancedResult = useCase()(1L, oneMissing, 5000L, RecitationMode.PRACTICE)
+        assertFalse(advancedResult.isCorrect, "advanced should be flagged for improvement")
     }
 }

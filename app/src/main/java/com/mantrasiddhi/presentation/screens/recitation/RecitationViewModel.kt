@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
-import com.mantrasiddhi.domain.evaluation.ImprovementSuggestionEngine
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.model.Target
@@ -21,6 +20,7 @@ import com.mantrasiddhi.domain.usecase.GetActiveTargetUseCase
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
+import com.mantrasiddhi.presentation.feedback.FeedbackStringProvider
 import com.mantrasiddhi.presentation.theme.ScoreBands
 import com.mantrasiddhi.presentation.theme.ScoreLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,7 +88,8 @@ class RecitationViewModel @Inject constructor(
     private val speechRecognitionService: SpeechRecognitionService,
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
     private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase,
-    private val soundEffectsPlayer: SoundEffectsPlayer
+    private val soundEffectsPlayer: SoundEffectsPlayer,
+    private val feedbackStringProvider: FeedbackStringProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
@@ -303,14 +304,14 @@ class RecitationViewModel @Inject constructor(
             var suggestion: String? = null
             if (evaluation.lowConfidence) {
                 // Don't punish pronunciation for audio we couldn't hear clearly.
-                suggestion = UNCLEAR_AUDIO_MESSAGE
+                suggestion = feedbackStringProvider.unclearAudioMessage()
             } else if (!evaluation.isCorrect) {
                 val worstResult = evaluation.wordResults
                     .filter { ScoreBands.levelFor(it.score) != ScoreLevel.STRONG }
                     .minByOrNull { it.score }
                 worstWord = worstResult?.referenceWord
-                if (worstWord != null) {
-                    suggestion = ImprovementSuggestionEngine.getSuggestionForWord(worstWord)
+                if (worstResult != null) {
+                    suggestion = feedbackStringProvider.suggestionFor(worstResult.referenceWord, worstResult.spokenWord)
                 }
             }
 
@@ -348,10 +349,5 @@ class RecitationViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         listeningJob?.cancel()
-    }
-
-    private companion object {
-        /** Shown when STT confidence is too low to trust the transcription. */
-        const val UNCLEAR_AUDIO_MESSAGE = "Unclear audio — try again in a quieter spot."
     }
 }

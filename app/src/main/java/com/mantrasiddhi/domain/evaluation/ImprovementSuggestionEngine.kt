@@ -6,73 +6,59 @@
  */
 package com.mantrasiddhi.domain.evaluation
 
-import com.mantrasiddhi.domain.model.RecitationSession
+import com.mantrasiddhi.domain.evaluation.feedback.ContrastiveTip
+import com.mantrasiddhi.domain.evaluation.feedback.FeedbackComposer
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 
 /**
- * Engine that analyzes a user's recitation history or single session
- * to identify pronunciation patterns and generate targeted suggestions.
+ * Orchestrates actionable, syllable-level pronunciation feedback for a recitation.
+ *
+ * Phase 4 replaces the old static `WORD_SUGGESTIONS` table (fixed per-word sentences)
+ * with [FeedbackComposer]-driven [ContrastiveTip]s computed from the phoneme
+ * alignment between the reference word and what the learner actually said. The engine
+ * now only *selects* the weak words and orders them; the contrastive content — which
+ * syllable, which feature, the correction hint — comes from the diff, and the final
+ * localized strings are resolved in the presentation layer (`strings.xml`).
  */
 object ImprovementSuggestionEngine {
 
-    private val WORD_SUGGESTIONS = mapOf(
-        "om" to "Ensure 'om' is chanted with a deep, resonant nasal sound (A-U-M).",
-        "bhur" to "Pronounce 'bhur' with a strong, rolled 'r' and a short 'u' sound.",
-        "bhuvah" to "Ensure the 'bhu' is aspirated (breath out) and the 'vah' ends with a soft breath.",
-        "svah" to "The ending 'ah' (visarga) in 'svah' should sound like a gentle echo 'aha'.",
-        "tatsavitur" to "Pronounce 'tatsavitur' as one word, keeping the 't' dental and emphasizing the 'vi' and 'tur'.",
-        "varenyam" to "Break down 'varenyam' as va-re-nyam, pronouncing the 'nyam' clearly.",
-        "bhargo" to "Ensure the 'bh' is aspirated and the 'g' is soft, not hard.",
-        "devasya" to "Emphasize the 'de' sound and blend 'sya' smoothly at the end.",
-        "dhimahi" to "Pronounce 'dhimahi' with a clear 'dh' sound (dental aspirated) and a soft 'hi'.",
-        "dhiyo" to "Ensure the 'dh' sound in 'dhiyo' is clear and distinct from 'd'.",
-        "yo" to "Chant 'yo' with a long vowel sound, clear and resonant.",
-        "nah" to "The visarga 'ah' at the end of 'nah' should produce a soft 'aha' echo.",
-        "prachodayat" to "Pronounce 'pra-cho-da-yat' slowly. The 't' at the end is half-pronounced and soft."
-    )
+    /** Per-word score at/below which a word is considered worth a coaching tip. */
+    private const val WEAK_WORD_THRESHOLD = 0.85f
 
     /**
-     * Analyzes past sessions to find words that are consistently mispronounced (average score < 0.85).
-     * Returns a list of improvement suggestions.
+     * Returns the top contrastive tips for the weakest words of a single recitation,
+     * worst-first.
      *
-     * @param sessions List of recent recitation sessions.
-     * @param limit Maximum number of suggestions to return.
-     * @return List of targeted improvement suggestions.
+     * @param wordResults Per-reference-word results from the evaluation.
+     * @param limit Maximum number of tips to return.
+     * @return Structured tips naming the syllable/feature to fix, ready for the UI to
+     *   localize; empty when every word was produced accurately.
      */
-    fun getSuggestions(sessions: List<RecitationSession>, limit: Int = 3): List<String> {
-        if (sessions.isEmpty()) return emptyList()
-
-        val wordTotals = mutableMapOf<String, Double>()
-        val wordCounts = mutableMapOf<String, Int>()
-
-        for (session in sessions) {
-            for ((word, score) in session.wordScores) {
-                wordTotals[word] = (wordTotals[word] ?: 0.0) + score
-                wordCounts[word] = (wordCounts[word] ?: 0) + 1
-            }
-        }
-
-        val lowScoringWords = wordTotals.mapNotNull { (word, totalScore) ->
-            val count = wordCounts[word] ?: 1
-            val average = totalScore / count
-            if (average < 0.85) { // Any word average score < 0.85 needs practice
-                word to average
-            } else {
-                null
-            }
-        }.sortedBy { it.second } // Sort worst scoring first
-
-        return lowScoringWords.take(limit).map { (word, _) ->
-            WORD_SUGGESTIONS[word] ?: "Focus on pronouncing '$word' more clearly."
-        }
-    }
+    fun topTips(wordResults: List<WordResult>, limit: Int = 3): List<ContrastiveTip> =
+        wordResults
+            .filter { it.score < WEAK_WORD_THRESHOLD }
+            .sortedBy { it.score }
+            .mapNotNull { tipForWordResult(it) }
+            .take(limit)
 
     /**
-     * Gets a specific pronunciation tip for a single word.
+     * Builds the contrastive tip for a single evaluated word, or `null` when the word
+     * is unknown or was produced accurately.
      *
-     * @param word The target word.
-     * @return A helpful suggestion message.
+     * @param result The per-word evaluation result (reference + what was spoken).
      */
-    fun getSuggestionForWord(word: String): String {
-        return WORD_SUGGESTIONS[word.lowercase().trim()] ?: "Focus on pronouncing '$word' more clearly."
+    fun tipForWordResult(result: WordResult): ContrastiveTip? =
+        tipForWord(result.referenceWord, result.spokenWord)
+
+    /**
+     * Builds the contrastive tip for a reference word given what the learner said.
+     *
+     * @param referenceWord The canonical reference word (transliteration).
+     * @param spokenWord What the learner said, or `null`/blank when skipped.
+     * @return A [ContrastiveTip], or `null` when the word is unknown or accurate.
+     */
+    fun tipForWord(referenceWord: String, spokenWord: String?): ContrastiveTip? {
+        val word = GayatriMantra.wordFor(referenceWord) ?: return null
+        return FeedbackComposer.compose(word, spokenWord)
     }
 }
