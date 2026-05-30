@@ -21,6 +21,8 @@ import com.mantrasiddhi.domain.usecase.GetActiveTargetUseCase
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
+import com.mantrasiddhi.presentation.theme.ScoreBands
+import com.mantrasiddhi.presentation.theme.ScoreLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -286,7 +288,7 @@ class RecitationViewModel @Inject constructor(
             var suggestion: String? = null
             if (!evaluation.isCorrect) {
                 val worstResult = evaluation.wordResults
-                    .filter { it.score < 0.85f }
+                    .filter { ScoreBands.levelFor(it.score) != ScoreLevel.STRONG }
                     .minByOrNull { it.score }
                 worstWord = worstResult?.referenceWord
                 if (worstWord != null) {

@@ -7,10 +7,12 @@
 package com.mantrasiddhi.di
 
 import com.mantrasiddhi.data.SessionManager
+import com.mantrasiddhi.data.repository.AppPreferencesRepositoryImpl
 import com.mantrasiddhi.data.repository.RecitationRepositoryImpl
 import com.mantrasiddhi.data.repository.SavingsRepositoryImpl
 import com.mantrasiddhi.data.repository.TargetRepositoryImpl
 import com.mantrasiddhi.data.repository.UserRepositoryImpl
+import com.mantrasiddhi.domain.repository.AppPreferencesRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import com.mantrasiddhi.domain.repository.SavingsRepository
 import com.mantrasiddhi.domain.repository.SessionRepository
@@ -55,4 +57,10 @@ abstract class RepositoryModule {
     abstract fun bindSavingsRepository(
         impl: SavingsRepositoryImpl
     ): SavingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAppPreferencesRepository(
+        impl: AppPreferencesRepositoryImpl
+    ): AppPreferencesRepository
 }

@@ -54,6 +54,8 @@ import com.mantrasiddhi.presentation.screens.practice.components.MantraDisplay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.practice.components.WordFeedbackGrid
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+import com.mantrasiddhi.presentation.theme.ScoreBands
+import com.mantrasiddhi.presentation.theme.ScoreLevel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,10 +256,11 @@ fun PracticeScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            val scoreColor = when {
-                                score >= 0.85f -> extendedColors.success
-                                score >= 0.50f -> extendedColors.warning
-                                else -> MaterialTheme.colorScheme.error
+                            val scoreLevel = ScoreBands.levelFor(score)
+                            val scoreColor = when (scoreLevel) {
+                                ScoreLevel.STRONG -> extendedColors.success
+                                ScoreLevel.MODERATE -> extendedColors.warning
+                                ScoreLevel.WEAK -> MaterialTheme.colorScheme.error
                             }
 
                             Text(
@@ -267,10 +270,10 @@ fun PracticeScreen(
                                 color = scoreColor
                             )
 
-                            val encouragement = when {
-                                score >= 0.85f -> stringResource(R.string.practice_encouragement_excellent)
-                                score >= 0.50f -> stringResource(R.string.practice_encouragement_good)
-                                else -> stringResource(R.string.practice_encouragement_practice)
+                            val encouragement = when (scoreLevel) {
+                                ScoreLevel.STRONG -> stringResource(R.string.practice_encouragement_excellent)
+                                ScoreLevel.MODERATE -> stringResource(R.string.practice_encouragement_good)
+                                ScoreLevel.WEAK -> stringResource(R.string.practice_encouragement_practice)
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))

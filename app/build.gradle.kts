@@ -98,6 +98,7 @@ dependencies {
     testRuntimeOnly(libs.junit5.launcher)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.json)
 
     // Instrumented / Integration Tests
     androidTestImplementation(libs.androidx.test.ext.junit)

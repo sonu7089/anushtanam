@@ -49,7 +49,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "BOTH")
 
     val sensitivityThreshold: StateFlow<Double> = preferencesDataStore.recitationSensitivityFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.85)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_SENSITIVITY)
 
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
@@ -91,6 +91,11 @@ class SettingsViewModel @Inject constructor(
                 _events.emit(SettingsEvent.Error(e.message ?: "Failed to reset demo data"))
             }
         }
+    }
+
+    private companion object {
+        /** Initial sensitivity shown while the stored preference loads. */
+        const val DEFAULT_SENSITIVITY: Double = 0.85
     }
 }
 

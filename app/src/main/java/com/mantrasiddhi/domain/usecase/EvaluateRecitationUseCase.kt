@@ -6,11 +6,14 @@
  */
 package com.mantrasiddhi.domain.usecase
 
+import com.mantrasiddhi.domain.evaluation.EvaluationConfig
 import com.mantrasiddhi.domain.evaluation.MantraEvaluation
 import com.mantrasiddhi.domain.evaluation.MantraEvaluator
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
+import com.mantrasiddhi.domain.repository.AppPreferencesRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /**
@@ -19,11 +22,15 @@ import javax.inject.Inject
  */
 class EvaluateRecitationUseCase @Inject constructor(
     private val recitationRepository: RecitationRepository,
-    private val incrementTargetUseCase: IncrementTargetUseCase
+    private val incrementTargetUseCase: IncrementTargetUseCase,
+    private val appPreferencesRepository: AppPreferencesRepository
 ) {
 
     /**
      * Evaluates a completed recitation, saves its session data, and updates target progress.
+     *
+     * The user's recitation-sensitivity preference is plumbed into the evaluation
+     * pass threshold, so the Settings slider measurably shifts the pass/fail boundary.
      *
      * @param userId The ID of the user performing the recitation.
      * @param transcription The transcription string from speech-to-text.
@@ -37,7 +44,9 @@ class EvaluateRecitationUseCase @Inject constructor(
         recitationTimeMs: Long,
         mode: RecitationMode
     ): MantraEvaluation {
-        val evaluation = MantraEvaluator.evaluate(transcription, recitationTimeMs)
+        val sensitivity = appPreferencesRepository.recitationSensitivity.first()
+        val config = EvaluationConfig.DEFAULT.copy(passThreshold = sensitivity.toFloat())
+        val evaluation = MantraEvaluator.evaluate(transcription, recitationTimeMs, config)
         val wordScores = evaluation.wordResults.associate {
             it.referenceWord to it.score.toDouble()
         }
@@ -51,7 +60,7 @@ class EvaluateRecitationUseCase @Inject constructor(
             durationMs = recitationTimeMs
         )
         recitationRepository.saveSession(session)
-        
+
         if (mode == RecitationMode.NORMAL && evaluation.isCorrect) {
             incrementTargetUseCase(userId)
         }

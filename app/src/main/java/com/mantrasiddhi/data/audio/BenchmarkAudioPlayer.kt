@@ -9,6 +9,7 @@ package com.mantrasiddhi.data.audio
 import android.content.Context
 import android.media.MediaPlayer
 import com.mantrasiddhi.R
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,45 +58,49 @@ class BenchmarkAudioPlayer @Inject constructor(
     val activeWordIndex: StateFlow<Int?> = _activeWordIndex.asStateFlow()
 
     /**
-     * Timestamps mapping the 14 words of the Gayatri Mantra in the benchmark audio.
-     * Loaded dynamically from the assets configuration file.
+     * Timestamps mapping the words of the Gayatri Mantra in the benchmark audio.
+     *
+     * The word list and canonical timings come from [GayatriMantra] (single source
+     * of truth). Parsing of `assets/benchmark_timestamps.json` stays in this data
+     * layer and, when present, refines the per-word start/end values.
      */
     val wordTimestamps = loadWordTimestamps()
 
     private fun loadWordTimestamps(): List<WordTimestamp> {
+        val overrides = parseTimestampOverrides()
+        return GayatriMantra.words.map { word ->
+            val override = overrides[word.index]
+            WordTimestamp(
+                wordIndex = word.index,
+                word = word.transliteration,
+                startMs = override?.first ?: word.benchmarkStartMs,
+                endMs = override?.second ?: word.benchmarkEndMs
+            )
+        }
+    }
+
+    /**
+     * Parses optional per-word timing overrides from the bundled asset.
+     * Returns an empty map on any parsing failure so the canonical defaults apply.
+     */
+    private fun parseTimestampOverrides(): Map<Int, Pair<Long, Long>> {
         return try {
             val jsonString = context.assets.open("benchmark_timestamps.json")
                 .bufferedReader()
                 .use { it.readText() }
             val jsonArray = org.json.JSONArray(jsonString)
-            val list = mutableListOf<WordTimestamp>()
+            val map = mutableMapOf<Int, Pair<Long, Long>>()
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
                 val wordIndex = obj.getInt("wordIndex")
-                val word = obj.getString("word")
                 // Convert centiseconds to milliseconds
                 val startMs = obj.getLong("startMs") * 10L
                 val endMs = obj.getLong("endMs") * 10L
-                list.add(WordTimestamp(wordIndex, word, startMs, endMs))
+                map[wordIndex] = startMs to endMs
             }
-            list
+            map
         } catch (e: Exception) {
-            // Fallback default timestamps
-            listOf(
-                WordTimestamp(0, "om", 0, 3340),
-                WordTimestamp(1, "bhur", 3390, 4280),
-                WordTimestamp(2, "bhuvah", 4290, 4720),
-                WordTimestamp(3, "svah", 4840, 5690),
-                WordTimestamp(4, "tatsavitur", 6420, 7220),
-                WordTimestamp(5, "varenyam", 7230, 9050),
-                WordTimestamp(6, "bhargo", 9400, 10080),
-                WordTimestamp(7, "devasya", 10090, 10900),
-                WordTimestamp(8, "dhimahi", 10910, 11920),
-                WordTimestamp(9, "dhiyo", 12060, 12830),
-                WordTimestamp(10, "yo", 12840, 13050),
-                WordTimestamp(11, "nah", 13200, 13400),
-                WordTimestamp(12, "prachodayat", 13570, 16010)
-            )
+            emptyMap()
         }
     }
 

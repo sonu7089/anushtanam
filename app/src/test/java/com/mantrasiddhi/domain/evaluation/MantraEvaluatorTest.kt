@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.evaluation.model.ScoreBand
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -188,5 +189,75 @@ class MantraEvaluatorTest {
             println("  - Ref: ${wordRes.referenceWord} | Spoken: ${wordRes.spokenWord} | Score: ${wordRes.score} | Feedback: ${wordRes.feedback}")
         }
         println("==========================================")
+    }
+
+    // ---- Three-axis model (Phase 1) ----
+
+    @Test
+    fun `should_matchLegacyOverallScore_when_assessingSameInputs`() {
+        // Proves no behavioral regression: assess().overall.score reproduces the
+        // legacy mean-of-word-scores (== evaluate().overallScore) for every case.
+        val inputs = listOf(
+            "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat",
+            "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat", // 1 missing
+            "om bhur bhuvah svah tatsavitur varenyam dhimahi dhiyo yo nah prachodayat", // 2 missing
+            "om bhur bhuvah svah tatsavitur", // many missing
+            "completely unrelated text spoken here",
+            "" // empty
+        )
+
+        inputs.forEach { input ->
+            val assessment = MantraEvaluator.assess(input, 5000L)
+            val legacy = MantraEvaluator.evaluate(input, 5000L)
+            val meanOfWords = legacy.wordResults.map { it.score }.average().toFloat()
+
+            assertEquals(legacy.overallScore, assessment.overall.score, 1e-4f, "overall vs legacy for '$input'")
+            assertEquals(meanOfWords, assessment.overall.score, 1e-4f, "overall vs mean for '$input'")
+            assertEquals(legacy.isCorrect, assessment.isPass, "isPass vs legacy isCorrect for '$input'")
+            // Phase 1: pronunciation axis is defined as the mean word similarity.
+            assertEquals(assessment.pronunciation.score, assessment.overall.score, 1e-4f)
+        }
+    }
+
+    @Test
+    fun `should_populateAxesIndependently_when_allWordsPresentButMispronounced`() {
+        // Every reference word is recited (high completeness) but each is mildly
+        // mispronounced via a single-character corruption (lower pronunciation).
+        val input = "on bhor bhuvar svar tatsavitar varanyam bhorgo devesya dhamahi dhayo ya noh prachodayot"
+        val assessment = MantraEvaluator.assess(input, 5000L)
+
+        // All 13 reference words aligned to a spoken word.
+        assertTrue(assessment.wordResults.all { it.spokenWord != null }, "all words should align")
+        assertEquals(1.0f, assessment.completeness.score, 1e-4f)
+        assertEquals(ScoreBand.EXCELLENT, assessment.completeness.band)
+
+        // Pronunciation is meaningfully below completeness and below the pass band.
+        assertTrue(assessment.pronunciation.score < assessment.completeness.score)
+        assertTrue(assessment.pronunciation.score < 0.85f, "pronunciation should be sub-pass")
+        assertTrue(assessment.pronunciation.score > 0.0f)
+    }
+
+    @Test
+    fun `should_populatePadaResults_forAllFourLines`() {
+        val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        val assessment = MantraEvaluator.assess(input, 5000L)
+
+        assertEquals(4, assessment.padaResults.size)
+        assertEquals(listOf(1, 2, 3, 4), assessment.padaResults.map { it.pada })
+        assessment.padaResults.forEach { pada ->
+            assertEquals(1.0f, pada.coverage, 1e-4f)
+            assertEquals(1.0f, pada.averageScore, 1e-4f)
+        }
+    }
+
+    @Test
+    fun `should_dropPadaCoverage_when_wholeLineMissing`() {
+        // Drop the entire third pada (bhargo devasya dhimahi).
+        val input = "om bhur bhuvah svah tatsavitur varenyam dhiyo yo nah prachodayat"
+        val assessment = MantraEvaluator.assess(input, 5000L)
+
+        val pada3 = assessment.padaResults.first { it.pada == 3 }
+        assertEquals(0.0f, pada3.coverage, 1e-4f)
+        assertTrue(assessment.completeness.score < 1.0f)
     }
 }

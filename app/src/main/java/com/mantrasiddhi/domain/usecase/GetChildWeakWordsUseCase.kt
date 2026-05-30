@@ -6,7 +6,7 @@
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.MantraEvaluator
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -29,14 +29,14 @@ class GetChildWeakWordsUseCase @Inject constructor(
             val wordCount = mutableMapOf<String, Int>()
             
             for (session in sessions) {
-                for (word in MantraEvaluator.REFERENCE_WORDS) {
+                for (word in GayatriMantra.transliterations) {
                     val score = session.wordScores[word] ?: 0.0
                     wordSum[word] = (wordSum[word] ?: 0.0) + score
                     wordCount[word] = (wordCount[word] ?: 0) + 1
                 }
             }
             
-            MantraEvaluator.REFERENCE_WORDS
+            GayatriMantra.transliterations
                 .map { word ->
                     val sum = wordSum[word] ?: 0.0
                     val count = wordCount[word] ?: 1

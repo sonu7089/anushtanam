@@ -29,6 +29,8 @@ import com.mantrasiddhi.domain.evaluation.ImprovementSuggestionEngine
 import com.mantrasiddhi.domain.evaluation.WordResult
 
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+import com.mantrasiddhi.presentation.theme.ScoreBands
+import com.mantrasiddhi.presentation.theme.ScoreLevel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,10 +75,10 @@ fun FeedbackBottomSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             val scorePercentage = (wordResult.score * 100).toInt()
-            val scoreColor = when {
-                wordResult.score >= 0.85f -> extendedColors.success
-                wordResult.score >= 0.50f -> extendedColors.warning
-                else -> MaterialTheme.colorScheme.error
+            val scoreColor = when (ScoreBands.levelFor(wordResult.score)) {
+                ScoreLevel.STRONG -> extendedColors.success
+                ScoreLevel.MODERATE -> extendedColors.warning
+                ScoreLevel.WEAK -> MaterialTheme.colorScheme.error
             }
 
             Text(

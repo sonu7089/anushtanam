@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -49,19 +50,9 @@ fun MantraDisplay(
 ) {
     var showTransliteration by remember { mutableStateOf(true) }
 
-    val devanagariWords = listOf(
-        "ॐ", "भूर्", "भुवः", "स्वः",
-        "तत्सवितुर्", "वरेण्यं",
-        "भर्गो", "देवस्य", "धीमहि",
-        "धियो", "यो", "नः", "प्रचोदयात्"
-    )
+    val devanagariWords = GayatriMantra.devanagariWords
 
-    val transliteratedWords = listOf(
-        "om", "bhur", "bhuvah", "svah",
-        "tatsavitur", "varenyam",
-        "bhargo", "devasya", "dhimahi",
-        "dhiyo", "yo", "nah", "prachodayat"
-    )
+    val transliteratedWords = GayatriMantra.transliterations
 
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),

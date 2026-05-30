@@ -14,7 +14,7 @@ import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SavingsEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
-import com.mantrasiddhi.domain.evaluation.MantraEvaluator
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
@@ -160,7 +160,7 @@ class DemoDataSeeder @Inject constructor(
         durationMs: Long
     ): RecitationSessionEntity {
         val isCorrect = overallScore >= 0.85
-        val wordScoresStr = MantraEvaluator.REFERENCE_WORDS.joinToString(",") { word ->
+        val wordScoresStr = GayatriMantra.transliterations.joinToString(",") { word ->
             val score = (overallScore + (Math.random() * 0.1 - 0.05)).coerceIn(0.4, 1.0)
             String.format(Locale.US, "%s:%.2f", word, score)
         }

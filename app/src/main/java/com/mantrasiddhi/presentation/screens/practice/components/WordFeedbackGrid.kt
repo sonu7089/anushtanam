@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.domain.evaluation.WordResult
 
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+import com.mantrasiddhi.presentation.theme.ScoreBands
+import com.mantrasiddhi.presentation.theme.ScoreLevel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -56,12 +58,12 @@ fun WordFeedbackGrid(
                     outlineColor,
                     outlineColor.copy(alpha = 0.3f)
                 )
-                score >= 0.85f -> Triple(
+                ScoreBands.levelFor(score) == ScoreLevel.STRONG -> Triple(
                     extendedColors.successContainer.copy(alpha = 0.15f),
                     extendedColors.success,
                     extendedColors.success.copy(alpha = 0.3f)
                 )
-                score >= 0.50f -> Triple(
+                ScoreBands.levelFor(score) == ScoreLevel.MODERATE -> Triple(
                     extendedColors.warningContainer.copy(alpha = 0.15f),
                     extendedColors.warning,
                     extendedColors.warning.copy(alpha = 0.3f)

@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
+import com.mantrasiddhi.presentation.theme.ScoreBands
+import com.mantrasiddhi.presentation.theme.ScoreLevel
 import com.mantrasiddhi.domain.usecase.WordMastery
 
 /**
@@ -137,18 +139,18 @@ private fun getMasteryColors(score: Double, attempts: Int): Triple<Color, Color,
         )
     }
 
-    return when {
-        score >= 0.85 -> Triple(
+    return when (ScoreBands.levelFor(score, ScoreBands.MASTERY_MODERATE_THRESHOLD)) {
+        ScoreLevel.STRONG -> Triple(
             extendedColors.successContainer.copy(alpha = 0.2f),
             extendedColors.success,
             extendedColors.success.copy(alpha = 0.4f)
         )
-        score >= 0.70 -> Triple(
+        ScoreLevel.MODERATE -> Triple(
             extendedColors.warningContainer.copy(alpha = 0.2f),
             extendedColors.warning,
             extendedColors.warning.copy(alpha = 0.4f)
         )
-        else -> Triple(
+        ScoreLevel.WEAK -> Triple(
             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
             MaterialTheme.colorScheme.error,
             MaterialTheme.colorScheme.error.copy(alpha = 0.4f)

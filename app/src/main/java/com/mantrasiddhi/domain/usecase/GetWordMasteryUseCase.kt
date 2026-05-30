@@ -6,7 +6,7 @@
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.MantraEvaluator
+import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -30,7 +30,7 @@ class GetWordMasteryUseCase @Inject constructor(
     operator fun invoke(userId: Long): Flow<List<WordMastery>> {
         return recitationRepository.getSessionsForUser(userId).map { sessions ->
             if (sessions.isEmpty()) {
-                MantraEvaluator.REFERENCE_WORDS.map { word ->
+                GayatriMantra.transliterations.map { word ->
                     WordMastery(word = word, averageScore = 0.0, totalAttempts = 0)
                 }
             } else {
@@ -38,14 +38,14 @@ class GetWordMasteryUseCase @Inject constructor(
                 val wordAttemptsCount = mutableMapOf<String, Int>()
 
                 for (session in sessions) {
-                    for (word in MantraEvaluator.REFERENCE_WORDS) {
+                    for (word in GayatriMantra.transliterations) {
                         val score = session.wordScores[word] ?: 0.0
                         wordScoresSum[word] = (wordScoresSum[word] ?: 0.0) + score
                         wordAttemptsCount[word] = (wordAttemptsCount[word] ?: 0) + 1
                     }
                 }
 
-                MantraEvaluator.REFERENCE_WORDS.map { word ->
+                GayatriMantra.transliterations.map { word ->
                     val sum = wordScoresSum[word] ?: 0.0
                     val count = wordAttemptsCount[word] ?: 0
                     WordMastery(
