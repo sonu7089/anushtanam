@@ -48,7 +48,7 @@ fun MantraDisplay(
     activeWordIndex: Int?,
     modifier: Modifier = Modifier
 ) {
-    var showTransliteration by remember { mutableStateOf(true) }
+    var showTransliteration by remember { mutableStateOf(false) }
 
     val devanagariWords = GayatriMantra.devanagariWords
 
