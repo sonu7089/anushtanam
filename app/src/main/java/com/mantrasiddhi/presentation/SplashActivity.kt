@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,7 +82,8 @@ fun SplashScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+            // Soft light-saffron backdrop so the deeper saffron/gold lotus stands out.
+            .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -91,24 +91,21 @@ fun SplashScreenContent(
             modifier = Modifier.scale(scale.value)
         ) {
             LotusIllustration(
-                modifier = Modifier.size(160.dp),
-                petalColor = Color.White.copy(alpha = 0.95f),
-                accentColor = Color(0xFFFFE0B2),
-                centerColor = Color(0xFFFFF3E0)
+                modifier = Modifier.size(160.dp)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Anushtanam",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "अनुष्ठानम्",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }

@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -158,19 +157,11 @@ fun ProfileAvatar(
     modifier: Modifier = Modifier
 ) {
     val extendedColors = LocalExtendedColors.current
-    val (gradient, textColor) = when (avatarIndex % 4) {
-        0 -> Brush.linearGradient(
-            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)
-        ) to MaterialTheme.colorScheme.onPrimary
-        1 -> Brush.linearGradient(
-            listOf(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer)
-        ) to MaterialTheme.colorScheme.onSecondary
-        2 -> Brush.linearGradient(
-            listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
-        ) to MaterialTheme.colorScheme.onTertiary
-        else -> Brush.linearGradient(
-            listOf(extendedColors.warning, extendedColors.warningContainer)
-        ) to extendedColors.onWarning
+    val (avatarColor, textColor) = when (avatarIndex % 4) {
+        0 -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        1 -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+        2 -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiary
+        else -> extendedColors.warning to extendedColors.onWarning
     }
 
     val initial = name.firstOrNull()?.toString()?.uppercase() ?: "?"
@@ -179,7 +170,7 @@ fun ProfileAvatar(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(gradient),
+            .background(avatarColor),
         contentAlignment = Alignment.Center
     ) {
         Text(

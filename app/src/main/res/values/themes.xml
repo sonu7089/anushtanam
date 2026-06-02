@@ -6,9 +6,9 @@
     </style>
 
     <style name="Theme.MantraSiddhi.Splash" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Solid saffron window so the launch screen never flashes a dark/grey background. -->
-        <item name="android:windowBackground">#FFC43E00</item>
-        <item name="android:statusBarColor">#FFC43E00</item> <!-- Deep Saffron -->
-        <item name="android:windowLightStatusBar">false</item>
+        <!-- Soft light-saffron window so the launch screen never flashes a dark/grey background. -->
+        <item name="android:windowBackground">#FFFFDBC9</item>
+        <item name="android:statusBarColor">#FFFFDBC9</item> <!-- Light saffron -->
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

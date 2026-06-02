@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -103,20 +102,18 @@ fun MicButton(
             )
         }
 
-        // Inner Mic Button
-        val buttonGradient = Brush.verticalGradient(
-            if (isRecording) {
-                listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.errorContainer)
-            } else {
-                listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-            }
-        )
+        // Inner Mic Button — solid fill
+        val buttonColor = if (isRecording) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
 
         Box(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .background(buttonGradient)
+                .background(buttonColor)
                 .clickable(
                     enabled = !isProcessing,
                     onClickLabel = if (isRecording) "Stop recitation" else "Start recitation",
