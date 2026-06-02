@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -81,189 +82,91 @@ fun EmptyState(
 }
 
 /**
- * Draws a beautiful, realistic symbolic lotus flower with a glowing flame core and aura using Canvas paths and gradients.
+ * Draws a clean, symmetric front-facing lotus emblem.
+ *
+ * The bloom is built from two radial rings of petals — a larger outer ring and a
+ * smaller inner ring rotated by half a step — over a soft aura, finished with a
+ * gold seed-pod centre. Colours default to the devotional theme palette but can be
+ * overridden (e.g. for the saffron splash background).
+ *
+ * @param petalColor base colour of the outer petals.
+ * @param accentColor colour of the inner petals and petal tips.
+ * @param centerColor colour of the seed-pod centre.
  */
 @Composable
-fun LotusIllustration(modifier: Modifier = Modifier) {
-    val saffron = MaterialTheme.colorScheme.primary
-    val gold = MaterialTheme.colorScheme.secondary
-    val purple = MaterialTheme.colorScheme.tertiary
-
+fun LotusIllustration(
+    modifier: Modifier = Modifier,
+    petalColor: Color = MaterialTheme.colorScheme.primary,
+    accentColor: Color = MaterialTheme.colorScheme.tertiary,
+    centerColor: Color = MaterialTheme.colorScheme.tertiaryContainer
+) {
     Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val cx = w / 2f
-        val cy = h * 0.72f
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = minOf(size.width, size.height) * 0.42f
 
-        // 1. Draw soft background radial aura
+        // Soft radial aura behind the bloom.
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(gold.copy(alpha = 0.35f), Color.Transparent),
-                center = Offset(cx, cy - h * 0.2f),
-                radius = w * 0.45f
+                colors = listOf(accentColor.copy(alpha = 0.22f), Color.Transparent),
+                center = Offset(cx, cy),
+                radius = radius * 1.15f
             ),
-            center = Offset(cx, cy - h * 0.2f),
-            radius = w * 0.45f
+            center = Offset(cx, cy),
+            radius = radius * 1.15f
         )
 
-        // 2. Draw base supportive leaves (magenta/purple seat)
-        val baseSeat = Path().apply {
-            moveTo(cx - w * 0.3f, cy + h * 0.05f)
-            cubicTo(cx - w * 0.15f, cy + h * 0.12f, cx + w * 0.15f, cy + h * 0.12f, cx + w * 0.3f, cy + h * 0.05f)
-            cubicTo(cx + w * 0.15f, cy + h * 0.02f, cx - w * 0.15f, cy + h * 0.02f, cx - w * 0.3f, cy + h * 0.05f)
-            close()
+        // Outer ring — 8 large petals.
+        repeat(8) { i ->
+            rotate(degrees = i * 45f, pivot = Offset(cx, cy)) {
+                drawPath(
+                    path = lotusPetal(cx, cy, length = radius, halfWidth = radius * 0.30f),
+                    brush = Brush.verticalGradient(
+                        colors = listOf(accentColor, petalColor),
+                        startY = cy - radius,
+                        endY = cy
+                    ),
+                    style = Fill
+                )
+            }
         }
-        drawPath(
-            path = baseSeat,
-            brush = Brush.horizontalGradient(
-                colors = listOf(purple, purple.copy(alpha = 0.6f), purple)
-            ),
-            style = Fill
-        )
 
-        // 3. Draw outermost side petals
-        val outerLeft = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - w * 0.45f, cy, cx - w * 0.45f, cy - h * 0.25f, cx - w * 0.32f, cy - h * 0.35f)
-            cubicTo(cx - w * 0.2f, cy - h * 0.3f, cx - w * 0.1f, cy - h * 0.1f, cx, cy)
-            close()
+        // Inner ring — 8 smaller petals, offset by half a step, sitting on top.
+        repeat(8) { i ->
+            rotate(degrees = i * 45f + 22.5f, pivot = Offset(cx, cy)) {
+                drawPath(
+                    path = lotusPetal(cx, cy, length = radius * 0.66f, halfWidth = radius * 0.24f),
+                    brush = Brush.verticalGradient(
+                        colors = listOf(centerColor, accentColor),
+                        startY = cy - radius * 0.66f,
+                        endY = cy
+                    ),
+                    style = Fill
+                )
+            }
         }
-        drawPath(
-            path = outerLeft,
-            brush = Brush.verticalGradient(
-                colors = listOf(purple, saffron),
-                startY = cy - h * 0.35f,
-                endY = cy
-            ),
-            style = Fill
-        )
 
-        val outerRight = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx + w * 0.45f, cy, cx + w * 0.45f, cy - h * 0.25f, cx + w * 0.32f, cy - h * 0.35f)
-            cubicTo(cx + w * 0.2f, cy - h * 0.3f, cx + w * 0.1f, cy - h * 0.1f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = outerRight,
-            brush = Brush.verticalGradient(
-                colors = listOf(purple, saffron),
-                startY = cy - h * 0.35f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        // 4. Draw middle side petals
-        val midLeft = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - w * 0.32f, cy - h * 0.15f, cx - w * 0.4f, cy - h * 0.45f, cx - w * 0.22f, cy - h * 0.55f)
-            cubicTo(cx - w * 0.1f, cy - h * 0.45f, cx - w * 0.05f, cy - h * 0.2f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = midLeft,
-            brush = Brush.verticalGradient(
-                colors = listOf(saffron, gold),
-                startY = cy - h * 0.55f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        val midRight = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx + w * 0.32f, cy - h * 0.15f, cx + w * 0.4f, cy - h * 0.45f, cx + w * 0.22f, cy - h * 0.55f)
-            cubicTo(cx + w * 0.1f, cy - h * 0.45f, cx + w * 0.05f, cy - h * 0.2f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = midRight,
-            brush = Brush.verticalGradient(
-                colors = listOf(saffron, gold),
-                startY = cy - h * 0.55f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        // 5. Draw inner side petals
-        val innerLeft = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - w * 0.18f, cy - h * 0.25f, cx - w * 0.22f, cy - h * 0.55f, cx - w * 0.12f, cy - h * 0.65f)
-            cubicTo(cx - w * 0.05f, cy - h * 0.5f, cx - w * 0.02f, cy - h * 0.25f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = innerLeft,
-            brush = Brush.verticalGradient(
-                colors = listOf(gold, gold.copy(alpha = 0.8f)),
-                startY = cy - h * 0.65f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        val innerRight = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx + w * 0.18f, cy - h * 0.25f, cx + w * 0.22f, cy - h * 0.55f, cx + w * 0.12f, cy - h * 0.65f)
-            cubicTo(cx + w * 0.05f, cy - h * 0.5f, cx + w * 0.02f, cy - h * 0.25f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = innerRight,
-            brush = Brush.verticalGradient(
-                colors = listOf(gold, gold.copy(alpha = 0.8f)),
-                startY = cy - h * 0.65f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        // 6. Draw center petal
-        val centerPetal = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - w * 0.12f, cy - h * 0.3f, cx - w * 0.12f, cy - h * 0.65f, cx, cy - h * 0.72f)
-            cubicTo(cx + w * 0.12f, cy - h * 0.65f, cx + w * 0.12f, cy - h * 0.3f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = centerPetal,
-            brush = Brush.verticalGradient(
-                colors = listOf(saffron, gold),
-                startY = cy - h * 0.72f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        // 7. Draw glowing inner flame core
-        val flameCore = Path().apply {
-            moveTo(cx, cy)
-            cubicTo(cx - w * 0.06f, cy - h * 0.25f, cx - w * 0.06f, cy - h * 0.45f, cx, cy - h * 0.52f)
-            cubicTo(cx + w * 0.06f, cy - h * 0.45f, cx + w * 0.06f, cy - h * 0.25f, cx, cy)
-            close()
-        }
-        drawPath(
-            path = flameCore,
-            brush = Brush.verticalGradient(
-                colors = listOf(Color.White, gold),
-                startY = cy - h * 0.52f,
-                endY = cy
-            ),
-            style = Fill
-        )
-
-        // 8. Draw top bindu (sacred dot)
-        drawCircle(
-            color = saffron,
-            radius = w * 0.035f,
-            center = Offset(cx, cy - h * 0.82f)
-        )
-        drawCircle(
-            color = Color.White,
-            radius = w * 0.018f,
-            center = Offset(cx, cy - h * 0.82f)
-        )
+        // Seed-pod centre with a soft highlight.
+        drawCircle(color = accentColor, radius = radius * 0.20f, center = Offset(cx, cy))
+        drawCircle(color = centerColor, radius = radius * 0.13f, center = Offset(cx, cy))
     }
 }
+
+/**
+ * Builds a single almond-shaped lotus petal pointing straight up from the centre.
+ */
+private fun lotusPetal(cx: Float, cy: Float, length: Float, halfWidth: Float): Path =
+    Path().apply {
+        moveTo(cx, cy)
+        cubicTo(
+            cx - halfWidth, cy - length * 0.45f,
+            cx - halfWidth * 0.5f, cy - length * 0.92f,
+            cx, cy - length
+        )
+        cubicTo(
+            cx + halfWidth * 0.5f, cy - length * 0.92f,
+            cx + halfWidth, cy - length * 0.45f,
+            cx, cy
+        )
+        close()
+    }

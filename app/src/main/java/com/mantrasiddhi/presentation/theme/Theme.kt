@@ -104,7 +104,10 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun AnushtanamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // Dynamic (Material You) color is intentionally OFF: it tints surfaces with the
+    // device wallpaper, which washed the app into a grey palette. We always ship the
+    // curated saffron/maroon/gold devotional scheme instead.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -139,7 +142,7 @@ fun AnushtanamTheme(
             )
         } else {
             baseColorScheme.copy(
-                primary = Color(0xFF9E4200),
+                primary = Color(0xFFC43E00),
                 onPrimary = Color(0xFFFFFFFF),
                 background = Color(0xFFFFFFFF),
                 surface = Color(0xFFFFFFFF),

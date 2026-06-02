@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,7 +46,7 @@ class SplashActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            AnushtanamTheme {
+            AnushtanamTheme(darkTheme = false, dynamicColor = false) {
                 SplashScreenContent(
                     onTimeout = {
                         startActivity(Intent(this@SplashActivity, MainActivity::class.java))
@@ -84,14 +83,7 @@ fun SplashScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            ),
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -99,7 +91,10 @@ fun SplashScreenContent(
             modifier = Modifier.scale(scale.value)
         ) {
             LotusIllustration(
-                modifier = Modifier.size(160.dp)
+                modifier = Modifier.size(160.dp),
+                petalColor = Color.White.copy(alpha = 0.95f),
+                accentColor = Color(0xFFFFE0B2),
+                centerColor = Color(0xFFFFF3E0)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(

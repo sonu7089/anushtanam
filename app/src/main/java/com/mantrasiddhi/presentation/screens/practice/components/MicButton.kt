@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,11 +29,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import com.mantrasiddhi.R
 
 
 @Composable
@@ -138,9 +139,11 @@ fun MicButton(
                     modifier = Modifier.size(36.dp)
                 )
             } else {
-                MicIcon(
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_mic),
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
@@ -219,63 +222,5 @@ private fun VoiceWaveform(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2, barWidth / 2)
             )
         }
-    }
-}
-
-
-@Composable
-private fun MicIcon(
-    tint: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        // 1. Mic body (rounded rectangle in the center)
-        val bodyWidth = w * 0.35f
-        val bodyHeight = h * 0.5f
-        val bodyLeft = (w - bodyWidth) / 2
-        val bodyTop = h * 0.15f
-        drawRoundRect(
-            color = tint,
-            topLeft = androidx.compose.ui.geometry.Offset(bodyLeft, bodyTop),
-            size = androidx.compose.ui.geometry.Size(bodyWidth, bodyHeight),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(bodyWidth / 2, bodyWidth / 2)
-        )
-
-        // 2. Mic stand (U-shape arc/line around bottom of body)
-        val standRadius = bodyWidth * 0.8f
-        val strokeWidth = w * 0.08f
-        drawArc(
-            color = tint,
-            startAngle = 0f,
-            sweepAngle = 180f,
-            useCenter = false,
-            topLeft = androidx.compose.ui.geometry.Offset((w - standRadius * 2) / 2, bodyTop + bodyHeight / 2 - standRadius * 0.2f),
-            size = androidx.compose.ui.geometry.Size(standRadius * 2, standRadius * 2),
-            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-        )
-
-        // 3. Vertical stand pole
-        val poleTop = bodyTop + bodyHeight / 2 + standRadius * 0.8f
-        val poleLength = h * 0.15f
-        drawLine(
-            color = tint,
-            start = androidx.compose.ui.geometry.Offset(w / 2, poleTop),
-            end = androidx.compose.ui.geometry.Offset(w / 2, poleTop + poleLength),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-
-        // 4. Base horizontal line
-        val baseWidth = w * 0.4f
-        drawLine(
-            color = tint,
-            start = androidx.compose.ui.geometry.Offset((w - baseWidth) / 2, poleTop + poleLength),
-            end = androidx.compose.ui.geometry.Offset((w + baseWidth) / 2, poleTop + poleLength),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
     }
 }
