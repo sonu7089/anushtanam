@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -82,50 +81,42 @@ fun EmptyState(
 }
 
 /**
- * Draws a clean, symmetric front-facing lotus emblem.
+ * Draws the brand lotus emblem — matching the adaptive launcher icon.
  *
- * The bloom is built from two radial rings of petals — a larger outer ring and a
- * smaller inner ring rotated by half a step — over a soft aura, finished with a
- * gold seed-pod centre. Colours default to the devotional theme palette but can be
- * overridden (e.g. for the saffron splash background).
+ * A solid saffron disc holds two radial rings of cream/gold petals (a larger outer
+ * ring and a smaller inner ring rotated by half a step) and a gold seed-pod centre.
+ * All fills are flat (no gradients) so the petals read cleanly without looking
+ * shadowed. Colours default to the devotional palette but can be overridden.
  *
- * @param petalColor base colour of the outer petals.
- * @param accentColor colour of the inner petals and petal tips.
+ * @param discColor the saffron backing disc behind the bloom.
+ * @param outerPetalColor colour of the outer ring of petals.
+ * @param innerPetalColor colour of the inner ring of petals.
  * @param centerColor colour of the seed-pod centre.
  */
 @Composable
 fun LotusIllustration(
     modifier: Modifier = Modifier,
-    petalColor: Color = MaterialTheme.colorScheme.primary,
-    accentColor: Color = MaterialTheme.colorScheme.tertiary,
-    centerColor: Color = MaterialTheme.colorScheme.tertiaryContainer
+    discColor: Color = MaterialTheme.colorScheme.primary,
+    outerPetalColor: Color = Color(0xFFFFE0B2),
+    innerPetalColor: Color = Color(0xFFFFF3E0),
+    centerColor: Color = Color(0xFFFFCA62)
 ) {
     Canvas(modifier = modifier) {
         val cx = size.width / 2f
         val cy = size.height / 2f
-        val radius = minOf(size.width, size.height) * 0.42f
+        val disc = minOf(size.width, size.height) * 0.47f
+        val outerLen = disc * 0.80f
+        val innerLen = disc * 0.50f
 
-        // Soft radial aura behind the bloom.
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(accentColor.copy(alpha = 0.22f), Color.Transparent),
-                center = Offset(cx, cy),
-                radius = radius * 1.15f
-            ),
-            center = Offset(cx, cy),
-            radius = radius * 1.15f
-        )
+        // Saffron backing disc.
+        drawCircle(color = discColor, radius = disc, center = Offset(cx, cy))
 
         // Outer ring — 8 large petals.
         repeat(8) { i ->
             rotate(degrees = i * 45f, pivot = Offset(cx, cy)) {
                 drawPath(
-                    path = lotusPetal(cx, cy, length = radius, halfWidth = radius * 0.30f),
-                    brush = Brush.verticalGradient(
-                        colors = listOf(accentColor, petalColor),
-                        startY = cy - radius,
-                        endY = cy
-                    ),
+                    path = lotusPetal(cx, cy, length = outerLen, halfWidth = outerLen * 0.34f),
+                    color = outerPetalColor,
                     style = Fill
                 )
             }
@@ -135,20 +126,16 @@ fun LotusIllustration(
         repeat(8) { i ->
             rotate(degrees = i * 45f + 22.5f, pivot = Offset(cx, cy)) {
                 drawPath(
-                    path = lotusPetal(cx, cy, length = radius * 0.66f, halfWidth = radius * 0.24f),
-                    brush = Brush.verticalGradient(
-                        colors = listOf(centerColor, accentColor),
-                        startY = cy - radius * 0.66f,
-                        endY = cy
-                    ),
+                    path = lotusPetal(cx, cy, length = innerLen, halfWidth = innerLen * 0.42f),
+                    color = innerPetalColor,
                     style = Fill
                 )
             }
         }
 
-        // Seed-pod centre with a soft highlight.
-        drawCircle(color = accentColor, radius = radius * 0.20f, center = Offset(cx, cy))
-        drawCircle(color = centerColor, radius = radius * 0.13f, center = Offset(cx, cy))
+        // Seed-pod centre with a white highlight.
+        drawCircle(color = centerColor, radius = disc * 0.17f, center = Offset(cx, cy))
+        drawCircle(color = Color.White, radius = disc * 0.085f, center = Offset(cx, cy))
     }
 }
 
