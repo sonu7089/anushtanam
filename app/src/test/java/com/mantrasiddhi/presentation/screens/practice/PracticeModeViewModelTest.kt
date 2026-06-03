@@ -60,7 +60,8 @@ class PracticeModeViewModelTest {
             getCurrentUserUseCase = getCurrentUserUseCase,
             soundEffectsPlayer = soundEffectsPlayer,
             audioCaptureService = audioCaptureService,
-            recordedAudioPlayer = recordedAudioPlayer
+            recordedAudioPlayer = recordedAudioPlayer,
+            detectRecitationBoundaryUseCase = DetectRecitationBoundaryUseCase()
         )
     }
 

@@ -19,6 +19,7 @@ import com.mantrasiddhi.domain.evaluation.acoustic.SelfAudioSegmenter
 import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
+import com.mantrasiddhi.domain.usecase.DetectRecitationBoundaryUseCase
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,7 +58,8 @@ class PracticeModeViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val soundEffectsPlayer: SoundEffectsPlayer,
     private val audioCaptureService: AudioCaptureService,
-    private val recordedAudioPlayer: RecordedAudioPlayer
+    private val recordedAudioPlayer: RecordedAudioPlayer,
+    private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Idle)
@@ -84,6 +86,18 @@ class PracticeModeViewModel @Inject constructor(
 
     private var recordingJob: Job? = null
     private var startTimeMs = 0L
+
+    /**
+     * Most recent transcript the recogniser produced this attempt. Tracked as a field
+     * so both the silence watchdog and a manual stop evaluate the same text.
+     */
+    private var accumulatedText = ""
+
+    /** Wall-clock time of the last non-blank speech result, for silence detection. */
+    private var lastSpeechTimeMs = 0L
+
+    /** Guards [finalizeRecording] so an attempt is only evaluated once. */
+    private var finalizing = false
 
     /**
      * Starts playing benchmark audio.
@@ -154,11 +168,17 @@ class PracticeModeViewModel @Inject constructor(
         soundEffectsPlayer.triggerLightHaptic()
         benchmarkAudioPlayer.stop()
         recordingJob?.cancel()
+        accumulatedText = ""
+        finalizing = false
+        lastSpeechTimeMs = System.currentTimeMillis()
         _uiState.value = PracticeUiState.Recording("", 0)
         startTimeMs = System.currentTimeMillis()
-        // Capture raw audio in parallel with STT so pronunciation can be measured
-        // acoustically; if the mic is unavailable this degrades to the text path.
-        audioCaptureService.start()
+        // NOTE: We intentionally do NOT capture raw audio in parallel here. On many
+        // devices a second AudioRecord session starves SpeechRecognizer of mic input,
+        // so no transcript is ever produced and the attempt never finalises. The
+        // recogniser owns the mic exclusively (mirroring Recitation Mode), and the
+        // evaluation runs on the transcript text. The acoustic "hear yourself" / swara
+        // path is sacrificed for reliable feedback.
 
         recordingJob = viewModelScope.launch {
             val timerJob = launch {
@@ -173,16 +193,43 @@ class PracticeModeViewModel @Inject constructor(
                 }
             }
 
+            // Silence watchdog: the on-device recogniser frequently never emits a
+            // Final result while listening continuously, so we detect the end of the
+            // recitation ourselves and finalise automatically. The decision is a plain
+            // elapsed-silence timeout because the recogniser returns Devanagari
+            // (hi-IN) text, which DetectRecitationBoundaryUseCase's ASCII-only
+            // normaliser would strip to empty — that use case can only catch the
+            // Latin "prachodayat" closing word as an early trigger, never the pause.
+            val watchdogJob = launch {
+                while (isActive) {
+                    delay(200)
+                    val silence = System.currentTimeMillis() - lastSpeechTimeMs
+                    val hasSpeech = accumulatedText.isNotBlank()
+                    val recitationEnded = hasSpeech &&
+                        (silence >= SILENCE_TIMEOUT_MS ||
+                            detectRecitationBoundaryUseCase(accumulatedText, silence))
+                    if (recitationEnded) {
+                        timerJob.cancel()
+                        finalizeRecording(accumulatedText)
+                        break
+                    }
+                }
+            }
+
             speechRecognitionService.startListening()
                 .flowOn(Dispatchers.Main)
                 .catch { e ->
                     timerJob.cancel()
-                    audioCaptureService.stop()
+                    watchdogJob.cancel()
                     _uiState.value = PracticeUiState.Error(e.message ?: "Speech recognition failed")
                 }
                 .collect { result ->
                     when (result) {
                         is SpeechResult.Partial -> {
+                            if (result.text.isNotBlank()) {
+                                accumulatedText = result.text
+                                lastSpeechTimeMs = System.currentTimeMillis()
+                            }
                             val current = _uiState.value
                             if (current is PracticeUiState.Recording) {
                                 _uiState.value = current.copy(partialText = result.text)
@@ -190,13 +237,21 @@ class PracticeModeViewModel @Inject constructor(
                         }
                         is SpeechResult.Final -> {
                             timerJob.cancel()
-                            val audio = audioCaptureService.stop()
-                            evaluateTranscription(result.text, result.confidence, result.alternatives, audio)
+                            watchdogJob.cancel()
+                            val text = result.text.ifBlank { accumulatedText }
+                            finalizeRecording(text, result.confidence, result.alternatives)
                         }
                         is SpeechResult.Error -> {
                             timerJob.cancel()
-                            audioCaptureService.stop()
-                            _uiState.value = PracticeUiState.Error(result.message)
+                            watchdogJob.cancel()
+                            // A trailing recogniser error/timeout after the user has
+                            // already recited should still score what we heard rather
+                            // than discard the attempt.
+                            if (accumulatedText.isNotBlank()) {
+                                finalizeRecording(accumulatedText)
+                            } else {
+                                _uiState.value = PracticeUiState.Error(result.message)
+                            }
                         }
                     }
                 }
@@ -204,21 +259,36 @@ class PracticeModeViewModel @Inject constructor(
     }
 
     /**
-     * Stops recording and evaluates whatever transcript was captured.
+     * Stops recording and evaluates whatever transcript was captured so far.
      */
     fun stopRecording() {
-        val current = _uiState.value
-        if (current is PracticeUiState.Recording) {
+        if (_uiState.value is PracticeUiState.Recording) {
             soundEffectsPlayer.triggerLightHaptic()
-            val text = current.partialText
-            recordingJob?.cancel()
-            recordingJob = null
-            val audio = audioCaptureService.stop()
-            if (text.isNotBlank()) {
-                evaluateTranscription(text, audio = audio)
-            } else {
-                _uiState.value = PracticeUiState.Idle
-            }
+            finalizeRecording(accumulatedText)
+        }
+    }
+
+    /**
+     * Ends the current attempt exactly once: tears down the speech flow and either
+     * evaluates the transcript or returns to idle when nothing was heard. Idempotent
+     * via [finalizing] so the silence watchdog, a Final result, and a manual stop
+     * cannot triple-evaluate the same attempt. Audio is null because Practice no
+     * longer captures raw audio in parallel (it starved the recogniser); evaluation
+     * runs on the transcript text.
+     */
+    private fun finalizeRecording(
+        text: String,
+        confidence: Float = 1.0f,
+        alternatives: List<Pair<String, Float>> = emptyList()
+    ) {
+        if (finalizing) return
+        finalizing = true
+        recordingJob?.cancel()
+        recordingJob = null
+        if (text.isNotBlank()) {
+            evaluateTranscription(text, confidence, alternatives, audio = null)
+        } else {
+            _uiState.value = PracticeUiState.Idle
         }
     }
 
@@ -231,6 +301,8 @@ class PracticeModeViewModel @Inject constructor(
         audioCaptureService.stop()
         recordingJob?.cancel()
         recordingJob = null
+        accumulatedText = ""
+        finalizing = false
         lastAudio = null
         _hasSelfAudio.value = false
         _uiState.value = PracticeUiState.Idle
@@ -274,5 +346,14 @@ class PracticeModeViewModel @Inject constructor(
         recordedAudioPlayer.release()
         audioCaptureService.release()
         recordingJob?.cancel()
+    }
+
+    private companion object {
+        /**
+         * How long the learner can pause after speech before the attempt is
+         * auto-finalised and evaluated. Kept close to Recitation Mode's 2s gap so
+         * natural in-mantra pauses don't cut a recitation short.
+         */
+        const val SILENCE_TIMEOUT_MS = 2000L
     }
 }
