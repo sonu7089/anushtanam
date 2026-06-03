@@ -74,6 +74,9 @@ fun SetTargetDialog(
     
     val presets = listOf(108, 1008, 10008)
     val isParent = currentUser.profileType == ProfileType.PARENT
+    // Only a parent profile may attach a virtual-money reward to a target.
+    // A child setting their own target can pick a recitation count but never a money reward.
+    val canSetMoney = isParent
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -190,23 +193,31 @@ fun SetTargetDialog(
                     )
                 }
                 
-                // Money Amount configuration
-                Text(
-                    text = stringResource(id = R.string.target_dialog_money),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                MantraTextField(
-                    value = moneyAmountString,
-                    onValueChange = {
-                        if (it.isEmpty() || it.toDoubleOrNull() != null || it.all { char -> char.isDigit() || char == '.' }) {
-                            moneyAmountString = it
-                        }
-                    },
-                    label = stringResource(id = R.string.target_dialog_reward_amount_label),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Money Amount configuration — only available to parent profiles.
+                if (canSetMoney) {
+                    Text(
+                        text = stringResource(id = R.string.target_dialog_money),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    MantraTextField(
+                        value = moneyAmountString,
+                        onValueChange = {
+                            if (it.isEmpty() || it.toDoubleOrNull() != null || it.all { char -> char.isDigit() || char == '.' }) {
+                                moneyAmountString = it
+                            }
+                        },
+                        label = stringResource(id = R.string.target_dialog_reward_amount_label),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.target_dialog_money_parent_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
                 
                 errorMsg?.let {
                     Text(
@@ -226,7 +237,7 @@ fun SetTargetDialog(
                         selectedPresetCount
                     }
                     
-                    val finalMoney = moneyAmountString.toDoubleOrNull() ?: 0.0
+                    val finalMoney = if (canSetMoney) moneyAmountString.toDoubleOrNull() ?: 0.0 else 0.0
                     
                     if (finalCount <= 0) {
                         errorMsg = context.getString(R.string.target_dialog_error_invalid_count)

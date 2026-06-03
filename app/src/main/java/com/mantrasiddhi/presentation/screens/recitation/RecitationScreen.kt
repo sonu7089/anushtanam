@@ -27,6 +27,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +54,7 @@ import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOv
 import com.mantrasiddhi.presentation.screens.recitation.components.LiveCounter
 import com.mantrasiddhi.presentation.screens.recitation.components.RecitationFeed
 import com.mantrasiddhi.presentation.screens.recitation.components.TargetProgressHeader
+import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.height
 
@@ -64,6 +67,22 @@ fun RecitationScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var requestMicPermission by remember { mutableStateOf(false) }
+    var showSetTargetDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(key1 = true) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is RecitationEvent.TargetCreated -> {
+                    showSetTargetDialog = false
+                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_set_success))
+                }
+                is RecitationEvent.ShowError -> {
+                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_error, event.message))
+                }
+            }
+        }
+    }
 
     if (requestMicPermission) {
         PermissionHandler(
@@ -84,6 +103,7 @@ fun RecitationScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -221,9 +241,37 @@ fun RecitationScreen(
                         }
                     }
 
+                    // Self-target setup: lets the reciter set their own goal without
+                    // leaving the recitation tab. Shown when no target is active yet.
+                    if (state.activeTarget == null) {
+                        OutlinedButton(
+                            onClick = { showSetTargetDialog = true },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.target_set_new),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     RecitationFeed(sessions = state.recentSessions)
+                }
+
+                if (showSetTargetDialog) {
+                    SetTargetDialog(
+                        currentUser = state.user,
+                        children = emptyList(),
+                        onDismiss = { showSetTargetDialog = false },
+                        onConfirm = { count, money, _ ->
+                            viewModel.createTarget(count, money)
+                        }
+                    )
                 }
 
                 if (state.showCelebration && state.activeTarget != null) {

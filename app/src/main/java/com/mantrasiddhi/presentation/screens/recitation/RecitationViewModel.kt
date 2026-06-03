@@ -10,10 +10,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
+import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
+import com.mantrasiddhi.domain.usecase.CreateTargetUseCase
 import com.mantrasiddhi.domain.usecase.DetectRecitationBoundaryUseCase
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
 import com.mantrasiddhi.domain.usecase.GetActiveTargetUseCase
@@ -29,8 +31,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
@@ -73,6 +78,14 @@ data class RecitationFeedbackState(
     val lowConfidence: Boolean = false
 )
 
+/**
+ * One-shot UI events emitted from the Recitation screen (e.g. for snackbars).
+ */
+sealed interface RecitationEvent {
+    data object TargetCreated : RecitationEvent
+    data class ShowError(val message: String) : RecitationEvent
+}
+
 private class BoundaryReachedException(val text: String) : Exception()
 private class SpeechRecognitionException(val msg: String) : Exception()
 
@@ -84,6 +97,7 @@ private class SpeechRecognitionException(val msg: String) : Exception()
 class RecitationViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getActiveTargetUseCase: GetActiveTargetUseCase,
+    private val createTargetUseCase: CreateTargetUseCase,
     private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
     private val speechRecognitionService: SpeechRecognitionService,
     private val evaluateRecitationUseCase: EvaluateRecitationUseCase,
@@ -94,6 +108,9 @@ class RecitationViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
     val uiState: StateFlow<RecitationUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<RecitationEvent>()
+    val events: SharedFlow<RecitationEvent> = _events.asSharedFlow()
 
     private var activeUser: UserProfile? = null
     private var activeTarget: Target? = null
@@ -153,6 +170,40 @@ class RecitationViewModel @Inject constructor(
                 lastFeedback = lastFeedback,
                 showCelebration = triggerCelebration
             )
+        }
+    }
+
+    /**
+     * Creates a recitation target for the current user (self-target).
+     *
+     * A money reward can only be attached by a parent profile; for any other
+     * profile the amount is forced to zero so a child can never fund their own
+     * reward. Only a parent may set a money target for a child.
+     */
+    fun createTarget(targetRecitationCount: Int, moneyAmount: Double) {
+        val user = activeUser
+        if (user == null) {
+            viewModelScope.launch {
+                _events.emit(RecitationEvent.ShowError("No active user profile found."))
+            }
+            return
+        }
+        val safeMoney = if (user.profileType == ProfileType.PARENT) moneyAmount else 0.0
+        viewModelScope.launch {
+            val target = Target(
+                userId = user.id,
+                setByUserId = user.id,
+                targetRecitationCount = targetRecitationCount,
+                currentRecitationCount = 0,
+                moneyAmount = safeMoney,
+                isCompleted = false
+            )
+            createTargetUseCase(target).onSuccess {
+                emitActiveState()
+                _events.emit(RecitationEvent.TargetCreated)
+            }.onFailure { e ->
+                _events.emit(RecitationEvent.ShowError(e.message ?: "Failed to set target."))
+            }
         }
     }
 

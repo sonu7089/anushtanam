@@ -64,6 +64,7 @@ class RecitationViewModelTest {
         viewModel = RecitationViewModel(
             getCurrentUserUseCase = getCurrentUserUseCase,
             getActiveTargetUseCase = getActiveTargetUseCase,
+            createTargetUseCase = mockk(relaxed = true),
             getSessionsForUserUseCase = getSessionsForUserUseCase,
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,
@@ -93,6 +94,7 @@ class RecitationViewModelTest {
         val errorViewModel = RecitationViewModel(
             getCurrentUserUseCase = nullUserUseCase,
             getActiveTargetUseCase = getActiveTargetUseCase,
+            createTargetUseCase = mockk(relaxed = true),
             getSessionsForUserUseCase = getSessionsForUserUseCase,
             speechRecognitionService = speechRecognitionService,
             evaluateRecitationUseCase = evaluateRecitationUseCase,

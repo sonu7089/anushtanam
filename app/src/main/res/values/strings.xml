@@ -196,6 +196,7 @@
     <string name="target_dialog_preset">Preset count: %1$d</string>
     <string name="target_dialog_custom">Custom count</string>
     <string name="target_dialog_money">Virtual Money Reward (₹)</string>
+    <string name="target_dialog_money_parent_only">Only a parent can attach a money reward to a target.</string>
     <string name="target_dialog_confirm">Set Target</string>
     <string name="target_dialog_cancel">Cancel</string>
     <string name="target_dialog_child_selector">Set target for profile:</string>
