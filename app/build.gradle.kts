@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mantrasiddhi"
-        minSdk = 26
+        minSdk = 33
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -22,8 +22,20 @@ android {
         }
     }
 
+    signingConfigs {
+        // Debug-key signing so release builds are installable for local testing.
+        // Replace with a proper release keystore before publishing to Play.
+        create("releaseTest") {
+            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("releaseTest")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
