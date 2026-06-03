@@ -131,7 +131,7 @@ fun AnushtanamTheme(
     val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && contrast > 0.0f) {
         if (darkTheme) {
             baseColorScheme.copy(
-                primary = Color(0xFFFFB691),
+                primary = Color(0xFFFFB3AD),
                 onPrimary = Color(0xFF000000),
                 background = Color(0xFF000000),
                 surface = Color(0xFF000000),
@@ -142,7 +142,7 @@ fun AnushtanamTheme(
             )
         } else {
             baseColorScheme.copy(
-                primary = Color(0xFFC43E00),
+                primary = Color(0xFFC00012),
                 onPrimary = Color(0xFFFFFFFF),
                 background = Color(0xFFFFFFFF),
                 surface = Color(0xFFFFFFFF),
