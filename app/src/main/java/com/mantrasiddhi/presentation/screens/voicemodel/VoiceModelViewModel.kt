@@ -1,0 +1,109 @@
+/*
+ * Anushtanam - Gayatri Mantra Recitation App
+ * Copyright (c) 2026. All rights reserved.
+ *
+ * This is a demo application. Not for production use.
+ */
+package com.mantrasiddhi.presentation.screens.voicemodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.data.speech.VoiceModelManager
+import com.mantrasiddhi.domain.model.VoiceModelDownload
+import com.mantrasiddhi.domain.model.VoiceModelState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** UI state for the voice-model gate / download screen. */
+sealed interface VoiceModelUiState {
+    /** Availability is being queried. */
+    data object Checking : VoiceModelUiState
+
+    /** The required model is installed; gated content may be shown. */
+    data object Ready : VoiceModelUiState
+
+    /** The model is missing/unavailable; the download screen must be shown. */
+    data class NeedsModel(
+        val state: VoiceModelState,
+        val download: DownloadUiState
+    ) : VoiceModelUiState
+}
+
+/** Sub-state describing an in-app download attempt. */
+sealed interface DownloadUiState {
+    /** No download in progress; the user may start one. */
+    data object Idle : DownloadUiState
+
+    /** A download is running; [percent] is `null` when indeterminate. */
+    data class InProgress(val percent: Int?) : DownloadUiState
+
+    /** The last download attempt failed with [errorCode]. */
+    data class Failed(val errorCode: Int) : DownloadUiState
+}
+
+/**
+ * Drives the voice-model enforcement gate: checks whether the on-device Hindi model
+ * is installed and orchestrates a system download when it is not.
+ */
+@HiltViewModel
+class VoiceModelViewModel @Inject constructor(
+    private val voiceModelManager: VoiceModelManager
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<VoiceModelUiState>(VoiceModelUiState.Checking)
+    val uiState: StateFlow<VoiceModelUiState> = _uiState.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    /**
+     * Re-queries model availability. Safe to call on every screen resume; an active
+     * download indicator is preserved rather than reset to a loading spinner.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            val activeDownload = currentDownload() as? DownloadUiState.InProgress
+            if (activeDownload == null) {
+                _uiState.value = VoiceModelUiState.Checking
+            }
+            val status = voiceModelManager.checkStatus()
+            _uiState.value = when {
+                status.state == VoiceModelState.READY -> VoiceModelUiState.Ready
+                else -> VoiceModelUiState.NeedsModel(
+                    state = status.state,
+                    download = activeDownload ?: DownloadUiState.Idle
+                )
+            }
+        }
+    }
+
+    /** Asks the system to download/update the model, reflecting progress in [uiState]. */
+    fun startDownload() {
+        viewModelScope.launch {
+            updateDownload(DownloadUiState.InProgress(null))
+            voiceModelManager.triggerDownload().collect { event ->
+                when (event) {
+                    is VoiceModelDownload.Scheduled -> updateDownload(DownloadUiState.InProgress(null))
+                    is VoiceModelDownload.Progress -> updateDownload(DownloadUiState.InProgress(event.percent))
+                    is VoiceModelDownload.Completed -> refresh()
+                    is VoiceModelDownload.Failed -> updateDownload(DownloadUiState.Failed(event.errorCode))
+                }
+            }
+        }
+    }
+
+    private fun currentDownload(): DownloadUiState? =
+        (_uiState.value as? VoiceModelUiState.NeedsModel)?.download
+
+    /** Updates only the download sub-state, keeping the resolved model state. */
+    private fun updateDownload(download: DownloadUiState) {
+        val state = (_uiState.value as? VoiceModelUiState.NeedsModel)?.state
+            ?: VoiceModelState.NOT_INSTALLED
+        _uiState.value = VoiceModelUiState.NeedsModel(state, download)
+    }
+}

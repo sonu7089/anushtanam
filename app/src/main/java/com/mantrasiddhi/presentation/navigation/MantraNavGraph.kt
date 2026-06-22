@@ -46,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.presentation.MainViewModel
+import com.mantrasiddhi.presentation.components.VoiceModelGate
 import com.mantrasiddhi.presentation.screens.childprogress.ChildProgressScreen
 import com.mantrasiddhi.presentation.screens.home.HomeScreen
 import com.mantrasiddhi.presentation.screens.home.HomeViewModel
@@ -158,11 +159,15 @@ fun MantraApp(
             }
 
             composable(Screen.Practice.route) {
-                PracticeScreen()
+                VoiceModelGate {
+                    PracticeScreen()
+                }
             }
 
             composable(Screen.Recitation.route) {
-                RecitationScreen()
+                VoiceModelGate {
+                    RecitationScreen()
+                }
             }
 
             composable(Screen.Progress.route) {

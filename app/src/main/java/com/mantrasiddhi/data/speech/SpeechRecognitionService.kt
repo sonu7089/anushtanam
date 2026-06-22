@@ -8,7 +8,6 @@ package com.mantrasiddhi.data.speech
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -41,9 +40,13 @@ class SpeechRecognitionService @Inject constructor(
         val mainDispatcher = Dispatchers.Main
         var recognizer: SpeechRecognizer? = null
 
-        fun initRecognizer(onDevice: Boolean) {
-            if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-                trySend(SpeechResult.Error(-1, "Speech recognition is not available on this device"))
+        fun initRecognizer() {
+            // Strict on-device only: the recitation features are gated behind the
+            // VoiceModelGate so the Hindi model is expected to be installed. We never
+            // fall back to the network recognizer — that silent fallback produced the
+            // transient, inconsistent results we want to eliminate.
+            if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+                trySend(SpeechResult.Error(ERROR_MODEL_UNAVAILABLE, MODEL_MISSING_MESSAGE))
                 close()
                 return
             }
@@ -58,17 +61,10 @@ class SpeechRecognitionService @Inject constructor(
                 // Request n-best hypotheses so the evaluator can recover the correct
                 // words when they sit in a lower-ranked alternative.
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, MAX_RESULTS)
-                if (onDevice) {
-                    putExtra("android.speech.extra.PREFER_OFFLINE", true)
-                }
+                putExtra("android.speech.extra.PREFER_OFFLINE", true)
             }
 
-            val rec = if (onDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-                SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-            } else {
-                SpeechRecognizer.createSpeechRecognizer(context)
-            }
+            val rec = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
             
             recognizer = rec
             
@@ -80,34 +76,17 @@ class SpeechRecognitionService @Inject constructor(
                 override fun onEndOfSpeech() {}
 
                 override fun onError(error: Int) {
-                    // Error 13 is SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE (Android 12+)
-                    // Error 14 is SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
-                    // Error 5 is SpeechRecognizer.ERROR_CLIENT (generic connection/binding issues)
-                    if (onDevice && (error == 13 || error == 14 || error == 5)) {
-                        if (error == 13 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            try {
-                                val downloadIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-                                }
-                                val triggerRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-                                triggerRecognizer.triggerModelDownload(downloadIntent)
-                            } catch (e: Exception) {
-                                // ignore
-                            }
-                        }
-                        launch(mainDispatcher) {
-                            try {
-                                rec.destroy()
-                            } catch (e: Exception) {
-                                // ignore
-                            }
-                            initRecognizer(onDevice = false)
-                        }
+                    // 13 = ERROR_LANGUAGE_UNAVAILABLE, 14 = ERROR_LANGUAGE_NOT_SUPPORTED,
+                    // 5 = ERROR_CLIENT. On the on-device recognizer these indicate the
+                    // Hindi model is missing or broken; surface a clear error so the gate
+                    // can route the user back to the download screen — no network fallback.
+                    val message = if (error == 13 || error == 14 || error == 5) {
+                        MODEL_MISSING_MESSAGE
                     } else {
-                        val message = getErrorMessage(error)
-                        trySend(SpeechResult.Error(error, message))
-                        close()
+                        getErrorMessage(error)
                     }
+                    trySend(SpeechResult.Error(error, message))
+                    close()
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -132,9 +111,7 @@ class SpeechRecognitionService @Inject constructor(
         }
 
         launch(mainDispatcher) {
-            val initialOnDevice = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
-            initRecognizer(onDevice = initialOnDevice)
+            initRecognizer()
         }
 
         awaitClose {
@@ -190,5 +167,12 @@ class SpeechRecognitionService @Inject constructor(
 
         /** Confidence assumed when the recognizer does not report a score. */
         const val DEFAULT_CONFIDENCE = 1.0f
+
+        /** Error code surfaced when the on-device Hindi model is unavailable at capture time. */
+        const val ERROR_MODEL_UNAVAILABLE = 13
+
+        /** User-facing message shown when the Hindi voice model is missing during capture. */
+        const val MODEL_MISSING_MESSAGE =
+            "Hindi voice model unavailable. Please reinstall it from the voice model screen to continue."
     }
 }

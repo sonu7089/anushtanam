@@ -257,5 +257,31 @@
     <string name="practice_swara_hint_good">Your pitch contour closely follows the benchmark recitation.</string>
     <string name="practice_swara_hint_flat">Your recitation is fairly flat — let the pitch rise and fall with the benchmark.</string>
     <string name="practice_swara_hint_direction">Watch the accent direction — you are rising where the benchmark falls (or vice-versa).</string>
+
+    <!-- Voice Model enforcement / download screen -->
+    <string name="voice_model_title_required">Voice model required</string>
+    <string name="voice_model_title_unsupported">Voice model unavailable</string>
+    <string name="voice_model_title_unavailable">On-device voice unavailable</string>
+    <string name="voice_model_body_required">Anushtanam scores your recitation entirely on your device using the Hindi voice model. It isn\'t installed yet, so Practice and Recitation can\'t run. Install it once to use them fully offline — no internet needed afterwards, and no transient errors.</string>
+    <string name="voice_model_body_downloading">Your device is installing the Hindi voice model. This can take a few minutes on Wi-Fi. Return here and tap Check again once it has finished.</string>
+    <string name="voice_model_body_unsupported">This device\'s speech service doesn\'t list Hindi as an installable on-device language. Try the manual steps below, or update \"Speech Recognition &amp; Synthesis\" (Speech Services by Google) from the Play Store, then check again.</string>
+    <string name="voice_model_body_unavailable">This device has no on-device voice recognition service, which Anushtanam needs for offline recitation. Install or enable \"Speech Recognition &amp; Synthesis\" (Speech Services by Google), then check again.</string>
+    <string name="voice_model_download_button">Download voice model</string>
+    <string name="voice_model_try_again">Try again</string>
+    <string name="voice_model_download_failed">Couldn\'t start the download. Check your connection and try again, or use the manual steps below.</string>
+    <string name="voice_model_downloading_percent">Downloading… %1$d%%</string>
+    <string name="voice_model_downloading_preparing">Preparing download…</string>
+    <string name="voice_model_system_downloading">A download is already in progress on your device.</string>
+    <string name="voice_model_open_settings">Open voice input settings</string>
+    <string name="voice_model_check_again">I\'ve installed it — Check again</string>
+    <string name="voice_model_show_steps">Show manual steps</string>
+    <string name="voice_model_hide_steps">Hide manual steps</string>
+    <string name="voice_model_steps_title">Install the Hindi voice model manually</string>
+    <string name="voice_model_step_1">1. Open your phone\'s Settings app.</string>
+    <string name="voice_model_step_2">2. Go to System → Languages &amp; input → On-device speech recognition. (On some phones: General management → Voice input, or Settings → Apps → Speech Recognition &amp; Synthesis.)</string>
+    <string name="voice_model_step_3">3. Tap Add languages (or the + button) and choose हिन्दी (Hindi – India).</string>
+    <string name="voice_model_step_4">4. Stay on Wi-Fi and wait for the download to finish.</string>
+    <string name="voice_model_step_5">5. Return to Anushtanam and tap \"I\'ve installed it — Check again\".</string>
+    <string name="voice_model_steps_note">Exact menu names vary by phone brand. Look for \"on-device speech recognition\", \"voice input\", or \"Speech Recognition &amp; Synthesis\".</string>
 </resources>
 
