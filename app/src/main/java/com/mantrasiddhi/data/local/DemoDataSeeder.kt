@@ -7,14 +7,23 @@
 package com.mantrasiddhi.data.local
 
 import com.mantrasiddhi.data.local.dao.RecitationDao
+import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.SavingsDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
+import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
 import com.mantrasiddhi.data.local.entity.SavingsEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
 import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.model.SandhyaPeriod
+import com.mantrasiddhi.domain.model.SandhyaRegions
+import com.mantrasiddhi.domain.model.SandhyaStatus
+import com.mantrasiddhi.domain.solar.SolarCalculator
+import com.mantrasiddhi.domain.util.SandhyaDateKey
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
@@ -29,7 +38,8 @@ class DemoDataSeeder @Inject constructor(
     private val userDao: UserDao,
     private val targetDao: TargetDao,
     private val recitationDao: RecitationDao,
-    private val savingsDao: SavingsDao
+    private val savingsDao: SavingsDao,
+    private val sandhyaLogDao: SandhyaLogDao
 ) {
     suspend fun seed() {
         database.clearAllTables()
@@ -150,6 +160,48 @@ class DemoDataSeeder @Inject constructor(
             )
         }
         priyaSessions.forEach { recitationDao.insert(it) }
+
+        // 6. Seed Sandhya Vandan adherence history (last 30 days) per profile so the
+        // metrics dashboard is populated for whichever profile logs in.
+        seedSandhyaLogs(userId = 1, observeProbability = 0.80)
+        seedSandhyaLogs(userId = 2, observeProbability = 0.45)
+        seedSandhyaLogs(userId = 3, observeProbability = 0.60)
+        seedSandhyaLogs(userId = 4, observeProbability = 0.92)
+    }
+
+    /** Generates ~30 days of Sandhya occurrences for [userId] at the given adherence. */
+    private suspend fun seedSandhyaLogs(userId: Long, observeProbability: Double, daysBack: Int = 30) {
+        val zone = ZoneId.systemDefault()
+        val region = SandhyaRegions.DEFAULT
+        val today = LocalDate.now(zone)
+        for (offset in daysBack downTo 1) {
+            val date = today.minusDays(offset.toLong())
+            val epochs = SolarCalculator.computeEpochMillis(date, region.latitude, region.longitude, zone)
+            val dateKey = SandhyaDateKey.of(date)
+            SandhyaPeriod.entries.forEach { period ->
+                val eventMillis = when (period) {
+                    SandhyaPeriod.PRATAH -> epochs.sunriseUtcMillis
+                    SandhyaPeriod.MADHYAHNA -> epochs.solarNoonUtcMillis
+                    SandhyaPeriod.SAYAM -> epochs.sunsetUtcMillis
+                } ?: return@forEach
+                val observed = Math.random() < observeProbability
+                val observedAt = if (observed) {
+                    eventMillis + ((Math.random() * 15 - 5) * 60_000L).toLong()
+                } else {
+                    null
+                }
+                sandhyaLogDao.insertIgnore(
+                    SandhyaLogEntity(
+                        userId = userId,
+                        period = period.name,
+                        scheduledEpochMillis = eventMillis,
+                        status = if (observed) SandhyaStatus.OBSERVED.name else SandhyaStatus.MISSED.name,
+                        observedEpochMillis = observedAt,
+                        dateKey = dateKey
+                    )
+                )
+            }
+        }
     }
 
     private fun generateSession(

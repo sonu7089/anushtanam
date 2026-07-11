@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,37 +7,65 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// Optional release-signing config. When `keystore.properties` (gitignored) is present,
+// release builds are signed with the real upload key for Play; otherwise they fall back
+// to the debug key so local release builds stay installable.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     namespace = "com.mantrasiddhi"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.mantrasiddhi"
+        applicationId = "shastralife.anushtanam"
         minSdk = 33
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Keep only English + Hindi locale resources; strips the ~80 locales that
+        // libraries (Material, AppCompat) bundle but this app never uses.
+        resourceConfigurations += listOf("en", "hi")
     }
 
     signingConfigs {
-        // Debug-key signing so release builds are installable for local testing.
-        // Replace with a proper release keystore before publishing to Play.
-        create("releaseTest") {
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        // Real Play upload key, used automatically when keystore.properties is present.
+        // storeFile is resolved relative to the repo root (where keystore.properties lives).
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("releaseTest")
+            // With keystore.properties → real upload key (publishable). Without it → the
+            // AGP-managed debug key so local release builds still install (CI-safe, the
+            // keystore is auto-generated). A debug-signed build is NOT publishable to Play;
+            // Play rejects the debug certificate, and we warn loudly here.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "keystore.properties not found — signing release with the DEBUG key. " +
+                        "This build is NOT publishable to Google Play."
+                )
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -67,6 +97,19 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    bundle {
+        // Per-language / density / ABI split delivery: each user downloads only the
+        // resources their device needs, shrinking the install considerably.
+        language { enableSplit = true }
+        density { enableSplit = true }
+        abi { enableSplit = true }
+    }
+}
+
+ksp {
+    // Export Room schemas so migrations are verifiable and tracked over time.
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {

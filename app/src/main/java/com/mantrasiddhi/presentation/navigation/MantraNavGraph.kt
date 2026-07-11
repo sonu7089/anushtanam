@@ -55,6 +55,7 @@ import com.mantrasiddhi.presentation.screens.login.LoginViewModel
 import com.mantrasiddhi.presentation.screens.practice.PracticeScreen
 import com.mantrasiddhi.presentation.screens.progress.ProgressScreen
 import com.mantrasiddhi.presentation.screens.recitation.RecitationScreen
+import com.mantrasiddhi.presentation.screens.sandhya.SandhyaScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsViewModel
 import com.mantrasiddhi.presentation.screens.targets.TargetsScreen
@@ -67,7 +68,9 @@ private val NavigationRouteOrder = mapOf(
     Screen.Recitation.route to 3,
     Screen.Progress.route to 4,
     Screen.ChildProgress.route to 5,
-    Screen.Settings.route to 6
+    Screen.Sandhya.route to 6,
+    Screen.Settings.route to 7,
+    Screen.Targets.route to 8
 )
 
 @Composable
@@ -79,7 +82,10 @@ fun MantraApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = currentRoute != Screen.Login.route && currentRoute != null
+    // Detail screens reached from Home (not bottom-nav tabs) hide the bar so it never
+    // shows with nothing selected.
+    val detailRoutes = setOf(Screen.Login.route, Screen.Sandhya.route, Screen.Targets.route)
+    val showBottomBar = currentRoute != null && currentRoute !in detailRoutes
     val isParent = currentUser?.profileType == ProfileType.PARENT
 
     Scaffold(
@@ -154,7 +160,8 @@ fun MantraApp(
                     onNavigateToRecitation = { navController.navigate(Screen.Recitation.route) },
                     onNavigateToPractice = { navController.navigate(Screen.Practice.route) },
                     onNavigateToTargets = { navController.navigate(Screen.Targets.route) },
-                    onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) }
+                    onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) },
+                    onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) }
                 )
             }
 
@@ -180,6 +187,10 @@ fun MantraApp(
 
             composable(Screen.ChildProgress.route) {
                 ChildProgressScreen()
+            }
+
+            composable(Screen.Sandhya.route) {
+                SandhyaScreen(viewModel = hiltViewModel())
             }
 
             composable(Screen.Settings.route) {

@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Sandhya Vandan reminders. We deliberately use inexact alarms, so we declare
+         neither USE_EXACT_ALARM nor SCHEDULE_EXACT_ALARM (both draw Google Play
+         exact-alarm review that a devotional reminder cannot justify). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optional "Use my location" path; the manual region picker works without it. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:name=".MantraSiddhiApplication"
         android:allowBackup="true"
@@ -25,6 +33,27 @@
             android:name=".presentation.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.MantraSiddhi" />
+
+        <!-- Fires ~5 min before each solar event; logs, notifies, re-arms. -->
+        <receiver
+            android:name=".data.sandhya.SandhyaAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Handles the "Mark as done" notification action. -->
+        <receiver
+            android:name=".data.sandhya.SandhyaActionReceiver"
+            android:exported="false" />
+
+        <!-- Re-arms reminders after reboot or a clock/timezone change. -->
+        <receiver
+            android:name=".data.sandhya.SandhyaBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -283,5 +283,71 @@
     <string name="voice_model_step_4">4. Stay on Wi-Fi and wait for the download to finish.</string>
     <string name="voice_model_step_5">5. Return to Anushtanam and tap \"I\'ve installed it — Check again\".</string>
     <string name="voice_model_steps_note">Exact menu names vary by phone brand. Look for \"on-device speech recognition\", \"voice input\", or \"Speech Recognition &amp; Synthesis\".</string>
+
+    <!-- Sandhya Vandan -->
+    <string name="title_sandhya">Sandhya Vandan</string>
+    <string name="home_sandhya_title">Sandhya Vandan</string>
+    <string name="home_sandhya_subtitle">Dawn, noon &amp; dusk reminders by the sun</string>
+
+    <!-- Notification channel + content -->
+    <string name="sandhya_channel_name">Sandhya Vandan reminders</string>
+    <string name="sandhya_channel_desc">Daily prompts to perform Sandhya Vandan at sunrise, solar noon, and sunset.</string>
+    <string name="sandhya_notif_title">Time for %1$s</string>
+    <string name="sandhya_notif_text">%1$s is around %2$s. Take five minutes for your ritual.</string>
+    <string name="sandhya_mark_done">Mark as done</string>
+
+    <!-- Period names -->
+    <string name="sandhya_period_pratah">Prātaḥ Sandhya</string>
+    <string name="sandhya_period_madhyahna">Mādhyāhnika Sandhya</string>
+    <string name="sandhya_period_sayam">Sāyaṃ Sandhya</string>
+
+    <!-- Solar event labels -->
+    <string name="sandhya_event_sunrise">Sunrise</string>
+    <string name="sandhya_event_noon">Sun at zenith</string>
+    <string name="sandhya_event_sunset">Sunset</string>
+
+    <!-- Screen -->
+    <string name="sandhya_intro">Perform the three daily junctures (sandhi-kāla). Timings are computed from the sun for your region; a reminder arrives five minutes before each.</string>
+    <string name="sandhya_enable_title">Daily reminders</string>
+    <string name="sandhya_enable_desc">Notify me before sunrise, solar noon, and sunset.</string>
+    <string name="sandhya_region_label">Region</string>
+    <string name="sandhya_change">Change</string>
+    <string name="sandhya_use_location">Use my location</string>
+    <string name="sandhya_select_region_title">Select your region</string>
+    <string name="sandhya_region_current">Current location</string>
+    <string name="sandhya_today_title">Today\'s timings</string>
+    <string name="sandhya_reminder_at">Reminder %1$s</string>
+    <string name="sandhya_status_done">Done ✓</string>
+    <string name="sandhya_status_mark">Mark done</string>
+    <string name="sandhya_status_missed">Missed</string>
+    <string name="sandhya_status_upcoming">Upcoming</string>
+    <string name="sandhya_polar_none">Not applicable at this latitude today</string>
+    <string name="sandhya_approx_note">Reminders use battery-friendly timing and may arrive a few minutes off.</string>
+
+    <!-- Permissions -->
+    <string name="sandhya_notif_perm_title">Allow notifications</string>
+    <string name="sandhya_notif_perm_desc">Anushtanam needs notification access to remind you for each Sandhya. Reminders won\'t appear until it\'s allowed.</string>
+    <string name="sandhya_notif_perm_button">Allow notifications</string>
+    <string name="sandhya_location_denied">Location unavailable. Please pick your region manually.</string>
+
+    <!-- Metrics -->
+    <string name="sandhya_metrics_title">Your adherence</string>
+    <string name="sandhya_metrics_empty">Enable reminders and mark your Sandhya done to start tracking adherence.</string>
+    <string name="sandhya_adherence_label">Adherence</string>
+    <string name="sandhya_total_observed">%1$d Sandhyas observed</string>
+    <string name="sandhya_streak_full_label">Full trisandhyā streak</string>
+    <string name="sandhya_streak_any_label">Showing-up streak</string>
+    <string name="sandhya_streak_days">%1$d days</string>
+    <string name="sandhya_streak_best">Best: %1$d days</string>
+    <string name="sandhya_ontime_label">On time</string>
+    <string name="sandhya_ontime_value">%1$d%%</string>
+    <string name="sandhya_punctuality_ontime">Usually right on time</string>
+    <string name="sandhya_punctuality_early">Usually %1$d min early</string>
+    <string name="sandhya_punctuality_late">Usually %1$d min late</string>
+    <string name="sandhya_most_consistent">You keep %1$s most consistently</string>
+    <string name="sandhya_per_period_title">By juncture</string>
+    <string name="sandhya_per_period_value">%1$d / %2$d (%3$d%%)</string>
+    <string name="sandhya_trend_title">Last 7 days</string>
+    <string name="sandhya_percent">%1$d%%</string>
 </resources>
 

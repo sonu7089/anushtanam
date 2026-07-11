@@ -16,5 +16,6 @@ sealed class Screen(val route: String, val labelResId: Int = 0) {
     data object Progress : Screen("progress", R.string.title_progress)
     data object Targets : Screen("targets", R.string.title_targets)
     data object ChildProgress : Screen("child_progress", R.string.title_child_progress)
+    data object Sandhya : Screen("sandhya", R.string.title_sandhya)
     data object Settings : Screen("settings", R.string.title_settings)
 }

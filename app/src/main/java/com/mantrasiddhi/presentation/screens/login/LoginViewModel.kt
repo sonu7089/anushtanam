@@ -8,6 +8,7 @@ package com.mantrasiddhi.presentation.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.data.preferences.SandhyaPreferences
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.GetProfilesUseCase
 import com.mantrasiddhi.domain.usecase.SelectProfileUseCase
@@ -25,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val getProfilesUseCase: GetProfilesUseCase,
-    private val selectProfileUseCase: SelectProfileUseCase
+    private val selectProfileUseCase: SelectProfileUseCase,
+    private val sandhyaPreferences: SandhyaPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Loading)
@@ -54,6 +56,9 @@ class LoginViewModel @Inject constructor(
     fun selectProfile(user: UserProfile) {
         viewModelScope.launch {
             selectProfileUseCase(user)
+            // Attribute Sandhya reminders/logs to this profile up front, so background
+            // alarms record correctly even before the Sandhya screen is opened.
+            sandhyaPreferences.setUserId(user.id)
             _uiEvent.emit(LoginEvent.NavigateToHome)
         }
     }
