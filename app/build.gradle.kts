@@ -19,13 +19,13 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.mantrasiddhi"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "shastralife.anushtanam"
         minSdk = 33
-        targetSdk = 34
-        versionCode = 2
+        targetSdk = 35
+        versionCode = 3
         versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -72,6 +72,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Ship native debug symbols inside the bundle so Play can symbolicate
+            // crash/ANR stack traces from any bundled .so libraries.
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
 
