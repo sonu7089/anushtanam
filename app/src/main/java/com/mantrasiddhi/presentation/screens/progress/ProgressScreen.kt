@@ -60,9 +60,7 @@ import com.mantrasiddhi.presentation.components.SkeletonSessionItem
 import com.mantrasiddhi.presentation.screens.progress.components.AccuracyLineChart
 import com.mantrasiddhi.presentation.screens.progress.components.AxisTrendChart
 import com.mantrasiddhi.presentation.screens.progress.components.DailyBarChart
-import com.mantrasiddhi.presentation.screens.progress.components.FocusDrillCard
 import com.mantrasiddhi.presentation.screens.progress.components.SessionHistoryList
-import com.mantrasiddhi.presentation.screens.progress.components.WordMasteryGrid
 
 /**
  * Main Progress and Analytics Screen.
@@ -155,7 +153,6 @@ private fun ProgressContent(state: ProgressUiState.Success) {
         R.string.progress_tab_overview,
         R.string.progress_tab_daily_chart,
         R.string.progress_tab_accuracy,
-        R.string.progress_tab_word_mastery,
         R.string.progress_tab_history
     )
 
@@ -191,8 +188,7 @@ private fun ProgressContent(state: ProgressUiState.Success) {
                 0 -> OverviewTab(state = state)
                 1 -> DailyChartTab(state = state)
                 2 -> AccuracyTab(state = state)
-                3 -> WordMasteryTab(state = state)
-                4 -> HistoryTab(state = state)
+                3 -> HistoryTab(state = state)
             }
         }
     }
@@ -253,29 +249,9 @@ private fun OverviewTab(state: ProgressUiState.Success) {
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Recent session preview
-        Text(
-            text = stringResource(R.string.progress_recent_sessions),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        SessionHistoryList(
-            sessions = state.sessions.take(3),
-            modifier = Modifier.fillMaxWidth(),
-            isScrollable = false
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Focused, spaced-repetition practice plan (Phase 4.4).
-        FocusDrillCard(plan = state.practicePlan)
-
         Spacer(modifier = Modifier.height(16.dp))
+        // The recent-sessions preview was removed from Overview; the full list still
+        // lives in the History tab.
     }
 }
 
@@ -354,41 +330,6 @@ private fun AccuracyTab(state: ProgressUiState.Success) {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun WordMasteryTab(state: ProgressUiState.Success) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            text = stringResource(R.string.progress_word_mastery_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Text(
-            text = stringResource(R.string.progress_word_mastery_description),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                WordMasteryGrid(wordMasteryList = state.wordMastery)
-            }
-        }
-        
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

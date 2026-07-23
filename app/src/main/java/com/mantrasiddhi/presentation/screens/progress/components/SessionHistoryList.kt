@@ -71,7 +71,7 @@ fun SessionHistoryList(
             modifier = modifier.fillMaxWidth(),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            items(sessions) { session ->
+            items(sessions, key = { it.id }) { session ->
                 SessionHistoryItem(session = session)
             }
         }

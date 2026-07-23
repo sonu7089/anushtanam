@@ -54,7 +54,13 @@ class VoiceModelViewModel @Inject constructor(
     private val voiceModelManager: VoiceModelManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<VoiceModelUiState>(VoiceModelUiState.Checking)
+    // Once the model has been seen READY, later gate instances start directly in Ready
+    // (re-verifying silently) instead of flashing a full-screen spinner. This removed a
+    // visible "blink" on every switch to the Practice/Recitation tabs, whose ViewModels
+    // are recreated per navigation.
+    private val _uiState = MutableStateFlow<VoiceModelUiState>(
+        if (lastKnownReady) VoiceModelUiState.Ready else VoiceModelUiState.Checking
+    )
     val uiState: StateFlow<VoiceModelUiState> = _uiState.asStateFlow()
 
     init {
@@ -63,15 +69,18 @@ class VoiceModelViewModel @Inject constructor(
 
     /**
      * Re-queries model availability. Safe to call on every screen resume; an active
-     * download indicator is preserved rather than reset to a loading spinner.
+     * download indicator is preserved rather than reset to a loading spinner, and a
+     * previously-Ready gate is never demoted to the Checking spinner — it only changes
+     * if the model has actually gone missing.
      */
     fun refresh() {
         viewModelScope.launch {
             val activeDownload = currentDownload() as? DownloadUiState.InProgress
-            if (activeDownload == null) {
+            if (activeDownload == null && _uiState.value !is VoiceModelUiState.Ready) {
                 _uiState.value = VoiceModelUiState.Checking
             }
             val status = voiceModelManager.checkStatus()
+            lastKnownReady = status.state == VoiceModelState.READY
             _uiState.value = when {
                 status.state == VoiceModelState.READY -> VoiceModelUiState.Ready
                 else -> VoiceModelUiState.NeedsModel(
@@ -105,5 +114,14 @@ class VoiceModelViewModel @Inject constructor(
         val state = (_uiState.value as? VoiceModelUiState.NeedsModel)?.state
             ?: VoiceModelState.NOT_INSTALLED
         _uiState.value = VoiceModelUiState.NeedsModel(state, download)
+    }
+
+    private companion object {
+        /**
+         * Process-wide memo of the last resolved availability. Purely a UX hint for the
+         * gate's initial frame; every instance still re-verifies via [refresh].
+         */
+        @Volatile
+        var lastKnownReady = false
     }
 }

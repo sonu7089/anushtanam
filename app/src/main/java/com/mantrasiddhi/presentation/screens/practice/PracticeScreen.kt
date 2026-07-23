@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,12 +44,10 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.R
-import com.mantrasiddhi.domain.evaluation.WordResult
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
 import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.screens.practice.components.AudioPlayerBar
-import com.mantrasiddhi.presentation.screens.practice.components.FeedbackBottomSheet
 import com.mantrasiddhi.presentation.screens.practice.components.MantraDisplay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.practice.components.WordFeedbackGrid
@@ -70,11 +67,6 @@ fun PracticeScreen(
     val activeBenchmarkWordIndex by viewModel.activeBenchmarkWordIndex.collectAsState()
     val hasSelfAudio by viewModel.hasSelfAudio.collectAsState()
 
-    val sheetState = rememberModalBottomSheetState()
-    var selectedWordResult by remember { mutableStateOf<WordResult?>(null) }
-    var selectedWordIndex by remember { mutableStateOf<Int?>(null) }
-    var showBottomSheet by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
     var requestMicPermission by remember { mutableStateOf(false) }
 
@@ -93,32 +85,6 @@ fun PracticeScreen(
                 LaunchedEffect(Unit) {
                     onRequestPermission()
                 }
-            }
-        )
-    }
-
-    if (showBottomSheet && selectedWordResult != null) {
-        FeedbackBottomSheet(
-            wordResult = selectedWordResult,
-            onDismissRequest = {
-                showBottomSheet = false
-                selectedWordResult = null
-                selectedWordIndex = null
-            },
-            sheetState = sheetState,
-            onReplayClick = {
-                selectedWordIndex?.let { index ->
-                    viewModel.playReferenceWord(index)
-                }
-            },
-            onPlaySelfClick = if (hasSelfAudio) {
-                {
-                    selectedWordIndex?.let { index ->
-                        viewModel.playSelfWord(index)
-                    }
-                }
-            } else {
-                null
             }
         )
     }
@@ -242,15 +208,9 @@ fun PracticeScreen(
                 }
                 
                 is PracticeUiState.ShowingResults -> {
-                    // Phase 5.4: clearly communicate a degraded/partial assessment
-                    // instead of presenting an unreliable score as if it were solid.
-                    if (state.evaluation.lowConfidence) {
-                        DegradationNotice(
-                            text = stringResource(R.string.practice_unclear_audio_banner),
-                            container = MaterialTheme.colorScheme.errorContainer,
-                            content = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    } else if (hasSelfAudio && !state.evaluation.acousticAssessed) {
+                    // Note: the "we couldn't hear you clearly" unclear-audio banner was
+                    // intentionally removed. The pronunciation-not-assessed notice remains.
+                    if (hasSelfAudio && !state.evaluation.acousticAssessed) {
                         DegradationNotice(
                             text = stringResource(R.string.practice_pronunciation_not_assessed),
                             container = MaterialTheme.colorScheme.secondaryContainer,
@@ -331,10 +291,8 @@ fun PracticeScreen(
 
                     WordFeedbackGrid(
                         wordResults = state.evaluation.wordResults,
-                        onWordClick = { result, index ->
-                            selectedWordResult = result
-                            selectedWordIndex = index
-                            showBottomSheet = true
+                        onWordClick = { _, index ->
+                            // Tap a word to hear its correct pronunciation (no popup).
                             viewModel.playReferenceWord(index)
                         }
                     )

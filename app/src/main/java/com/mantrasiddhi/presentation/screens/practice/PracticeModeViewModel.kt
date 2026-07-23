@@ -330,9 +330,8 @@ class PracticeModeViewModel @Inject constructor(
                     confidence = confidence,
                     audio = audio
                 )
-                if (evaluation.isCorrect) {
-                    soundEffectsPlayer.playCorrectSound()
-                }
+                // Practice mode intentionally gives no per-attempt audio feedback;
+                // learners get on-screen results instead. Button haptics remain.
                 _uiState.value = PracticeUiState.ShowingResults(evaluation)
             } catch (e: Exception) {
                 _uiState.value = PracticeUiState.Error(e.message ?: "Failed to evaluate recitation")

@@ -16,13 +16,9 @@ import com.mantrasiddhi.domain.usecase.GetAccuracyTrendUseCase
 import com.mantrasiddhi.domain.usecase.GetAxisTrendsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.GetDailyRecitationCountsUseCase
-import com.mantrasiddhi.domain.usecase.GetPracticePlanUseCase
 import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
-import com.mantrasiddhi.domain.usecase.GetWordMasteryUseCase
-import com.mantrasiddhi.domain.usecase.PracticePlan
 import com.mantrasiddhi.domain.usecase.RecitationOverviewStats
-import com.mantrasiddhi.domain.usecase.WordMastery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,10 +38,8 @@ sealed interface ProgressUiState {
         val overviewStats: RecitationOverviewStats,
         val dailyCounts: List<DailyCount>,
         val accuracyTrend: List<DailyAccuracy>,
-        val wordMastery: List<WordMastery>,
         val sessions: List<RecitationSession>,
-        val axisTrends: List<DailyAxisScores>,
-        val practicePlan: PracticePlan
+        val axisTrends: List<DailyAxisScores>
     ) : ProgressUiState
     data class Error(val message: String) : ProgressUiState
 }
@@ -59,10 +53,8 @@ class ProgressViewModel @Inject constructor(
     private val getRecitationStatsUseCase: GetRecitationStatsUseCase,
     private val getDailyRecitationCountsUseCase: GetDailyRecitationCountsUseCase,
     private val getAccuracyTrendUseCase: GetAccuracyTrendUseCase,
-    private val getWordMasteryUseCase: GetWordMasteryUseCase,
     private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
-    private val getAxisTrendsUseCase: GetAxisTrendsUseCase,
-    private val getPracticePlanUseCase: GetPracticePlanUseCase
+    private val getAxisTrendsUseCase: GetAxisTrendsUseCase
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -79,10 +71,8 @@ class ProgressViewModel @Inject constructor(
                         overviewStats = core.stats,
                         dailyCounts = core.dailyCounts,
                         accuracyTrend = core.accuracyTrend,
-                        wordMastery = trends.wordMastery,
                         sessions = trends.sessions,
-                        axisTrends = trends.axisTrends,
-                        practicePlan = trends.practicePlan
+                        axisTrends = trends.axisTrends
                     )
                 }
             }
@@ -100,10 +90,8 @@ class ProgressViewModel @Inject constructor(
     )
 
     private data class TrendStats(
-        val wordMastery: List<WordMastery>,
         val sessions: List<RecitationSession>,
-        val axisTrends: List<DailyAxisScores>,
-        val practicePlan: PracticePlan
+        val axisTrends: List<DailyAxisScores>
     )
 
     private fun combineCore(userId: Long) = combine(
@@ -113,9 +101,7 @@ class ProgressViewModel @Inject constructor(
     ) { stats, daily, accuracy -> CoreStats(stats, daily, accuracy) }
 
     private fun combineTrends(userId: Long) = combine(
-        getWordMasteryUseCase(userId),
         getSessionsForUserUseCase(userId),
-        getAxisTrendsUseCase(userId),
-        getPracticePlanUseCase(userId)
-    ) { mastery, sessions, axisTrends, plan -> TrendStats(mastery, sessions, axisTrends, plan) }
+        getAxisTrendsUseCase(userId)
+    ) { sessions, axisTrends -> TrendStats(sessions, axisTrends) }
 }

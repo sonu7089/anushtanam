@@ -6,12 +6,11 @@
  */
 package com.mantrasiddhi.presentation.screens.settings
 
-import com.mantrasiddhi.data.local.DemoDataSeeder
 import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
-import com.mantrasiddhi.domain.repository.SessionRepository
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
+import com.mantrasiddhi.domain.usecase.SignOutUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -39,9 +38,8 @@ class SettingsViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
-    private lateinit var sessionRepository: SessionRepository
     private lateinit var preferencesDataStore: UserPreferencesDataStore
-    private lateinit var demoDataSeeder: DemoDataSeeder
+    private lateinit var signOutUseCase: SignOutUseCase
     private lateinit var viewModel: SettingsViewModel
 
     private val testUser = UserProfile(
@@ -56,14 +54,12 @@ class SettingsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         getCurrentUserUseCase = mockk()
-        sessionRepository = mockk(relaxed = true)
         preferencesDataStore = mockk(relaxed = true)
-        demoDataSeeder = mockk(relaxed = true)
+        signOutUseCase = mockk(relaxed = true)
 
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         every { preferencesDataStore.themeModeFlow } returns flowOf("SYSTEM")
         every { preferencesDataStore.languageDisplayFlow } returns flowOf("BOTH")
-        every { preferencesDataStore.recitationSensitivityFlow } returns flowOf(0.85)
     }
 
 
@@ -75,9 +71,8 @@ class SettingsViewModelTest {
     private fun createViewModel() {
         viewModel = SettingsViewModel(
             getCurrentUserUseCase,
-            sessionRepository,
             preferencesDataStore,
-            demoDataSeeder
+            signOutUseCase
         )
     }
 
@@ -86,7 +81,6 @@ class SettingsViewModelTest {
         createViewModel()
         assertEquals("SYSTEM", viewModel.themeMode.value)
         assertEquals("BOTH", viewModel.languageDisplay.value)
-        assertEquals(0.85, viewModel.sensitivityThreshold.value)
     }
 
     @Test
@@ -104,13 +98,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `should_callSetRecitationSensitivity_when_setSensitivityThresholdCalled`() = runTest(testDispatcher) {
-        createViewModel()
-        viewModel.setSensitivityThreshold(0.90)
-        coVerify { preferencesDataStore.setRecitationSensitivity(0.90) }
-    }
-
-    @Test
     fun `should_logoutAndEmitLoggedOutEvent_when_logoutCalled`() = runTest(testDispatcher) {
         createViewModel()
         val events = mutableListOf<SettingsEvent>()
@@ -120,26 +107,9 @@ class SettingsViewModelTest {
 
         viewModel.logout()
 
-        coVerify { sessionRepository.logout() }
+        coVerify { signOutUseCase() }
         assertEquals(1, events.size)
         assertTrue(events[0] is SettingsEvent.ProfileLoggedOut)
-        job.cancel()
-    }
-
-    @Test
-    fun `should_seedDataAndLogoutAndEmitResetEvent_when_resetDemoDataCalled`() = runTest(testDispatcher) {
-        createViewModel()
-        val events = mutableListOf<SettingsEvent>()
-        val job = launch {
-            viewModel.events.collect { events.add(it) }
-        }
-
-        viewModel.resetDemoData()
-
-        coVerify { demoDataSeeder.seed() }
-        coVerify { sessionRepository.logout() }
-        assertEquals(1, events.size)
-        assertTrue(events[0] is SettingsEvent.DemoDataReset)
         job.cancel()
     }
 

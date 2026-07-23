@@ -8,11 +8,10 @@ package com.mantrasiddhi.presentation.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mantrasiddhi.data.local.DemoDataSeeder
 import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
 import com.mantrasiddhi.domain.model.UserProfile
-import com.mantrasiddhi.domain.repository.SessionRepository
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
+import com.mantrasiddhi.domain.usecase.SignOutUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,7 +23,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class SettingsEvent {
-    data object DemoDataReset : SettingsEvent()
     data object ProfileLoggedOut : SettingsEvent()
     data class Error(val message: String) : SettingsEvent()
 }
@@ -35,9 +33,8 @@ sealed class SettingsEvent {
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val sessionRepository: SessionRepository,
     private val preferencesDataStore: UserPreferencesDataStore,
-    private val demoDataSeeder: DemoDataSeeder
+    private val signOutUseCase: SignOutUseCase
 ) : ViewModel() {
 
     val currentUser: StateFlow<UserProfile?> = getCurrentUserUseCase()
@@ -47,13 +44,6 @@ class SettingsViewModel @Inject constructor(
 
     val languageDisplay: StateFlow<String> = preferencesDataStore.languageDisplayFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "BOTH")
-
-    val sensitivityThreshold: StateFlow<Double> = preferencesDataStore.recitationSensitivityFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_SENSITIVITY)
-
-    /** Whether the opt-in Advanced/Vedic (swara/pitch) mode is enabled (§5.5). */
-    val advancedVedicMode: StateFlow<Boolean> = preferencesDataStore.advancedVedicModeFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
@@ -70,42 +60,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setSensitivityThreshold(threshold: Double) {
-        viewModelScope.launch {
-            preferencesDataStore.setRecitationSensitivity(threshold)
-        }
-    }
-
-    fun setAdvancedVedicMode(enabled: Boolean) {
-        viewModelScope.launch {
-            preferencesDataStore.setAdvancedVedicMode(enabled)
-        }
-    }
-
     fun logout() {
         viewModelScope.launch {
-            sessionRepository.logout()
+            // Sign out of the Firebase cloud session and clear the local session.
+            signOutUseCase()
             _events.emit(SettingsEvent.ProfileLoggedOut)
         }
-    }
-
-    fun resetDemoData() {
-        viewModelScope.launch {
-            try {
-                // Seed mock history data
-                demoDataSeeder.seed()
-                // Clear the active session and log out the user so they can select a re-seeded profile
-                sessionRepository.logout()
-                _events.emit(SettingsEvent.DemoDataReset)
-            } catch (e: Exception) {
-                _events.emit(SettingsEvent.Error(e.message ?: "Failed to reset demo data"))
-            }
-        }
-    }
-
-    private companion object {
-        /** Initial sensitivity shown while the stored preference loads. */
-        const val DEFAULT_SENSITIVITY: Double = 0.85
     }
 }
 

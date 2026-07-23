@@ -151,7 +151,14 @@ class BenchmarkAudioPlayer @Inject constructor(
         playRange(timestamp.startMs, timestamp.endMs)
     }
 
-    /** Seeks to [startMs] and plays until [endMs], lazily creating the player. */
+    /**
+     * Seeks to [startMs] and plays until [endMs], lazily creating the player.
+     *
+     * The seek target is clamped into the player's valid range and the segment end
+     * is clamped to the media duration, so tapping the final word (whose `endMs` may
+     * run past the end of the recording) can never seek out of bounds. All player
+     * calls are wrapped so a bad seek/start can never crash the app.
+     */
     private fun playRange(startMs: Long, endMs: Long) {
         if (mediaPlayer == null) {
             try {
@@ -167,11 +174,25 @@ class BenchmarkAudioPlayer @Inject constructor(
                 // Graceful fallback
             }
         }
-        segmentEndMs = endMs
-        mediaPlayer?.seekTo(startMs.toInt())
-        mediaPlayer?.start()
-        _isPlaying.value = true
-        startProgressTracker()
+        val player = mediaPlayer ?: return
+        try {
+            val duration = player.duration
+            // Clamp the seek target to [0, duration-1]; MediaPlayer.duration can be
+            // -1 for an unprepared/mock player, in which case we fall back to 0.
+            val maxSeek = if (duration > 0) (duration - 1).toLong() else 0L
+            val safeStart = startMs.coerceIn(0L, maxSeek)
+            // Clamp the segment end to the media duration and guard against an end
+            // at/behind the (clamped) start.
+            val safeEnd = if (duration > 0) endMs.coerceAtMost(duration.toLong()) else endMs
+            segmentEndMs = if (safeEnd > safeStart) safeEnd else null
+            player.seekTo(safeStart.toInt())
+            player.start()
+            _isPlaying.value = true
+            startProgressTracker()
+        } catch (e: Exception) {
+            // A bad seek/start must never crash the app.
+            segmentEndMs = null
+        }
     }
 
     /**
