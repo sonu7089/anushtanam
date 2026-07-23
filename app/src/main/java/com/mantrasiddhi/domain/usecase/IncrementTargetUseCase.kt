@@ -8,6 +8,7 @@ package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.repository.TargetRepository
+import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import javax.inject.Inject
 
 /**
@@ -15,9 +16,12 @@ import javax.inject.Inject
  *
  * If the target count is reached, it marks the target as completed. The reward
  * is simply considered earned at that point — there is no money ledger to update.
+ * Progress is mirrored to the cloud self-target doc (best-effort, server-side
+ * increment) so a mid-target reinstall resumes at the right count.
  */
 class IncrementTargetUseCase @Inject constructor(
-    private val targetRepository: TargetRepository
+    private val targetRepository: TargetRepository,
+    private val targetSyncRepository: TargetSyncRepository
 ) {
 
     /**
@@ -35,6 +39,7 @@ class IncrementTargetUseCase @Inject constructor(
             isCompleted = isCompleted
         )
         targetRepository.update(updatedTarget)
+        runCatching { targetSyncRepository.mirrorIncrement(userId, isCompleted) }
         return updatedTarget
     }
 }

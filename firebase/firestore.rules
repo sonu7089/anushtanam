@@ -113,6 +113,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // --- selfTargets/{uid} -----------------------------------------------------
+    // One doc mirroring the user's ACTIVE self-set recitation target so it can be
+    // restored after a reinstall / device switch. Strictly private: only the owner
+    // may read or write (parent visibility goes through the goals system instead).
+    match /selfTargets/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
     // --- progress/{uid} --------------------------------------------------------
     // Compact per-user progress summary (headline stats + rolling daily map) so the
     // Progress tab survives reinstall / device switch. Detailed session history

@@ -9,6 +9,7 @@ package com.mantrasiddhi.domain.usecase
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.repository.TargetRepository
+import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -23,12 +24,16 @@ import org.junit.jupiter.api.Test
 class IncrementTargetUseCaseTest {
 
     private lateinit var targetRepository: TargetRepository
+    private lateinit var targetSyncRepository: TargetSyncRepository
     private lateinit var incrementTargetUseCase: IncrementTargetUseCase
 
     @BeforeEach
     fun setUp() {
         targetRepository = mockk(relaxed = true)
-        incrementTargetUseCase = IncrementTargetUseCase(targetRepository)
+        // Relaxed MockK cannot synthesize kotlin.Result returns; stub explicitly.
+        targetSyncRepository = mockk(relaxed = true)
+        coEvery { targetSyncRepository.mirrorIncrement(any(), any()) } returns Result.success(Unit)
+        incrementTargetUseCase = IncrementTargetUseCase(targetRepository, targetSyncRepository)
     }
 
     @Test

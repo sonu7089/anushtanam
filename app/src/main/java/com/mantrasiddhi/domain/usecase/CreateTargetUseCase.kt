@@ -8,6 +8,7 @@ package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.repository.TargetRepository
+import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import javax.inject.Inject
 
 /**
@@ -16,9 +17,12 @@ import javax.inject.Inject
  * Validates that the user has no active target, then creates the target. The
  * reward (if any) is descriptive only — there is no money ledger, so nothing is
  * locked; the parent is assumed to honour the promised reward on completion.
+ * The signed-in user's own target is mirrored to the cloud (best-effort) so it
+ * survives reinstall / device switch.
  */
 class CreateTargetUseCase @Inject constructor(
-    private val targetRepository: TargetRepository
+    private val targetRepository: TargetRepository,
+    private val targetSyncRepository: TargetSyncRepository
 ) {
     suspend operator fun invoke(target: Target): Result<Long> {
         val activeTarget = targetRepository.getActiveForUser(target.userId)
@@ -27,6 +31,7 @@ class CreateTargetUseCase @Inject constructor(
         }
 
         val id = targetRepository.create(target)
+        runCatching { targetSyncRepository.mirrorCreate(target.userId, target) }
         return Result.success(id)
     }
 }

@@ -17,6 +17,8 @@ object FirebaseContract {
     const val COLLECTION_CHILD_CODES = "childCodes"
     const val COLLECTION_LINKS = "links"
     const val COLLECTION_GOALS = "goals"
+    /** One doc per uid mirroring the user's active SELF-target (restore on reinstall). */
+    const val COLLECTION_SELF_TARGETS = "selfTargets"
     const val COLLECTION_PROGRESS = "progress"
 
     // users/{uid}

@@ -13,6 +13,8 @@ import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.repository.SessionRepository
+import com.mantrasiddhi.domain.repository.TargetRepository
+import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import com.mantrasiddhi.domain.repository.UserRepository
 import javax.inject.Inject
 
@@ -31,7 +33,9 @@ class SyncSignedInUserUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
-    private val sandhyaPreferences: SandhyaPreferences
+    private val sandhyaPreferences: SandhyaPreferences,
+    private val targetRepository: TargetRepository,
+    private val targetSyncRepository: TargetSyncRepository
 ) {
     suspend operator fun invoke(account: AuthAccount): Long {
         val profileType = when (account.role) {
@@ -70,6 +74,20 @@ class SyncSignedInUserUseCase @Inject constructor(
             ?: UserProfile(id = localId, name = name, profileType = profileType, parentId = null, avatarIndex = 0)
         sessionRepository.login(profile)
         sandhyaPreferences.setUserId(localId)
+
+        // Restore the mirrored active self-target after a reinstall / new device:
+        // only when Room has no active target (never clobber local state), and
+        // best-effort — an offline login simply skips the restore.
+        runCatching {
+            if (targetRepository.getActiveForUser(localId) == null) {
+                targetSyncRepository.fetchActive()?.let { mirrored ->
+                    targetRepository.create(
+                        mirrored.copy(userId = localId, setByUserId = localId)
+                    )
+                }
+            }
+        }
+
         return localId
     }
 }
