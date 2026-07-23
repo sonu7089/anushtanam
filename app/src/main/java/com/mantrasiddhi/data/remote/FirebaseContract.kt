@@ -17,6 +17,7 @@ object FirebaseContract {
     const val COLLECTION_CHILD_CODES = "childCodes"
     const val COLLECTION_LINKS = "links"
     const val COLLECTION_GOALS = "goals"
+    const val COLLECTION_PROGRESS = "progress"
 
     // users/{uid}
     const val FIELD_ROLE = "role"
@@ -42,6 +43,17 @@ object FirebaseContract {
     const val FIELD_TARGET_COUNT = "targetRecitationCount"
     const val FIELD_CURRENT_COUNT = "currentRecitationCount"
     const val FIELD_IS_COMPLETED = "isCompleted"
+
+    // progress/{uid} — compact per-user progress summary (see ProgressSummary).
+    const val FIELD_TOTAL_SESSIONS = "totalSessions"
+    const val FIELD_CORRECT_SESSIONS = "correctSessions"
+    const val FIELD_SCORE_SUM = "scoreSum"
+    const val FIELD_BEST_SCORE = "bestScore"
+    const val FIELD_DAILY = "daily"
+    // daily.{yyyy-MM-dd} entry keys (short on purpose — the map dominates doc size).
+    const val FIELD_DAY_SESSIONS = "n"
+    const val FIELD_DAY_CORRECT = "c"
+    const val FIELD_DAY_SCORE_SUM = "s"
 
     /** Synthetic email domain for child accounts (no real mailbox). */
     const val CHILD_EMAIL_DOMAIN = "@child.anushtanam.app"

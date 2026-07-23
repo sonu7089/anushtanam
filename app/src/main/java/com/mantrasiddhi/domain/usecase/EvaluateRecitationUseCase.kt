@@ -20,6 +20,7 @@ import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
+import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -35,7 +36,8 @@ class EvaluateRecitationUseCase @Inject constructor(
     private val acousticAnalyzer: AcousticAnalyzer,
     private val determineLearnerLevelUseCase: DetermineLearnerLevelUseCase,
     private val evaluationDiagnostics: EvaluationDiagnostics,
-    private val swaraAnalyzer: SwaraAnalyzer
+    private val swaraAnalyzer: SwaraAnalyzer,
+    private val progressSyncRepository: ProgressSyncRepository
 ) {
 
     /**
@@ -79,6 +81,15 @@ class EvaluateRecitationUseCase @Inject constructor(
         val swara = analyzeSwara(audio, config)
         val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
         saveSession(userId, mode, transcription, recitationTimeMs, assessment)
+        // Mirror the session into the cloud progress summary (all sessions, both
+        // modes). Best-effort: a sync failure must never affect the evaluation.
+        runCatching {
+            progressSyncRepository.recordSession(
+                localUserId = userId,
+                overallScore = assessment.overall.score.toDouble(),
+                isCorrect = evaluation.isCorrect
+            )
+        }
         recordDiagnostics(transcription, assessment, acoustic, audio)
 
         if (mode == RecitationMode.NORMAL && evaluation.isCorrect) {

@@ -8,7 +8,9 @@ package com.mantrasiddhi.presentation.screens.progress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.domain.model.ProgressSummary
 import com.mantrasiddhi.domain.model.RecitationSession
+import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.usecase.DailyAccuracy
 import com.mantrasiddhi.domain.usecase.DailyAxisScores
 import com.mantrasiddhi.domain.usecase.DailyCount
@@ -27,6 +29,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -46,6 +53,11 @@ sealed interface ProgressUiState {
 
 /**
  * ViewModel to manage analytics and progress stats.
+ *
+ * Overview stats and the daily/accuracy charts prefer the cloud [ProgressSummary]
+ * (so they survive reinstall / device switch) and fall back to the local Room
+ * aggregates when no cloud summary exists. Session history and axis-trends are
+ * device-local by design and always come from Room.
  */
 @HiltViewModel
 class ProgressViewModel @Inject constructor(
@@ -54,7 +66,8 @@ class ProgressViewModel @Inject constructor(
     private val getDailyRecitationCountsUseCase: GetDailyRecitationCountsUseCase,
     private val getAccuracyTrendUseCase: GetAccuracyTrendUseCase,
     private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
-    private val getAxisTrendsUseCase: GetAxisTrendsUseCase
+    private val getAxisTrendsUseCase: GetAxisTrendsUseCase,
+    private val progressSyncRepository: ProgressSyncRepository
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -97,11 +110,56 @@ class ProgressViewModel @Inject constructor(
     private fun combineCore(userId: Long) = combine(
         getRecitationStatsUseCase(userId),
         getDailyRecitationCountsUseCase(userId),
-        getAccuracyTrendUseCase(userId)
-    ) { stats, daily, accuracy -> CoreStats(stats, daily, accuracy) }
+        getAccuracyTrendUseCase(userId),
+        progressSyncRepository.summaryFlow()
+    ) { stats, daily, accuracy, summary ->
+        if (summary == null) {
+            // No cloud summary (signed out / doc not created yet): local values as-is.
+            CoreStats(stats, daily, accuracy)
+        } else {
+            val todayKey = LocalDate.now().toString()
+            CoreStats(
+                stats = summary.toOverviewStats(todayKey),
+                dailyCounts = summary.toDailyCounts(todayKey),
+                accuracyTrend = summary.toAccuracyTrend(todayKey)
+            )
+        }
+    }
 
     private fun combineTrends(userId: Long) = combine(
         getSessionsForUserUseCase(userId),
         getAxisTrendsUseCase(userId)
     ) { sessions, axisTrends -> TrendStats(sessions, axisTrends) }
+
+    private fun ProgressSummary.toOverviewStats(todayKey: String) = RecitationOverviewStats(
+        totalSessions = totalSessions.toInt(),
+        totalCorrectRecitations = correctSessions.toInt(),
+        averageAccuracy = averageAccuracy,
+        currentStreak = currentStreak(todayKey),
+        bestSessionScore = bestScore
+    )
+
+    private fun ProgressSummary.toDailyCounts(todayKey: String): List<DailyCount> =
+        dailyCounts(CHART_WINDOW_DAYS, todayKey).map { (dateKey, count) ->
+            val millis = dateKeyToMillis(dateKey)
+            DailyCount(dayLabel = dayLabel(millis), dateMillis = millis, count = count)
+        }
+
+    private fun ProgressSummary.toAccuracyTrend(todayKey: String): List<DailyAccuracy> =
+        accuracyTrend(CHART_WINDOW_DAYS, todayKey).map { (dateKey, average) ->
+            val millis = dateKeyToMillis(dateKey)
+            DailyAccuracy(dayLabel = dayLabel(millis), dateMillis = millis, averageScore = average)
+        }
+
+    private fun dateKeyToMillis(dateKey: String): Long =
+        LocalDate.parse(dateKey).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    /** Same weekday label the local 7-day aggregates use ("EEE"). */
+    private fun dayLabel(dateMillis: Long): String =
+        SimpleDateFormat("EEE", Locale.getDefault()).format(Date(dateMillis))
+
+    private companion object {
+        /** The charts show the last 7 days, matching the local use-case defaults. */
+        const val CHART_WINDOW_DAYS = 7
+    }
 }

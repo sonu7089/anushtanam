@@ -16,9 +16,11 @@ import com.google.firebase.messaging.ktx.messaging
 import com.mantrasiddhi.data.remote.FirebaseAuthRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreGoalRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreLinkRepositoryImpl
+import com.mantrasiddhi.data.remote.FirestoreProgressRepositoryImpl
 import com.mantrasiddhi.domain.repository.AuthRepository
 import com.mantrasiddhi.domain.repository.GoalRepository
 import com.mantrasiddhi.domain.repository.LinkRepository
+import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -61,4 +63,8 @@ abstract class FirebaseBindsModule {
     @Binds
     @Singleton
     abstract fun bindGoalRepository(impl: FirestoreGoalRepositoryImpl): GoalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProgressSyncRepository(impl: FirestoreProgressRepositoryImpl): ProgressSyncRepository
 }

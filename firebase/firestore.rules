@@ -1,8 +1,9 @@
 rules_version = '2';
 
 // Anushtanam (shastralife.anushtanam) — Firestore security rules for the Phase B
-// cloud backend. The client only stores operational data here; heavy recitation
-// analytics stay on-device in Room and are never synced.
+// cloud backend. The client only stores operational data here plus a compact
+// per-user progress summary; heavy recitation analytics (full session history)
+// stay on-device in Room and are never synced.
 //
 // Identity model:
 //   - Parent: real Firebase email + password.
@@ -110,6 +111,20 @@ service cloud.firestore {
         request.resource.data.targetRecitationCount == resource.data.targetRecitationCount;
 
       allow delete: if false;
+    }
+
+    // --- progress/{uid} --------------------------------------------------------
+    // Compact per-user progress summary (headline stats + rolling daily map) so the
+    // Progress tab survives reinstall / device switch. Detailed session history
+    // stays on-device in Room and is never synced.
+    // Read:  the user themself, or a parent with an APPROVED link to this child.
+    // Write: only the user themself.
+    match /progress/{uid} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid ||
+        isApprovedLink(request.auth.uid, uid)
+      );
+      allow write: if isSignedIn() && request.auth.uid == uid;
     }
   }
 }

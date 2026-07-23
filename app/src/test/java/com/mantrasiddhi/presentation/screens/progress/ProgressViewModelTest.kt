@@ -6,8 +6,11 @@
  */
 package com.mantrasiddhi.presentation.screens.progress
 
+import com.mantrasiddhi.domain.model.DayAggregate
 import com.mantrasiddhi.domain.model.ProfileType
+import com.mantrasiddhi.domain.model.ProgressSummary
 import com.mantrasiddhi.domain.model.UserProfile
+import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.usecase.GetAccuracyTrendUseCase
 import com.mantrasiddhi.domain.usecase.GetAxisTrendsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
@@ -16,6 +19,7 @@ import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
 import com.mantrasiddhi.domain.usecase.RecitationOverviewStats
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +49,7 @@ class ProgressViewModelTest {
     private lateinit var getAccuracyTrendUseCase: GetAccuracyTrendUseCase
     private lateinit var getSessionsForUserUseCase: GetSessionsForUserUseCase
     private lateinit var getAxisTrendsUseCase: GetAxisTrendsUseCase
+    private lateinit var progressSyncRepository: ProgressSyncRepository
 
     private lateinit var viewModel: ProgressViewModel
 
@@ -65,6 +70,9 @@ class ProgressViewModelTest {
         getAccuracyTrendUseCase = mockk()
         getSessionsForUserUseCase = mockk()
         getAxisTrendsUseCase = mockk()
+        progressSyncRepository = mockk()
+        // Default: no cloud summary -> the local aggregates drive the UI unchanged.
+        every { progressSyncRepository.summaryFlow() } returns flowOf(null)
     }
 
     @AfterEach
@@ -82,7 +90,8 @@ class ProgressViewModelTest {
             getDailyRecitationCountsUseCase,
             getAccuracyTrendUseCase,
             getSessionsForUserUseCase,
-            getAxisTrendsUseCase
+            getAxisTrendsUseCase,
+            progressSyncRepository
         )
 
         assertTrue(viewModel.uiState.value is ProgressUiState.Loading)
@@ -112,7 +121,8 @@ class ProgressViewModelTest {
             getDailyRecitationCountsUseCase,
             getAccuracyTrendUseCase,
             getSessionsForUserUseCase,
-            getAxisTrendsUseCase
+            getAxisTrendsUseCase,
+            progressSyncRepository
         )
 
         val job = launch {
@@ -129,5 +139,71 @@ class ProgressViewModelTest {
         assertTrue(successState.sessions.isEmpty())
         job.cancel()
 
+    }
+
+    @Test
+    fun `should_preferCloudSummary_when_summaryFlowEmitsOne`() = runTest {
+        // Local aggregates carry different numbers than the cloud summary so the
+        // assertion proves the cloud values won.
+        val localOverview = RecitationOverviewStats(
+            totalSessions = 2,
+            totalCorrectRecitations = 1,
+            averageAccuracy = 0.5,
+            currentStreak = 1,
+            bestSessionScore = 0.6
+        )
+        val today = java.time.LocalDate.now().toString()
+        val cloudSummary = ProgressSummary(
+            totalSessions = 40L,
+            correctSessions = 30L,
+            scoreSum = 32.0,
+            bestScore = 0.97,
+            daily = mapOf(today to DayAggregate(n = 4L, c = 3L, s = 3.2))
+        )
+
+        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
+        coEvery { getRecitationStatsUseCase(testUser.id) } returns flowOf(localOverview)
+        coEvery { getDailyRecitationCountsUseCase(testUser.id) } returns flowOf(emptyList())
+        coEvery { getAccuracyTrendUseCase(testUser.id) } returns flowOf(emptyList())
+        coEvery { getSessionsForUserUseCase(testUser.id) } returns flowOf(emptyList())
+        coEvery { getAxisTrendsUseCase(testUser.id) } returns flowOf(emptyList())
+        every { progressSyncRepository.summaryFlow() } returns flowOf(cloudSummary)
+
+        viewModel = ProgressViewModel(
+            getCurrentUserUseCase,
+            getRecitationStatsUseCase,
+            getDailyRecitationCountsUseCase,
+            getAccuracyTrendUseCase,
+            getSessionsForUserUseCase,
+            getAxisTrendsUseCase,
+            progressSyncRepository
+        )
+
+        val job = launch {
+            viewModel.uiState.collect {}
+        }
+        runCurrent()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is ProgressUiState.Success)
+        val successState = state as ProgressUiState.Success
+
+        // Overview stats come from the cloud summary, not the local aggregates.
+        assertEquals(40, successState.overviewStats.totalSessions)
+        assertEquals(30, successState.overviewStats.totalCorrectRecitations)
+        assertEquals(0.8, successState.overviewStats.averageAccuracy, 1e-9)
+        assertEquals(0.97, successState.overviewStats.bestSessionScore, 1e-9)
+        assertEquals(1, successState.overviewStats.currentStreak)
+
+        // Charts are rebuilt from the summary: a 7-day zero-filled window with
+        // today's entry carrying the cloud values.
+        assertEquals(7, successState.dailyCounts.size)
+        assertEquals(3, successState.dailyCounts.last().count)
+        assertEquals(7, successState.accuracyTrend.size)
+        assertEquals(0.8, successState.accuracyTrend.last().averageScore, 1e-9)
+
+        // Session history stays local-only.
+        assertTrue(successState.sessions.isEmpty())
+        job.cancel()
     }
 }

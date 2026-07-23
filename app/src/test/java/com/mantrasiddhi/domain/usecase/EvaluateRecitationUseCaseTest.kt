@@ -13,6 +13,7 @@ import com.mantrasiddhi.domain.evaluation.diagnostics.EvaluationDiagnostics
 import com.mantrasiddhi.domain.model.LearnerLevel
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
+import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,6 +37,7 @@ class EvaluateRecitationUseCaseTest {
     private lateinit var determineLearnerLevelUseCase: DetermineLearnerLevelUseCase
     private lateinit var evaluationDiagnostics: EvaluationDiagnostics
     private lateinit var swaraAnalyzer: SwaraAnalyzer
+    private lateinit var progressSyncRepository: ProgressSyncRepository
     private lateinit var evaluateRecitationUseCase: EvaluateRecitationUseCase
 
     @BeforeEach
@@ -47,6 +49,11 @@ class EvaluateRecitationUseCaseTest {
         determineLearnerLevelUseCase = mockk(relaxed = true)
         evaluationDiagnostics = mockk(relaxed = true)
         swaraAnalyzer = mockk(relaxed = true)
+        progressSyncRepository = mockk(relaxed = true)
+        // Explicit stub: relaxed mocks cannot synthesize a default kotlin.Result.
+        coEvery {
+            progressSyncRepository.recordSession(any(), any(), any())
+        } returns Result.success(Unit)
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
         // Default: an explicit sensitivity is set, preserving the legacy gate behaviour.
         every { appPreferencesRepository.isRecitationSensitivityExplicit } returns flowOf(true)
@@ -58,7 +65,8 @@ class EvaluateRecitationUseCaseTest {
             acousticAnalyzer,
             determineLearnerLevelUseCase,
             evaluationDiagnostics,
-            swaraAnalyzer
+            swaraAnalyzer,
+            progressSyncRepository
         )
     }
 
@@ -69,7 +77,8 @@ class EvaluateRecitationUseCaseTest {
         acousticAnalyzer,
         determineLearnerLevelUseCase,
         evaluationDiagnostics,
-        swaraAnalyzer
+        swaraAnalyzer,
+        progressSyncRepository
     )
 
     @Test

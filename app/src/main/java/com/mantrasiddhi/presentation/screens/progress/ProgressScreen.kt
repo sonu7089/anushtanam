@@ -178,7 +178,10 @@ private fun ProgressContent(state: ProgressUiState.Success) {
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        if (state.sessions.isEmpty()) {
+        // Empty only when there is neither local history nor a cloud summary — after a
+        // reinstall the cloud-restored overview/charts must still show even though the
+        // local (Room) session list starts out empty.
+        if (state.sessions.isEmpty() && state.overviewStats.totalSessions == 0) {
             EmptyState(
                 title = stringResource(R.string.progress_empty_title),
                 description = stringResource(R.string.progress_empty_description)
