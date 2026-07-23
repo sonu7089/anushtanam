@@ -91,24 +91,14 @@ fun RecitationFeedbackOverlay(
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = styleData.statusText,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = styleData.tintColor
-                            )
-                            Text(
-                                text = stringResource(R.string.recitation_feedback_accuracy_format, (feedback.overallScore * 100).toInt()),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = styleData.tintColor
-                            )
-                        }
+                        // Accuracy percentage intentionally not shown in Recitation mode —
+                        // the reciter just needs the correct/try-again status while counting.
+                        Text(
+                            text = styleData.statusText,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = styleData.tintColor
+                        )
 
                         if (!feedback.isCorrect && feedback.worstWord != null && feedback.suggestion != null) {
                             Spacer(modifier = Modifier.height(4.dp))

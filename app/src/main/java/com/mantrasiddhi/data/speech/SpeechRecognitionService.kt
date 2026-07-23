@@ -115,8 +115,17 @@ class SpeechRecognitionService @Inject constructor(
         }
 
         awaitClose {
-            launch(mainDispatcher) {
-                recognizer?.apply {
+            // CRITICAL: do NOT launch this cleanup on the producer scope. When the
+            // collector is CANCELLED (stop button, target completed, navigating away),
+            // this scope's job is already cancelled and a launched child never runs —
+            // which leaked a live SpeechRecognizer: the mic stayed hot after stopping,
+            // and the next session found the recognizer busy and recorded nothing.
+            // A main-looper Handler post always runs, independent of the dying scope,
+            // and SpeechRecognizer requires the main thread anyway.
+            val toRelease = recognizer
+            recognizer = null
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                toRelease?.apply {
                     try {
                         stopListening()
                         cancel()

@@ -34,6 +34,23 @@ class DetectRecitationBoundaryUseCaseTest {
     }
 
     @Test
+    fun `should_returnTrue_when_finalWordSpokenInDevanagari`() {
+        // The on-device hi-IN recognizer emits Devanagari; the closing word must be
+        // detected in that script too (with and without the trailing halant).
+        assertTrue(useCase("ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्", 0L))
+        assertTrue(useCase("धियो यो नः प्रचोदयात", 0L))
+    }
+
+    @Test
+    fun `should_segmentTwoMantras_when_recitedBackToBack`() {
+        // Two mantras merged into one continuous transcript must yield two closing-word
+        // matches — the recitation loop cuts one evaluation segment per match.
+        val merged = "ॐ भूर्भुवः स्वः धियो यो नः प्रचोदयात् ॐ भूर्भुवः स्वः धियो यो नः प्रचोदयात्"
+        val matches = DetectRecitationBoundaryUseCase.CLOSING_WORD_REGEX.findAll(merged).count()
+        org.junit.jupiter.api.Assertions.assertEquals(2, matches)
+    }
+
+    @Test
     fun `should_returnTrue_when_silenceThresholdExceeded`() {
         // Given
         val transcription = "om bhur bhuvah"

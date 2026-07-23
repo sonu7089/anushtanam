@@ -70,7 +70,8 @@ class RecitationViewModelTest {
             evaluateRecitationUseCase = evaluateRecitationUseCase,
             detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
             soundEffectsPlayer = soundEffectsPlayer,
-            feedbackStringProvider = mockk(relaxed = true)
+            feedbackStringProvider = mockk(relaxed = true),
+            incrementActiveCloudGoalUseCase = mockk(relaxed = true)
         )
     }
 
@@ -100,7 +101,8 @@ class RecitationViewModelTest {
             evaluateRecitationUseCase = evaluateRecitationUseCase,
             detectRecitationBoundaryUseCase = detectRecitationBoundaryUseCase,
             soundEffectsPlayer = soundEffectsPlayer,
-            feedbackStringProvider = mockk(relaxed = true)
+            feedbackStringProvider = mockk(relaxed = true),
+            incrementActiveCloudGoalUseCase = mockk(relaxed = true)
         )
 
         assertTrue(errorViewModel.uiState.value is RecitationUiState.Error)

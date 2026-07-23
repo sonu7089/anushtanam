@@ -10,20 +10,15 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -51,11 +46,8 @@ import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.components.RecitationFeedbackOverlay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOverlay
-import com.mantrasiddhi.presentation.screens.recitation.components.LiveCounter
-import com.mantrasiddhi.presentation.screens.recitation.components.RecitationFeed
 import com.mantrasiddhi.presentation.screens.recitation.components.TargetProgressHeader
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.height
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,9 +124,6 @@ fun RecitationScreen(
                 }
             
             is RecitationUiState.Active -> {
-                val currentSessions = state.recentSessions
-                val correctCount = currentSessions.filter { it.isCorrect }.size
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -150,18 +139,16 @@ fun RecitationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    LiveCounter(
-                        sessionCount = correctCount,
-                        isListening = state.isListening
-                    )
-
                     MicButton(
                         isRecording = state.isListening,
                         isProcessing = false,
                         onClick = {
                             if (state.activeTarget != null) {
                                 if (state.isListening) {
-                                    viewModel.pauseRecitation()
+                                    // Stop flushes the pending (already recited) mantra to the
+                                    // evaluator first, so tapping the mic right after finishing
+                                    // still counts that recitation.
+                                    viewModel.stopRecitation()
                                 } else {
                                     if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                         viewModel.startRecitation()
@@ -182,64 +169,8 @@ fun RecitationScreen(
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        if (state.isListening) {
-                            FilledTonalButton(
-                                onClick = { viewModel.pauseRecitation() },
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.recitation_pause),
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                            OutlinedButton(
-                                onClick = { viewModel.stopRecitation() },
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                ),
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.error
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.recitation_stop),
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        } else {
-                            Button(
-                                onClick = {
-                                    if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                        viewModel.startRecitation()
-                                    } else {
-                                        requestMicPermission = true
-                                    }
-                                },
-                                enabled = state.activeTarget != null,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.recitation_begin),
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-                    }
+                    // The mic button above is the single start/stop control — tap to begin
+                    // reciting, tap again to stop. No separate pause/stop buttons.
 
                     // Self-target setup: lets the reciter set their own goal without
                     // leaving the recitation tab. Shown when no target is active yet.
@@ -257,10 +188,6 @@ fun RecitationScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    RecitationFeed(sessions = state.recentSessions)
                 }
 
                 if (showSetTargetDialog) {
@@ -268,15 +195,16 @@ fun RecitationScreen(
                         currentUser = state.user,
                         children = emptyList(),
                         onDismiss = { showSetTargetDialog = false },
-                        onConfirm = { count, money, _ ->
-                            viewModel.createTarget(count, money)
+                        onConfirm = { count, rewardType, rewardDescription, _ ->
+                            viewModel.createTarget(count, rewardType, rewardDescription)
                         }
                     )
                 }
 
-                if (state.showCelebration && state.activeTarget != null) {
+                if (state.showCelebration && state.celebrationTarget != null) {
                     CelebrationOverlay(
-                        moneyAmount = state.activeTarget.moneyAmount,
+                        rewardType = state.celebrationTarget.rewardType,
+                        rewardDescription = state.celebrationTarget.rewardDescription,
                         onDismiss = { viewModel.dismissCelebration() }
                     )
                 }
