@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -65,8 +66,6 @@ import androidx.core.content.ContextCompat
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.SandhyaAdherence
 import com.mantrasiddhi.domain.model.SandhyaPeriod
-import com.mantrasiddhi.domain.model.SandhyaRegion
-import com.mantrasiddhi.domain.model.SandhyaRegions
 import com.mantrasiddhi.domain.model.TrendPoint
 import com.mantrasiddhi.presentation.components.ProgressRing
 import java.time.format.DateTimeFormatter
@@ -188,10 +187,16 @@ fun SandhyaScreen(
     }
 
     if (showRegionDialog) {
+        val searchState by viewModel.searchState.collectAsState()
         RegionPickerDialog(
-            onDismiss = { showRegionDialog = false },
-            onSelect = { region ->
-                viewModel.selectRegion(region)
+            searchState = searchState,
+            onSearch = viewModel::searchLocations,
+            onSelectPlace = { place ->
+                viewModel.selectSearchedPlace(place)
+                showRegionDialog = false
+            },
+            onDismiss = {
+                viewModel.clearLocationSearch()
                 showRegionDialog = false
             }
         )
@@ -573,32 +578,122 @@ private fun WeeklyTrend(points: List<TrendPoint>) {
     }
 }
 
+/**
+ * Free-text location search dialog: the user types any town/place, the platform
+ * geocoder resolves candidates, and tapping one sets it as the Sandhya region.
+ * Replaces the earlier fixed city list.
+ */
 @Composable
 private fun RegionPickerDialog(
-    onDismiss: () -> Unit,
-    onSelect: (SandhyaRegion) -> Unit
+    searchState: LocationSearchState,
+    onSearch: (String) -> Unit,
+    onSelectPlace: (com.mantrasiddhi.data.location.GeocodingService.GeocodedPlace) -> Unit,
+    onDismiss: () -> Unit
 ) {
+    var query by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sandhya_select_region_title)) },
         text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(360.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                SandhyaRegions.all.forEach { region ->
-                    Text(
-                        text = region.displayName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable { onSelect(region) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp)
-                    )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text(stringResource(R.string.sandhya_search_hint)) },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Search
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onSearch = { onSearch(query) }
+                    ),
+                    trailingIcon = {
+                        androidx.compose.material3.IconButton(onClick = { onSearch(query) }) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = stringResource(R.string.sandhya_search_action)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    when (searchState) {
+                        is LocationSearchState.Idle -> {
+                            Text(
+                                text = stringResource(R.string.sandhya_search_prompt),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                        is LocationSearchState.Searching -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            ) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = stringResource(R.string.sandhya_searching),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        is LocationSearchState.NoResults -> {
+                            Text(
+                                text = stringResource(R.string.sandhya_search_no_results),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                        is LocationSearchState.Error -> {
+                            Text(
+                                text = stringResource(R.string.sandhya_search_error),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                        is LocationSearchState.Results -> {
+                            searchState.places.forEach { place ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(MaterialTheme.shapes.small)
+                                        .clickable { onSelectPlace(place) }
+                                        .padding(vertical = 12.dp, horizontal = 8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = place.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
