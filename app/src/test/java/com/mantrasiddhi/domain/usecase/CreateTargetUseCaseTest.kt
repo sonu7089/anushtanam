@@ -6,9 +6,8 @@
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.model.Savings
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
-import com.mantrasiddhi.domain.repository.SavingsRepository
 import com.mantrasiddhi.domain.repository.TargetRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -22,14 +21,12 @@ import org.junit.jupiter.api.Test
 class CreateTargetUseCaseTest {
 
     private lateinit var targetRepository: TargetRepository
-    private lateinit var savingsRepository: SavingsRepository
     private lateinit var createTargetUseCase: CreateTargetUseCase
 
     @BeforeEach
     fun setUp() {
         targetRepository = mockk(relaxed = true)
-        savingsRepository = mockk(relaxed = true)
-        createTargetUseCase = CreateTargetUseCase(targetRepository, savingsRepository)
+        createTargetUseCase = CreateTargetUseCase(targetRepository)
     }
 
     @Test
@@ -63,10 +60,9 @@ class CreateTargetUseCaseTest {
     }
 
     @Test
-    fun `should_lockSavingsAndCreateTarget_when_noActiveTargetExists`() = runTest {
+    fun `should_createTarget_when_noActiveTargetExists`() = runTest {
         // Given
         coEvery { targetRepository.getActiveForUser(1L) } returns null
-        coEvery { savingsRepository.getSavingsForUser(1L) } returns Savings(userId = 1L, totalLocked = 0.0)
         coEvery { targetRepository.create(any()) } returns 100L
 
         val targetToCreate = Target(
@@ -74,7 +70,8 @@ class CreateTargetUseCaseTest {
             setByUserId = 1L,
             targetRecitationCount = 20,
             currentRecitationCount = 0,
-            moneyAmount = 150.0,
+            rewardType = RewardType.GIFT,
+            rewardDescription = "New cricket bat",
             isCompleted = false
         )
 
@@ -85,8 +82,5 @@ class CreateTargetUseCaseTest {
         assertTrue(result.isSuccess)
         assertEquals(100L, result.getOrNull())
         coVerify(exactly = 1) { targetRepository.create(targetToCreate) }
-        coVerify(exactly = 1) { 
-            savingsRepository.updateSavings(Savings(userId = 1L, totalLocked = 150.0, totalSaved = 0.0, totalUnlocked = 0.0)) 
-        }
     }
 }

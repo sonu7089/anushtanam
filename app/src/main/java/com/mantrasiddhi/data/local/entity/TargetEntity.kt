@@ -8,6 +8,7 @@ package com.mantrasiddhi.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 
 @Entity(tableName = "targets")
@@ -17,7 +18,8 @@ data class TargetEntity(
     val setByUserId: Long,
     val targetRecitationCount: Int,
     val currentRecitationCount: Int,
-    val moneyAmount: Double,
+    val rewardType: String,
+    val rewardDescription: String,
     val isCompleted: Boolean
 ) {
     fun toDomain(): Target {
@@ -27,7 +29,8 @@ data class TargetEntity(
             setByUserId = setByUserId,
             targetRecitationCount = targetRecitationCount,
             currentRecitationCount = currentRecitationCount,
-            moneyAmount = moneyAmount,
+            rewardType = RewardType.fromName(rewardType),
+            rewardDescription = rewardDescription,
             isCompleted = isCompleted
         )
     }
@@ -40,7 +43,8 @@ data class TargetEntity(
                 setByUserId = domain.setByUserId,
                 targetRecitationCount = domain.targetRecitationCount,
                 currentRecitationCount = domain.currentRecitationCount,
-                moneyAmount = domain.moneyAmount,
+                rewardType = domain.rewardType.name,
+                rewardDescription = domain.rewardDescription,
                 isCompleted = domain.isCompleted
             )
         }

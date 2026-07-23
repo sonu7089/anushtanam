@@ -58,7 +58,6 @@ import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.model.ChildProgress
 import androidx.compose.material3.Card
-import com.mantrasiddhi.presentation.components.SavingsCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ProgressChart
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
@@ -150,7 +149,7 @@ fun ChildProgressScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                items(state.childrenProgress) { childProgress ->
+                                items(state.childrenProgress, key = { it.child.id }) { childProgress ->
                                     ChildCard(
                                         childProgress = childProgress,
                                         onClick = { viewModel.selectChild(childProgress.child.id) }
@@ -212,8 +211,8 @@ fun ChildProgressScreen(
                                     currentUser = (uiState as? ChildProgressUiState.Success)?.parentUser ?: detailState.childProgress.child,
                                     children = emptyList(), // Dialog handles single user target setting directly
                                     onDismiss = { showSetTargetDialog = false },
-                                    onConfirm = { count, money, _ ->
-                                        viewModel.setChildTarget(detailState.childProgress.child.id, count, money)
+                                    onConfirm = { count, rewardType, rewardDescription, _ ->
+                                        viewModel.setChildTarget(detailState.childProgress.child.id, count, rewardType, rewardDescription)
                                     }
                                 )
                             }
@@ -265,13 +264,6 @@ fun ChildDetailView(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Savings Card
-            item {
-                childProgress.savings?.let {
-                    SavingsCard(savings = it)
-                }
-            }
-            
             // Active Target Card
             item {
                 Text(

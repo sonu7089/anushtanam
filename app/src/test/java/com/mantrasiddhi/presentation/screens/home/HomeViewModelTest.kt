@@ -7,7 +7,7 @@
 package com.mantrasiddhi.presentation.screens.home
 
 import com.mantrasiddhi.domain.model.ProfileType
-import com.mantrasiddhi.domain.model.Savings
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.DashboardStats
@@ -71,8 +71,7 @@ class HomeViewModelTest {
             user = testUser,
             todayRecitationCount = 5,
             streakDays = 3,
-            activeTarget = Target(id = 1L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 20, moneyAmount = 100.0, isCompleted = false),
-            savings = Savings(userId = 1L, totalSaved = 200.0, totalLocked = 100.0, totalUnlocked = 100.0),
+            activeTarget = Target(id = 1L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 20, rewardType = RewardType.MONEY, rewardDescription = "₹100 pocket money", isCompleted = false),
             childrenProgress = emptyList()
         )
 
@@ -88,7 +87,6 @@ class HomeViewModelTest {
         assertEquals(5, successState.todayCount)
         assertEquals(3, successState.streakDays)
         assertEquals(stats.activeTarget, successState.activeTarget)
-        assertEquals(stats.savings, successState.savings)
     }
 
     @Test

@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.childprogress
 
+import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ChildProgress
 import com.mantrasiddhi.domain.model.ProfileType
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.CreateTargetUseCase
 import com.mantrasiddhi.domain.usecase.GetChildProgressUseCase
@@ -17,11 +19,11 @@ import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import com.mantrasiddhi.domain.model.Savings
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -44,6 +46,7 @@ class ChildProgressViewModelTest {
     private lateinit var getChildProgressUseCase: GetChildProgressUseCase
     private lateinit var getChildWeakWordsUseCase: GetChildWeakWordsUseCase
     private lateinit var createTargetUseCase: CreateTargetUseCase
+    private lateinit var goalNotifier: GoalNotifier
 
     private lateinit var viewModel: ChildProgressViewModel
 
@@ -80,15 +83,16 @@ class ChildProgressViewModelTest {
         getChildProgressUseCase = mockk()
         getChildWeakWordsUseCase = mockk()
         createTargetUseCase = mockk()
+        goalNotifier = mockk(relaxed = true)
 
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(parentUser)
         coEvery { getChildrenUseCase(parentUser.id) } returns flowOf(listOf(childUser))
-        
+
         val progress = ChildProgress(
             child = childUser,
             activeTarget = null,
             totalRecitations = 120,
-            savings = Savings(userId = childUser.id, totalSaved = 100.0),
+            completedTargetCount = 3,
             recentSessions = emptyList()
         )
         coEvery { getChildProgressUseCase(childUser.id) } returns flowOf(progress)
@@ -107,7 +111,8 @@ class ChildProgressViewModelTest {
             getChildrenUseCase = getChildrenUseCase,
             getChildProgressUseCase = getChildProgressUseCase,
             getChildWeakWordsUseCase = getChildWeakWordsUseCase,
-            createTargetUseCase = createTargetUseCase
+            createTargetUseCase = createTargetUseCase,
+            goalNotifier = goalNotifier
         )
 
         val state = viewModel.uiState.value
@@ -127,7 +132,8 @@ class ChildProgressViewModelTest {
             getChildrenUseCase = getChildrenUseCase,
             getChildProgressUseCase = getChildProgressUseCase,
             getChildWeakWordsUseCase = getChildWeakWordsUseCase,
-            createTargetUseCase = createTargetUseCase
+            createTargetUseCase = createTargetUseCase,
+            goalNotifier = goalNotifier
         )
 
         val state = viewModel.uiState.value
@@ -142,7 +148,8 @@ class ChildProgressViewModelTest {
             getChildrenUseCase = getChildrenUseCase,
             getChildProgressUseCase = getChildProgressUseCase,
             getChildWeakWordsUseCase = getChildWeakWordsUseCase,
-            createTargetUseCase = createTargetUseCase
+            createTargetUseCase = createTargetUseCase,
+            goalNotifier = goalNotifier
         )
 
         assertEquals(ChildDetailUiState.Idle, viewModel.detailUiState.value)
@@ -164,7 +171,8 @@ class ChildProgressViewModelTest {
             getChildrenUseCase = getChildrenUseCase,
             getChildProgressUseCase = getChildProgressUseCase,
             getChildWeakWordsUseCase = getChildWeakWordsUseCase,
-            createTargetUseCase = createTargetUseCase
+            createTargetUseCase = createTargetUseCase,
+            goalNotifier = goalNotifier
         )
 
         viewModel.selectChild(childUser.id)
@@ -183,7 +191,8 @@ class ChildProgressViewModelTest {
             getChildrenUseCase = getChildrenUseCase,
             getChildProgressUseCase = getChildProgressUseCase,
             getChildWeakWordsUseCase = getChildWeakWordsUseCase,
-            createTargetUseCase = createTargetUseCase
+            createTargetUseCase = createTargetUseCase,
+            goalNotifier = goalNotifier
         )
         runCurrent()
 
@@ -192,11 +201,13 @@ class ChildProgressViewModelTest {
             viewModel.events.collect { events.add(it) }
         }
 
-        viewModel.setChildTarget(childUser.id, 1008, 150.0)
+        viewModel.setChildTarget(childUser.id, 1008, RewardType.GIFT, "New cricket bat")
         runCurrent()
 
         assertTrue(events.contains(ChildProgressEvent.TargetSetSuccess))
         coVerify(exactly = 1) { createTargetUseCase(any()) }
+        // Parent-for-child goal must post the celebratory notification.
+        verify(exactly = 1) { goalNotifier.showGoalSet(1008, RewardType.GIFT, "New cricket bat") }
         job.cancel()
     }
 }

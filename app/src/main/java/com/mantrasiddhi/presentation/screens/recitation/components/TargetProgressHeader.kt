@@ -106,25 +106,35 @@ fun TargetProgressHeader(
                         fontWeight = FontWeight.Medium
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    if (target.hasReward) {
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    val moneyText = if (target.isCompleted) {
-                        stringResource(R.string.recitation_money_unlocked, target.moneyAmount)
-                    } else {
-                        stringResource(R.string.recitation_money_locked, target.moneyAmount)
-                    }
-                    val moneyColor = if (target.isCompleted) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.secondary
-                    }
+                        val rewardText = if (target.isCompleted) {
+                            stringResource(
+                                R.string.recitation_reward_earned,
+                                target.rewardType.emoji,
+                                target.rewardDescription
+                            )
+                        } else {
+                            stringResource(
+                                R.string.recitation_reward_pending,
+                                target.rewardType.emoji,
+                                target.rewardDescription
+                            )
+                        }
+                        val rewardColor = if (target.isCompleted) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.secondary
+                        }
 
-                    Text(
-                        text = moneyText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = moneyColor
-                    )
+                        Text(
+                            text = rewardText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = rewardColor
+                        )
+                    }
                 }
             }
         }

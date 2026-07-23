@@ -7,11 +7,9 @@
 package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.model.ChildProgress
-import com.mantrasiddhi.domain.model.Savings
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.repository.RecitationRepository
-import com.mantrasiddhi.domain.repository.SavingsRepository
 import com.mantrasiddhi.domain.repository.TargetRepository
 import com.mantrasiddhi.domain.repository.UserRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +28,6 @@ data class DashboardStats(
     val todayRecitationCount: Int,
     val streakDays: Int,
     val activeTarget: Target?,
-    val savings: Savings?,
     val childrenProgress: List<ChildProgress> = emptyList()
 )
 
@@ -40,7 +37,6 @@ data class DashboardStats(
 class GetDashboardStatsUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val targetRepository: TargetRepository,
-    private val savingsRepository: SavingsRepository,
     private val recitationRepository: RecitationRepository,
     private val getChildProgressUseCase: GetChildProgressUseCase
 ) {
@@ -48,19 +44,18 @@ class GetDashboardStatsUseCase @Inject constructor(
     operator fun invoke(userId: Long): Flow<DashboardStats?> {
         return combine(
             targetRepository.getAllForUser(userId),
-            savingsRepository.getSavingsFlowForUser(userId),
             recitationRepository.getSessionsForUser(userId),
             userRepository.getChildrenOf(userId)
-        ) { targets, savings, sessions, children ->
-            Quadruple(targets, savings, sessions, children)
-        }.flatMapLatest { (targets, savings, sessions, children) ->
+        ) { targets, sessions, children ->
+            Triple(targets, sessions, children)
+        }.flatMapLatest { (targets, sessions, children) ->
             flow {
                 val userProfile = userRepository.getById(userId)
                 if (userProfile != null) {
                     val activeTarget = targets.firstOrNull { !it.isCompleted }
                     val todayCount = sessions.filter { isToday(it.createdAt) && it.isCorrect }.size
                     val streak = calculateStreak(sessions)
-                    
+
                     if (userProfile.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT && children.isNotEmpty()) {
                         val childProgressFlows = children.map { child ->
                             getChildProgressUseCase(child.id)
@@ -74,7 +69,6 @@ class GetDashboardStatsUseCase @Inject constructor(
                                     todayRecitationCount = todayCount,
                                     streakDays = streak,
                                     activeTarget = activeTarget,
-                                    savings = savings,
                                     childrenProgress = progressList
                                 )
                             )
@@ -86,7 +80,6 @@ class GetDashboardStatsUseCase @Inject constructor(
                                 todayRecitationCount = todayCount,
                                 streakDays = streak,
                                 activeTarget = activeTarget,
-                                savings = savings,
                                 childrenProgress = emptyList()
                             )
                         )
@@ -145,5 +138,3 @@ class GetDashboardStatsUseCase @Inject constructor(
         return streak
     }
 }
-
-private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

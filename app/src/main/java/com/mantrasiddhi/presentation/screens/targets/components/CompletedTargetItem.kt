@@ -78,9 +78,9 @@ fun CompletedTargetItem(
                 }
             }
             
-            if (target.moneyAmount > 0.0) {
+            if (target.hasReward) {
                 Text(
-                    text = "+₹${String.format("%.2f", target.moneyAmount)}",
+                    text = "${target.rewardType.emoji} ${target.rewardDescription}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = successColor

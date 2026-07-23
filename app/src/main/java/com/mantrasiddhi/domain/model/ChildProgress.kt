@@ -13,6 +13,6 @@ data class ChildProgress(
     val child: UserProfile,
     val activeTarget: Target?,
     val totalRecitations: Int,
-    val savings: Savings?,
+    val completedTargetCount: Int = 0,
     val recentSessions: List<RecitationSession> = emptyList()
 )

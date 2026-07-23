@@ -7,11 +7,12 @@
 package com.mantrasiddhi.presentation.screens.targets.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,16 +22,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -47,20 +44,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.ProfileType
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.presentation.components.MantraTextField
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 
+/** Maps a [RewardType] to its display label string resource. */
+private fun rewardTypeLabelRes(type: RewardType): Int = when (type) {
+    RewardType.MONEY -> R.string.reward_type_money
+    RewardType.FOOD -> R.string.reward_type_food
+    RewardType.GIFT -> R.string.reward_type_gift
+    RewardType.OUTING -> R.string.reward_type_outing
+    RewardType.TOY -> R.string.reward_type_toy
+    RewardType.OTHER -> R.string.reward_type_other
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SetTargetDialog(
     currentUser: UserProfile,
     children: List<UserProfile>,
     onDismiss: () -> Unit,
-    onConfirm: (count: Int, moneyAmount: Double, targetUserId: Long?) -> Unit,
+    onConfirm: (count: Int, rewardType: RewardType, rewardDescription: String, targetUserId: Long?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -68,16 +76,17 @@ fun SetTargetDialog(
     var selectedPresetCount by remember { mutableStateOf(108) }
     var isCustomCount by remember { mutableStateOf(false) }
     var customCountString by remember { mutableStateOf("") }
-    var moneyAmountString by remember { mutableStateOf("") }
-    
+    var selectedRewardType by remember { mutableStateOf(RewardType.OTHER) }
+    var rewardDescription by remember { mutableStateOf("") }
+
     var errorMsg by remember { mutableStateOf<String?>(null) }
-    
+
     val presets = listOf(108, 1008, 10008)
     val isParent = currentUser.profileType == ProfileType.PARENT
-    // Only a parent profile may attach a virtual-money reward to a target.
-    // A child setting their own target can pick a recitation count but never a money reward.
-    val canSetMoney = isParent
-    
+    // Only a parent profile may attach a reward to a target. A child setting their
+    // own target picks a recitation count only; the reward defaults to OTHER/blank.
+    val canSetReward = isParent
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -102,7 +111,7 @@ fun SetTargetDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -113,7 +122,7 @@ fun SetTargetDialog(
                             isSelected = selectedUserId == currentUser.id,
                             onClick = { selectedUserId = currentUser.id }
                         )
-                        
+
                         // Options for each child
                         children.forEach { child ->
                             ProfileSelectorItem(
@@ -124,14 +133,14 @@ fun SetTargetDialog(
                         }
                     }
                 }
-                
+
                 // Recitation count configuration
                 Text(
                     text = stringResource(id = R.string.target_dialog_recitation_count),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 presets.forEach { count ->
                     Row(
                         modifier = Modifier
@@ -159,7 +168,7 @@ fun SetTargetDialog(
                         )
                     }
                 }
-                
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,7 +188,7 @@ fun SetTargetDialog(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                
+
                 if (isCustomCount) {
                     MantraTextField(
                         value = customCountString,
@@ -192,33 +201,49 @@ fun SetTargetDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                
-                // Money Amount configuration — only available to parent profiles.
-                if (canSetMoney) {
+
+                // Reward configuration — only available to parent profiles.
+                if (canSetReward) {
                     Text(
-                        text = stringResource(id = R.string.target_dialog_money),
+                        text = stringResource(id = R.string.target_dialog_reward_title),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
                     )
 
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RewardType.entries.forEach { type ->
+                            FilterChip(
+                                selected = selectedRewardType == type,
+                                onClick = { selectedRewardType = type },
+                                label = {
+                                    Text(
+                                        text = "${type.emoji} ${stringResource(id = rewardTypeLabelRes(type))}"
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            )
+                        }
+                    }
+
                     MantraTextField(
-                        value = moneyAmountString,
-                        onValueChange = {
-                            if (it.isEmpty() || it.toDoubleOrNull() != null || it.all { char -> char.isDigit() || char == '.' }) {
-                                moneyAmountString = it
-                            }
-                        },
-                        label = stringResource(id = R.string.target_dialog_reward_amount_label),
+                        value = rewardDescription,
+                        onValueChange = { rewardDescription = it },
+                        label = stringResource(id = R.string.target_dialog_reward_desc_label),
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
                     Text(
-                        text = stringResource(id = R.string.target_dialog_money_parent_only),
+                        text = stringResource(id = R.string.target_dialog_reward_parent_only),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
-                
+
                 errorMsg?.let {
                     Text(
                         text = it,
@@ -236,19 +261,17 @@ fun SetTargetDialog(
                     } else {
                         selectedPresetCount
                     }
-                    
-                    val finalMoney = if (canSetMoney) moneyAmountString.toDoubleOrNull() ?: 0.0 else 0.0
-                    
+
                     if (finalCount <= 0) {
                         errorMsg = context.getString(R.string.target_dialog_error_invalid_count)
                         return@FilledTonalButton
                     }
-                    if (finalMoney < 0.0) {
-                        errorMsg = context.getString(R.string.target_dialog_error_negative_money)
-                        return@FilledTonalButton
-                    }
-                    
-                    onConfirm(finalCount, finalMoney, selectedUserId)
+
+                    // Non-parents can never attach a reward: force OTHER/blank.
+                    val finalRewardType = if (canSetReward) selectedRewardType else RewardType.OTHER
+                    val finalRewardDescription = if (canSetReward) rewardDescription.trim() else ""
+
+                    onConfirm(finalCount, finalRewardType, finalRewardDescription, selectedUserId)
                 },
                 shape = MaterialTheme.shapes.medium
             ) {

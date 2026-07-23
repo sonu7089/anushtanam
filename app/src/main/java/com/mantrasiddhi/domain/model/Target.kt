@@ -15,9 +15,14 @@ data class Target(
     val setByUserId: Long,
     val targetRecitationCount: Int,
     val currentRecitationCount: Int = 0,
-    val moneyAmount: Double = 0.0,
+    val rewardType: RewardType = RewardType.OTHER,
+    val rewardDescription: String = "",
     val isCompleted: Boolean = false
 ) {
+    /** True when a specific reward has been described (blank + OTHER means "no reward set"). */
+    val hasReward: Boolean
+        get() = rewardDescription.isNotBlank()
+
     val progress: Float
         get() = if (targetRecitationCount > 0) {
             currentRecitationCount.toFloat() / targetRecitationCount.toFloat()

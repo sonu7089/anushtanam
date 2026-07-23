@@ -10,7 +10,6 @@ import android.content.Context
 import com.mantrasiddhi.data.local.MantraSiddhiDatabase
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
-import com.mantrasiddhi.data.local.dao.SavingsDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import dagger.Module
@@ -49,11 +48,6 @@ object DatabaseModule {
     @Provides
     fun provideRecitationDao(db: MantraSiddhiDatabase): RecitationDao {
         return db.recitationDao()
-    }
-
-    @Provides
-    fun provideSavingsDao(db: MantraSiddhiDatabase): SavingsDao {
-        return db.savingsDao()
     }
 
     @Provides

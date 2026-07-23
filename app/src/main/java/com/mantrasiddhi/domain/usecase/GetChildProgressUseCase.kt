@@ -8,7 +8,6 @@ package com.mantrasiddhi.domain.usecase
 
 import com.mantrasiddhi.domain.model.ChildProgress
 import com.mantrasiddhi.domain.repository.RecitationRepository
-import com.mantrasiddhi.domain.repository.SavingsRepository
 import com.mantrasiddhi.domain.repository.TargetRepository
 import com.mantrasiddhi.domain.repository.UserRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,18 +23,16 @@ import javax.inject.Inject
 class GetChildProgressUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val targetRepository: TargetRepository,
-    private val savingsRepository: SavingsRepository,
     private val recitationRepository: RecitationRepository
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(childId: Long): Flow<ChildProgress?> {
         return combine(
             targetRepository.getAllForUser(childId),
-            savingsRepository.getSavingsFlowForUser(childId),
             recitationRepository.getSessionsForUser(childId)
-        ) { targets, savings, sessions ->
-            Triple(targets, savings, sessions)
-        }.flatMapLatest { (targets, savings, sessions) ->
+        ) { targets, sessions ->
+            targets to sessions
+        }.flatMapLatest { (targets, sessions) ->
             flow {
                 val childProfile = userRepository.getById(childId)
                 if (childProfile != null) {
@@ -46,7 +43,7 @@ class GetChildProgressUseCase @Inject constructor(
                             child = childProfile,
                             activeTarget = activeTarget,
                             totalRecitations = totalRecitations,
-                            savings = savings,
+                            completedTargetCount = targets.count { it.isCompleted },
                             recentSessions = sessions
                         )
                     )

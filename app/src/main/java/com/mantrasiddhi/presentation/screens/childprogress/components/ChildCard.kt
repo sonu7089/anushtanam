@@ -93,18 +93,15 @@ fun ChildCard(
                 )
             }
             
-            // Savings badge on the right
+            // Completed-goals badge on the right
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = stringResource(id = R.string.savings_total_saved),
+                    text = stringResource(id = R.string.child_goals_completed_label),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = stringResource(
-                        id = R.string.savings_currency_format,
-                        childProgress.savings?.totalSaved ?: 0.0
-                    ),
+                    text = childProgress.completedTargetCount.toString(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

@@ -7,7 +7,7 @@
     <string name="title_progress">Progress</string>
     <string name="title_settings">Settings</string>
     <string name="title_targets">Targets</string>
-    <string name="title_child_progress">Child Progress</string>
+    <string name="title_child_progress">Child</string>
     
     <!-- Login / Profile Selection -->
     <string name="profile_selection_title">Select Profile</string>
@@ -55,7 +55,7 @@
     <string name="settings_sensitivity_normal">Normal (Recommended)</string>
     <string name="settings_sensitivity_strict">Strict (Advanced)</string>
     <string name="settings_demo_administration">Demo Administration</string>
-    <string name="settings_demo_admin_description">Instantly wipe the local Room database and re-seed it with rich mock history, progress targets, and savings balances for test accounts.</string>
+    <string name="settings_demo_admin_description">Instantly wipe the local Room database and re-seed it with rich mock history, progress targets, and rewards for test accounts.</string>
     <string name="settings_reset_db_button">Reset &amp; Re-Seed Database</string>
     <string name="settings_about_anushtanam">About Anushtanam</string>
     <string name="settings_about_app_version">App Version</string>
@@ -98,8 +98,8 @@
     <string name="recitation_set_target_warning">Please set a recitation target in the targets tab first.</string>
     <string name="recitation_recent_title">Recent Recitations</string>
     <string name="recitation_goal_reached">🎉 Goal Reached!</string>
-    <string name="recitation_money_unlocked">₹%1$.2f unlocked!</string>
-    <string name="recitation_money_locked">₹%1$.2f locked</string>
+    <string name="recitation_reward_earned">%1$s %2$s earned!</string>
+    <string name="recitation_reward_pending">Reward: %1$s %2$s</string>
     <string name="recitation_dismiss">Dismiss</string>
     <string name="recitation_feedback_format">Score: %1$.0f%% | Tip: %2$s</string>
     <string name="recitation_celebration_success_msg">Congratulations! You have completed your spiritual recitation target.</string>
@@ -187,24 +187,30 @@
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="loading">Loading...</string>
 
-    <!-- New Targets and Savings Strings -->
+    <!-- New Targets and Reward Strings -->
     <string name="target_set_new">Set New Target</string>
     <string name="target_abandon">Abandon Target</string>
-    <string name="target_abandon_confirm">Are you sure you want to abandon this target? Your locked ₹%1$.2f will be returned.</string>
+    <string name="target_abandon_confirm">Are you sure you want to abandon this target?</string>
     <string name="target_history">Target History</string>
     <string name="target_dialog_title">Set New Target</string>
     <string name="target_dialog_preset">Preset count: %1$d</string>
     <string name="target_dialog_custom">Custom count</string>
-    <string name="target_dialog_money">Virtual Money Reward (₹)</string>
-    <string name="target_dialog_money_parent_only">Only a parent can attach a money reward to a target.</string>
     <string name="target_dialog_confirm">Set Target</string>
     <string name="target_dialog_cancel">Cancel</string>
     <string name="target_dialog_child_selector">Set target for profile:</string>
-    <string name="savings_total_saved">Total Saved</string>
-    <string name="savings_total_locked">Total Locked</string>
-    <string name="savings_total_unlocked">Total Unlocked</string>
-    <string name="savings_currency_format">₹%1$.2f</string>
-    
+
+    <!-- Reward picker (parent-set, non-monetary-or-monetary) -->
+    <string name="target_dialog_reward_title">Reward</string>
+    <string name="target_dialog_reward_desc_label">What\'s the reward? e.g. New cricket bat</string>
+    <string name="target_dialog_reward_parent_only">Only a parent can attach a reward to a target.</string>
+    <string name="target_reward_label">Reward: %1$s %2$s</string>
+    <string name="reward_type_money">Money</string>
+    <string name="reward_type_food">Food</string>
+    <string name="reward_type_gift">Gift</string>
+    <string name="reward_type_outing">Outing</string>
+    <string name="reward_type_toy">Toy</string>
+    <string name="reward_type_other">Other</string>
+
     <!-- Parent Child Strings -->
     <string name="children_progress_title">Children Progress</string>
     <string name="child_struggle_words">Struggling Words (Improvement Areas)</string>
@@ -214,13 +220,14 @@
     <string name="child_no_weak_words">Doing great! No major pronunciation struggles.</string>
     <string name="child_details_title">%1$s\'s Profile</string>
     <string name="child_total_recitations">Total Recitations: %1$d</string>
+    <string name="child_goals_completed_label">Goals Done</string>
 
     <!-- Targets Screen Refactored -->
     <string name="targets_completed_description">Completed</string>
     <string name="targets_completed_goal_title">Recitation Goal Complete</string>
     <string name="targets_completed_recitations_count">%1$d Recitations Completed</string>
     <string name="targets_snack_set_success">Target set successfully!</string>
-    <string name="targets_snack_abandoned">Target abandoned. Locked money returned.</string>
+    <string name="targets_snack_abandoned">Target abandoned.</string>
     <string name="targets_snack_error">Error: %1$s</string>
     <string name="targets_abandon_dialog_title">Abandon Target</string>
     <string name="targets_abandon_confirm_btn">Abandon</string>
@@ -228,9 +235,7 @@
     <string name="targets_percent_format">%1$d%%</string>
     <string name="target_dialog_recitation_count">Recitation Count</string>
     <string name="target_dialog_custom_count_label">Custom Count Amount</string>
-    <string name="target_dialog_reward_amount_label">Reward Amount (₹)</string>
     <string name="target_dialog_error_invalid_count">Please enter a valid count greater than 0</string>
-    <string name="target_dialog_error_negative_money">Money amount cannot be negative</string>
 
     <!-- Child Progress screen specific strings -->
     <string name="child_target_set_success">Target set successfully for child!</string>
@@ -296,6 +301,13 @@
     <string name="sandhya_notif_text">%1$s is around %2$s. Take five minutes for your ritual.</string>
     <string name="sandhya_mark_done">Mark as done</string>
 
+    <!-- Parent goal notification (posted when a parent sets a goal for a child) -->
+    <string name="goal_channel_name">Parent goals</string>
+    <string name="goal_channel_desc">Celebratory alerts when a parent sets a new recitation goal for a child.</string>
+    <string name="goal_notif_title">New goal from your parent 🙏</string>
+    <string name="goal_notif_text">Recite %1$d times to earn: %2$s</string>
+    <string name="goal_notif_reward_generic">a special reward</string>
+
     <!-- Period names -->
     <string name="sandhya_period_pratah">Prātaḥ Sandhya</string>
     <string name="sandhya_period_madhyahna">Mādhyāhnika Sandhya</string>
@@ -313,7 +325,13 @@
     <string name="sandhya_region_label">Region</string>
     <string name="sandhya_change">Change</string>
     <string name="sandhya_use_location">Use my location</string>
-    <string name="sandhya_select_region_title">Select your region</string>
+    <string name="sandhya_select_region_title">Set your location</string>
+    <string name="sandhya_search_hint">Search city or place…</string>
+    <string name="sandhya_search_action">Search</string>
+    <string name="sandhya_search_prompt">Type a city, town, or place name and search.</string>
+    <string name="sandhya_searching">Searching…</string>
+    <string name="sandhya_search_no_results">No places found. Try a different name.</string>
+    <string name="sandhya_search_error">Search failed. Check your internet connection and try again.</string>
     <string name="sandhya_region_current">Current location</string>
     <string name="sandhya_today_title">Today\'s timings</string>
     <string name="sandhya_reminder_at">Reminder %1$s</string>
@@ -349,5 +367,71 @@
     <string name="sandhya_per_period_value">%1$d / %2$d (%3$d%%)</string>
     <string name="sandhya_trend_title">Last 7 days</string>
     <string name="sandhya_percent">%1$d%%</string>
+
+    <!-- Phase B: Cloud auth (welcome / parent / child) -->
+    <string name="auth_welcome_subtitle">Sign in to sync goals across devices</string>
+    <string name="auth_role_parent">I am a Parent</string>
+    <string name="auth_role_child">I am a Child</string>
+    <string name="auth_back">Back</string>
+    <string name="auth_name_label">Your name</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_login">Log in</string>
+    <string name="auth_create_account">Create account</string>
+    <string name="auth_parent_login_title">Parent Login</string>
+    <string name="auth_parent_signup_title">Parent Sign-up</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_reset_sent">Password reset email sent</string>
+    <string name="auth_have_account">Already have an account? Log in</string>
+    <string name="auth_need_account">New here? Create an account</string>
+    <string name="auth_child_login_title">Child Login</string>
+    <string name="auth_child_signup_title">Child Sign-up</string>
+    <string name="auth_child_id_label">Your 12-digit ID</string>
+    <string name="auth_pin_label">6-digit PIN</string>
+    <string name="auth_child_create">Create my ID</string>
+    <string name="auth_child_have_id">Already have an ID? Log in</string>
+    <string name="auth_child_need_id">New here? Get an ID</string>
+    <string name="auth_child_id_reveal_title">Your ID is ready!</string>
+    <string name="auth_child_id_reveal_subtitle">Share this ID with your parent so they can send you goals. You will use it with your PIN to log in.</string>
+    <string name="auth_child_id_continue">Continue</string>
+    <string name="auth_child_id_copied">ID copied</string>
+    <string name="auth_copy">Copy</string>
+
+    <!-- Phase B: Home entry -->
+    <string name="home_family_title">Family</string>
+    <string name="home_family_subtitle">Link a parent/child and set shared goals</string>
+
+    <!-- Phase B: Family screen -->
+    <string name="family_title">Family</string>
+    <string name="family_link_child_title">Link a child</string>
+    <string name="family_link_child_subtitle">Enter your child\'s 12-digit ID. They approve the request on their device.</string>
+    <string name="family_child_id_label">Child\'s 12-digit ID</string>
+    <string name="family_send_request">Send link request</string>
+    <string name="family_your_children">Your children</string>
+    <string name="family_no_children">No linked children yet. Send a link request above.</string>
+    <string name="family_view_goals">View goals</string>
+    <string name="family_hide_goals">Hide goals</string>
+    <string name="family_set_goal">Set goal</string>
+    <string name="family_no_goals_for_child">No goals set for this child yet.</string>
+    <string name="family_your_id_title">Your ID</string>
+    <string name="family_your_id_subtitle">Share this ID with your parent so they can link and set goals.</string>
+    <string name="family_link_requests">Link requests</string>
+    <string name="family_no_requests">No pending requests.</string>
+    <string name="family_request_from">%1$s wants to link with you</string>
+    <string name="family_approve">Approve</string>
+    <string name="family_reject">Reject</string>
+    <string name="family_goals_from_parent">Goals from your parent</string>
+    <string name="family_no_goals">No goals yet. Your parent can set one for you.</string>
+    <string name="family_goal_progress">%1$d / %2$d recitations</string>
+    <string name="family_goal_completed">Completed! Reward earned 🎉</string>
+    <string name="family_goal_dialog_title">Set a goal for %1$s</string>
+    <string name="family_goal_dialog_confirm">Set goal</string>
+    <string name="family_link_request_sent">Link request sent</string>
+    <string name="family_link_approved">Linked!</string>
+    <string name="family_goal_created">Goal set</string>
+    <string name="family_generic_error">Something went wrong. Please try again.</string>
+
+    <!-- Phase B: FCM push fallback body -->
+    <string name="goal_push_generic_body">Open Anushtanam to see your new goal.</string>
 </resources>
 

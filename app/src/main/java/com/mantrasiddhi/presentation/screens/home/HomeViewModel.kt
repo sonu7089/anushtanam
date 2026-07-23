@@ -49,7 +49,6 @@ class HomeViewModel @Inject constructor(
                                 todayCount = stats.todayRecitationCount,
                                 activeTarget = stats.activeTarget,
                                 streakDays = stats.streakDays,
-                                savings = stats.savings,
                                 childrenProgress = stats.childrenProgress
                             )
                         } else {

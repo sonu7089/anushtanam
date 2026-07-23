@@ -14,12 +14,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
-import com.mantrasiddhi.data.local.dao.SavingsDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
-import com.mantrasiddhi.data.local.entity.SavingsEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
 import kotlinx.coroutines.CoroutineScope
@@ -32,10 +30,9 @@ import javax.inject.Provider
         UserProfileEntity::class,
         TargetEntity::class,
         RecitationSessionEntity::class,
-        SavingsEntity::class,
         SandhyaLogEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -43,7 +40,6 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun targetDao(): TargetDao
     abstract fun recitationDao(): RecitationDao
-    abstract fun savingsDao(): SavingsDao
     abstract fun sandhyaLogDao(): SandhyaLogDao
 
     companion object {
@@ -114,6 +110,50 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v4 → v5: removes the virtual-money/savings concept. Drops the `savings`
+         * table entirely and reshapes `targets`, replacing the `moneyAmount REAL`
+         * column with `rewardType TEXT NOT NULL` + `rewardDescription TEXT NOT NULL`.
+         *
+         * SQLite can't drop/replace a column in place on older API levels, so we use
+         * the create-new-table / copy / drop / rename pattern. The new `targets_new`
+         * DDL matches Room's generated v5 schema for [TargetEntity] EXACTLY (column
+         * order, types, NOT NULL, primary key) so the runtime identity-hash check
+         * passes. Legacy rows with `moneyAmount > 0` are mapped to a MONEY reward with
+         * a formatted "₹" description; all others become an unset OTHER reward.
+         */
+        val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `savings`")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `targets_new` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`userId` INTEGER NOT NULL, " +
+                        "`setByUserId` INTEGER NOT NULL, " +
+                        "`targetRecitationCount` INTEGER NOT NULL, " +
+                        "`currentRecitationCount` INTEGER NOT NULL, " +
+                        "`rewardType` TEXT NOT NULL, " +
+                        "`rewardDescription` TEXT NOT NULL, " +
+                        "`isCompleted` INTEGER NOT NULL)"
+                )
+
+                db.execSQL(
+                    "INSERT INTO `targets_new` (" +
+                        "`id`, `userId`, `setByUserId`, `targetRecitationCount`, " +
+                        "`currentRecitationCount`, `rewardType`, `rewardDescription`, `isCompleted`) " +
+                        "SELECT `id`, `userId`, `setByUserId`, `targetRecitationCount`, " +
+                        "`currentRecitationCount`, " +
+                        "CASE WHEN `moneyAmount` > 0 THEN 'MONEY' ELSE 'OTHER' END, " +
+                        "CASE WHEN `moneyAmount` > 0 THEN '₹' || printf('%.2f', `moneyAmount`) ELSE '' END, " +
+                        "`isCompleted` FROM `targets`"
+                )
+
+                db.execSQL("DROP TABLE `targets`")
+                db.execSQL("ALTER TABLE `targets_new` RENAME TO `targets`")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -123,10 +163,10 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1→v4 migration chain. No destructive fallback: a missing or
+            // Contiguous v1→v5 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
-            // a published user's recitation history, savings, targets, and Sandhya logs.
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            // a published user's recitation history, targets, and Sandhya logs.
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

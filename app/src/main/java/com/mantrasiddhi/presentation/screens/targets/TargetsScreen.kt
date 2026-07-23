@@ -180,7 +180,7 @@ fun TargetsScreen(
                                 )
                             }
                             
-                            items(state.completedTargets) { completedTarget ->
+                            items(state.completedTargets, key = { it.id }) { completedTarget ->
                                 CompletedTargetItem(target = completedTarget)
                             }
                         }
@@ -192,27 +192,21 @@ fun TargetsScreen(
                             currentUser = state.currentUser,
                             children = state.children,
                             onDismiss = { showSetDialog = false },
-                            onConfirm = { count, money, targetUserId ->
-                                viewModel.createTarget(count, money, targetUserId)
+                            onConfirm = { count, rewardType, rewardDescription, targetUserId ->
+                                viewModel.createTarget(count, rewardType, rewardDescription, targetUserId)
                             }
                         )
                     }
                     
                     // Confirm Abandon Dialog
                     if (targetToAbandonUserId != null) {
-                        val activeTarget = state.activeTarget
-                        val lockedAmt = activeTarget?.moneyAmount ?: 0.0
-                        
                         AlertDialog(
                             onDismissRequest = { targetToAbandonUserId = null },
                             title = { Text(text = stringResource(id = R.string.targets_abandon_dialog_title)) },
-                            text = { 
+                            text = {
                                 Text(
-                                    text = stringResource(
-                                        id = R.string.target_abandon_confirm, 
-                                        lockedAmt
-                                    )
-                                ) 
+                                    text = stringResource(id = R.string.target_abandon_confirm)
+                                )
                             },
                             confirmButton = {
                                 TextButton(

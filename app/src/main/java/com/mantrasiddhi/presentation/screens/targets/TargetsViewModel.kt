@@ -8,6 +8,8 @@ package com.mantrasiddhi.presentation.screens.targets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.data.notification.GoalNotifier
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.repository.TargetRepository
@@ -63,7 +65,8 @@ class TargetsViewModel @Inject constructor(
     private val createTargetUseCase: CreateTargetUseCase,
     private val abandonTargetUseCase: AbandonTargetUseCase,
     private val getChildrenUseCase: GetChildrenUseCase,
-    private val targetRepository: TargetRepository
+    private val targetRepository: TargetRepository,
+    private val goalNotifier: GoalNotifier
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TargetsUiState>(TargetsUiState.Loading)
@@ -109,8 +112,16 @@ class TargetsViewModel @Inject constructor(
 
     /**
      * Creates a new target for the specified user ID (or current user if null).
+     *
+     * When a parent sets a goal FOR a child (the target user differs from the
+     * profile that set it), a local celebratory notification is posted.
      */
-    fun createTarget(targetRecitationCount: Int, moneyAmount: Double, targetUserId: Long? = null) {
+    fun createTarget(
+        targetRecitationCount: Int,
+        rewardType: RewardType,
+        rewardDescription: String,
+        targetUserId: Long? = null
+    ) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TargetsUiState.Success) {
@@ -120,10 +131,18 @@ class TargetsViewModel @Inject constructor(
                     setByUserId = currentState.currentUser.id,
                     targetRecitationCount = targetRecitationCount,
                     currentRecitationCount = 0,
-                    moneyAmount = moneyAmount,
+                    rewardType = rewardType,
+                    rewardDescription = rewardDescription,
                     isCompleted = false
                 )
                 createTargetUseCase(target).onSuccess {
+                    if (target.setByUserId != target.userId) {
+                        goalNotifier.showGoalSet(
+                            count = target.targetRecitationCount,
+                            rewardType = target.rewardType,
+                            rewardDescription = target.rewardDescription
+                        )
+                    }
                     _events.emit(TargetsEvent.TargetCreated)
                 }.onFailure { e ->
                     _events.emit(TargetsEvent.ShowError(e.message ?: "Failed to set target."))

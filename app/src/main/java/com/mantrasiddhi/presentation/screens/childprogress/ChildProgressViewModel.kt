@@ -8,7 +8,9 @@ package com.mantrasiddhi.presentation.screens.childprogress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ChildProgress
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.CreateTargetUseCase
@@ -68,7 +70,8 @@ class ChildProgressViewModel @Inject constructor(
     private val getChildrenUseCase: GetChildrenUseCase,
     private val getChildProgressUseCase: GetChildProgressUseCase,
     private val getChildWeakWordsUseCase: GetChildWeakWordsUseCase,
-    private val createTargetUseCase: CreateTargetUseCase
+    private val createTargetUseCase: CreateTargetUseCase,
+    private val goalNotifier: GoalNotifier
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ChildProgressUiState>(ChildProgressUiState.Loading)
@@ -144,9 +147,10 @@ class ChildProgressViewModel @Inject constructor(
     }
 
     /**
-     * Sets a target for a child from parent dashboard.
+     * Sets a target for a child from the parent dashboard. Since this is always a
+     * parent-for-child goal, a local celebratory notification is posted on success.
      */
-    fun setChildTarget(childId: Long, count: Int, moneyAmount: Double) {
+    fun setChildTarget(childId: Long, count: Int, rewardType: RewardType, rewardDescription: String) {
         viewModelScope.launch {
             val parentProfile = (uiState.value as? ChildProgressUiState.Success)?.parentUser ?: return@launch
             val target = Target(
@@ -154,10 +158,18 @@ class ChildProgressViewModel @Inject constructor(
                 setByUserId = parentProfile.id,
                 targetRecitationCount = count,
                 currentRecitationCount = 0,
-                moneyAmount = moneyAmount,
+                rewardType = rewardType,
+                rewardDescription = rewardDescription,
                 isCompleted = false
             )
             createTargetUseCase(target).onSuccess {
+                if (target.setByUserId != target.userId) {
+                    goalNotifier.showGoalSet(
+                        count = target.targetRecitationCount,
+                        rewardType = target.rewardType,
+                        rewardDescription = target.rewardDescription
+                    )
+                }
                 _events.emit(ChildProgressEvent.TargetSetSuccess)
             }.onFailure { e ->
                 _events.emit(ChildProgressEvent.ShowError(e.message ?: "Failed to set child target."))

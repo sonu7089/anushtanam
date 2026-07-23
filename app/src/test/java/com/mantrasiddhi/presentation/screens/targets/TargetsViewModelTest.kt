@@ -6,7 +6,9 @@
  */
 package com.mantrasiddhi.presentation.screens.targets
 
+import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ProfileType
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.repository.TargetRepository
@@ -17,6 +19,7 @@ import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +47,7 @@ class TargetsViewModelTest {
     private lateinit var abandonTargetUseCase: AbandonTargetUseCase
     private lateinit var getChildrenUseCase: GetChildrenUseCase
     private lateinit var targetRepository: TargetRepository
+    private lateinit var goalNotifier: GoalNotifier
 
     private lateinit var viewModel: TargetsViewModel
 
@@ -72,6 +76,7 @@ class TargetsViewModelTest {
         abandonTargetUseCase = mockk()
         getChildrenUseCase = mockk()
         targetRepository = mockk()
+        goalNotifier = mockk(relaxed = true)
 
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { targetRepository.getAllForUser(testUser.id) } returns flowOf(emptyList())
@@ -85,8 +90,8 @@ class TargetsViewModelTest {
 
     @Test
     fun `should_emitSuccessStateWithTargetsAndChildren_when_parentProfileSelected`() = runTest(testDispatcher) {
-        val activeTarget = Target(id = 1L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 50, moneyAmount = 10.0, isCompleted = false)
-        val completedTarget = Target(id = 2L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 108, moneyAmount = 10.0, isCompleted = true)
+        val activeTarget = Target(id = 1L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 50, rewardType = RewardType.GIFT, rewardDescription = "New mala", isCompleted = false)
+        val completedTarget = Target(id = 2L, userId = 1L, setByUserId = 1L, targetRecitationCount = 108, currentRecitationCount = 108, rewardType = RewardType.GIFT, rewardDescription = "New mala", isCompleted = true)
 
         coEvery { targetRepository.getAllForUser(testUser.id) } returns flowOf(listOf(activeTarget, completedTarget))
 
@@ -95,7 +100,8 @@ class TargetsViewModelTest {
             createTargetUseCase = createTargetUseCase,
             abandonTargetUseCase = abandonTargetUseCase,
             getChildrenUseCase = getChildrenUseCase,
-            targetRepository = targetRepository
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
         )
 
         val state = viewModel.uiState.value
@@ -118,7 +124,8 @@ class TargetsViewModelTest {
             createTargetUseCase = createTargetUseCase,
             abandonTargetUseCase = abandonTargetUseCase,
             getChildrenUseCase = getChildrenUseCase,
-            targetRepository = targetRepository
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
         )
 
         val state = viewModel.uiState.value
@@ -135,7 +142,8 @@ class TargetsViewModelTest {
             createTargetUseCase = createTargetUseCase,
             abandonTargetUseCase = abandonTargetUseCase,
             getChildrenUseCase = getChildrenUseCase,
-            targetRepository = targetRepository
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
         )
         runCurrent()
 
@@ -144,12 +152,36 @@ class TargetsViewModelTest {
             viewModel.events.collect { events.add(it) }
         }
 
-        viewModel.createTarget(108, 50.0, null)
+        viewModel.createTarget(108, RewardType.OTHER, "", null)
         runCurrent()
 
         assertTrue(events.contains(TargetsEvent.TargetCreated))
         coVerify(exactly = 1) { createTargetUseCase(any()) }
+        // Self-target (setByUserId == userId) must NOT post a parent-goal notification.
+        verify(exactly = 0) { goalNotifier.showGoalSet(any(), any(), any()) }
         job.cancel()
+    }
+
+    @Test
+    fun `should_postGoalNotification_when_parentCreatesTargetForChild`() = runTest(testDispatcher) {
+        coEvery { createTargetUseCase(any()) } returns Result.success(11L)
+
+        viewModel = TargetsViewModel(
+            getCurrentUserUseCase = getCurrentUserUseCase,
+            createTargetUseCase = createTargetUseCase,
+            abandonTargetUseCase = abandonTargetUseCase,
+            getChildrenUseCase = getChildrenUseCase,
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
+        )
+        runCurrent()
+
+        // Parent (testUser id 1) sets a goal FOR the child (id 2).
+        viewModel.createTarget(108, RewardType.TOY, "New cricket bat", testChild.id)
+        runCurrent()
+
+        coVerify(exactly = 1) { createTargetUseCase(any()) }
+        verify(exactly = 1) { goalNotifier.showGoalSet(108, RewardType.TOY, "New cricket bat") }
     }
 
     @Test
@@ -161,7 +193,8 @@ class TargetsViewModelTest {
             createTargetUseCase = createTargetUseCase,
             abandonTargetUseCase = abandonTargetUseCase,
             getChildrenUseCase = getChildrenUseCase,
-            targetRepository = targetRepository
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
         )
         runCurrent()
 
@@ -170,7 +203,7 @@ class TargetsViewModelTest {
             viewModel.events.collect { events.add(it) }
         }
 
-        viewModel.createTarget(108, 50.0, null)
+        viewModel.createTarget(108, RewardType.OTHER, "", null)
         runCurrent()
 
         assertTrue(events.any { it is TargetsEvent.ShowError && it.message == "Already has active target" })
@@ -186,7 +219,8 @@ class TargetsViewModelTest {
             createTargetUseCase = createTargetUseCase,
             abandonTargetUseCase = abandonTargetUseCase,
             getChildrenUseCase = getChildrenUseCase,
-            targetRepository = targetRepository
+            targetRepository = targetRepository,
+            goalNotifier = goalNotifier
         )
         runCurrent()
 

@@ -78,10 +78,14 @@ fun TargetCard(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
                 
-                if (target.moneyAmount > 0.0) {
+                if (target.hasReward) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = stringResource(id = R.string.recitation_money_locked, target.moneyAmount),
+                        text = stringResource(
+                            id = R.string.target_reward_label,
+                            target.rewardType.emoji,
+                            target.rewardDescription
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary

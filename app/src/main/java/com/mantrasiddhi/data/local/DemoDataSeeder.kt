@@ -8,14 +8,13 @@ package com.mantrasiddhi.data.local
 
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
-import com.mantrasiddhi.data.local.dao.SavingsDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
-import com.mantrasiddhi.data.local.entity.SavingsEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
+import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.model.SandhyaPeriod
 import com.mantrasiddhi.domain.model.SandhyaRegions
@@ -38,7 +37,6 @@ class DemoDataSeeder @Inject constructor(
     private val userDao: UserDao,
     private val targetDao: TargetDao,
     private val recitationDao: RecitationDao,
-    private val savingsDao: SavingsDao,
     private val sandhyaLogDao: SandhyaLogDao
 ) {
     suspend fun seed() {
@@ -59,13 +57,10 @@ class DemoDataSeeder @Inject constructor(
 
         // 2. Seed Arjun: Consistent Practitioner, 85% avg accuracy, 45/108 target
         targetDao.insert(
-            TargetEntity(id = 1, userId = 1, setByUserId = 1, targetRecitationCount = 108, currentRecitationCount = 108, moneyAmount = 10.0, isCompleted = true)
+            TargetEntity(id = 1, userId = 1, setByUserId = 1, targetRecitationCount = 108, currentRecitationCount = 108, rewardType = RewardType.OUTING.name, rewardDescription = "Trip to the temple fair", isCompleted = true)
         )
         targetDao.insert(
-            TargetEntity(id = 2, userId = 1, setByUserId = 1, targetRecitationCount = 108, currentRecitationCount = 45, moneyAmount = 10.0, isCompleted = false)
-        )
-        savingsDao.insert(
-            SavingsEntity(userId = 1, totalSaved = 10.0, totalLocked = 4.17, totalUnlocked = 10.0)
+            TargetEntity(id = 2, userId = 1, setByUserId = 1, targetRecitationCount = 108, currentRecitationCount = 45, rewardType = RewardType.GIFT.name, rewardDescription = "New rudraksha mala", isCompleted = false)
         )
         // Seed 15 sessions for Arjun over last 7 days (mostly correct, avg 85%)
         val arjunSessions = listOf(
@@ -95,9 +90,6 @@ class DemoDataSeeder @Inject constructor(
         arjunSessions.forEach { recitationDao.insert(it) }
 
         // 3. Seed Meera: Occasional practitioner
-        savingsDao.insert(
-            SavingsEntity(userId = 2, totalSaved = 0.0, totalLocked = 0.0, totalUnlocked = 0.0)
-        )
         val meeraSessions = listOf(
             generateSession(2, "NORMAL", 0.83, now - dayMs, 9800),
             generateSession(2, "NORMAL", 0.87, now - 2 * dayMs, 9100),
@@ -107,12 +99,10 @@ class DemoDataSeeder @Inject constructor(
         )
         meeraSessions.forEach { recitationDao.insert(it) }
 
-        // 4. Seed Aarav: Improving Beginner, 65% avg accuracy, 12/108 target
+        // 4. Seed Aarav: Improving Beginner, 65% avg accuracy, 12/108 target.
+        // Target set by parent (Meera, id 2) for child Aarav (id 3) with a toy reward.
         targetDao.insert(
-            TargetEntity(id = 3, userId = 3, setByUserId = 2, targetRecitationCount = 108, currentRecitationCount = 12, moneyAmount = 5.0, isCompleted = false)
-        )
-        savingsDao.insert(
-            SavingsEntity(userId = 3, totalSaved = 0.0, totalLocked = 0.56, totalUnlocked = 0.0)
+            TargetEntity(id = 3, userId = 3, setByUserId = 2, targetRecitationCount = 108, currentRecitationCount = 12, rewardType = RewardType.TOY.name, rewardDescription = "New cricket bat", isCompleted = false)
         )
         // Seed 12 sessions for Aarav (more incorrect, avg 65%)
         val aaravSessions = listOf(
@@ -139,16 +129,13 @@ class DemoDataSeeder @Inject constructor(
 
         // 5. Seed Priya: Advanced, high accuracy, multiple completed targets
         targetDao.insert(
-            TargetEntity(id = 4, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 108, moneyAmount = 15.0, isCompleted = true)
+            TargetEntity(id = 4, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 108, rewardType = RewardType.FOOD.name, rewardDescription = "Favourite sweets", isCompleted = true)
         )
         targetDao.insert(
-            TargetEntity(id = 5, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 108, moneyAmount = 15.0, isCompleted = true)
+            TargetEntity(id = 5, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 108, rewardType = RewardType.MONEY.name, rewardDescription = "₹100 pocket money", isCompleted = true)
         )
         targetDao.insert(
-            TargetEntity(id = 6, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 80, moneyAmount = 15.0, isCompleted = false)
-        )
-        savingsDao.insert(
-            SavingsEntity(userId = 4, totalSaved = 30.0, totalLocked = 11.11, totalUnlocked = 30.0)
+            TargetEntity(id = 6, userId = 4, setByUserId = 4, targetRecitationCount = 108, currentRecitationCount = 80, rewardType = RewardType.OTHER.name, rewardDescription = "", isCompleted = false)
         )
         // Seed 20 sessions for Priya (high scores, avg 92%)
         val priyaSessions = mutableListOf<RecitationSessionEntity>()

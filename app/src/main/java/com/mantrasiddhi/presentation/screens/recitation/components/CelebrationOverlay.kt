@@ -28,10 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mantrasiddhi.R
+import com.mantrasiddhi.domain.model.RewardType
 
 @Composable
 fun CelebrationOverlay(
-    moneyAmount: Double,
+    rewardType: RewardType,
+    rewardDescription: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -80,20 +82,26 @@ fun CelebrationOverlay(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
 
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-                            shape = MaterialTheme.shapes.medium
+                if (rewardDescription.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                                shape = MaterialTheme.shapes.medium
+                            )
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.recitation_reward_earned,
+                                rewardType.emoji,
+                                rewardDescription
+                            ),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        .padding(horizontal = 24.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.recitation_money_unlocked, moneyAmount),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    }
                 }
 
                 Text(

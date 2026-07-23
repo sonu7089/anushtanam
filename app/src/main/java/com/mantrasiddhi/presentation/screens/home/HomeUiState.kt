@@ -7,7 +7,6 @@
 package com.mantrasiddhi.presentation.screens.home
 
 import com.mantrasiddhi.domain.model.ChildProgress
-import com.mantrasiddhi.domain.model.Savings
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 
@@ -18,7 +17,6 @@ sealed interface HomeUiState {
         val todayCount: Int,
         val activeTarget: Target?,
         val streakDays: Int,
-        val savings: Savings?,
         val childrenProgress: List<ChildProgress> = emptyList()
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState

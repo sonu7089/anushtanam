@@ -19,12 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -42,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.components.ProfileAvatar
 import com.mantrasiddhi.presentation.components.ProgressRing
-import com.mantrasiddhi.presentation.components.SavingsCard
 import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +50,7 @@ fun HomeScreen(
     onNavigateToTargets: () -> Unit,
     onNavigateToChildProgress: () -> Unit,
     onNavigateToSandhya: () -> Unit = {},
+    onNavigateToFamily: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -120,12 +117,6 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
-                    }
-
-                    // Savings summary card (if savings exist)
-                    state.savings?.let {
-                        SavingsCard(savings = it)
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
                     ElevatedCard(
@@ -228,9 +219,13 @@ fun HomeScreen(
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.Bold
                                         )
-                                        if (target.moneyAmount > 0.0) {
+                                        if (target.hasReward) {
                                             Text(
-                                                text = stringResource(id = R.string.recitation_money_locked, target.moneyAmount),
+                                                text = stringResource(
+                                                    id = R.string.target_reward_label,
+                                                    target.rewardType.emoji,
+                                                    target.rewardDescription
+                                                ),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.secondary,
                                                 fontWeight = FontWeight.SemiBold
@@ -276,6 +271,34 @@ fun HomeScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Family (cloud) entry point: parent linking & goals / child ID & approvals.
+                    OutlinedCard(
+                        onClick = onNavigateToFamily,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.home_family_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(id = R.string.home_family_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+
                     // Children summary cards (only visible to Parents)
                     if (state.user.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT && state.childrenProgress.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -294,46 +317,6 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Quick Action Buttons
-                    Text(
-                        text = stringResource(id = R.string.home_quick_actions),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(
-                            onClick = onNavigateToRecitation,
-                            shape = MaterialTheme.shapes.extraLarge,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                        ) {
-                            Text(
-                                text = stringResource(id = R.string.home_start_recitation),
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                        FilledTonalButton(
-                            onClick = onNavigateToPractice,
-                            shape = MaterialTheme.shapes.extraLarge,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                        ) {
-                            Text(
-                                text = stringResource(id = R.string.home_practice_mode),
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                    
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
