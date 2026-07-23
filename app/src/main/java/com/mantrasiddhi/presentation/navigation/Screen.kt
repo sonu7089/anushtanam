@@ -10,6 +10,11 @@ import com.mantrasiddhi.R
 
 sealed class Screen(val route: String, val labelResId: Int = 0) {
     data object Login : Screen("login")
+    data object AuthGate : Screen("auth_gate")
+    data object Welcome : Screen("welcome")
+    data object ParentAuth : Screen("parent_auth")
+    data object ChildAuth : Screen("child_auth")
+    data object Family : Screen("family")
     data object Home : Screen("home", R.string.title_home)
     data object Practice : Screen("practice", R.string.title_practice)
     data object Recitation : Screen("recitation", R.string.title_recitation)

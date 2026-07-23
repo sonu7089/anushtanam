@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 // Optional release-signing config. When `keystore.properties` (gitignored) is present,
@@ -89,6 +90,14 @@ android {
         jvmTarget = "17"
     }
 
+    // Expose the exported Room schema JSONs to instrumentation tests so
+    // MigrationTestHelper can find them when validating migrations.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir("$projectDir/schemas")
+        }
+    }
+
     buildFeatures {
         compose = true
     }
@@ -151,6 +160,12 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // Firebase (Auth + Firestore + Cloud Messaging), versions via the BoM
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
 
     // Local/Unit Tests
     testImplementation(libs.junit) // Fallback / standard junit4

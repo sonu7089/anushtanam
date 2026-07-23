@@ -1,0 +1,115 @@
+rules_version = '2';
+
+// Anushtanam (shastralife.anushtanam) — Firestore security rules for the Phase B
+// cloud backend. The client only stores operational data here; heavy recitation
+// analytics stay on-device in Room and are never synced.
+//
+// Identity model:
+//   - Parent: real Firebase email + password.
+//   - Child:  synthetic email c<12digits>@child.anushtanam.app + 6-digit PIN.
+//     The 12-digit code doubles as the child's login id and the linking code.
+//
+// A signed-out user can do nothing (every rule requires request.auth != null, and no
+// rule grants public access).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- helpers ---------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // True if an APPROVED link exists between the given parent and child uids.
+    function isApprovedLink(parentUid, childUid) {
+      let id = parentUid + '_' + childUid;
+      return exists(/databases/$(database)/documents/links/$(id)) &&
+        get(/databases/$(database)/documents/links/$(id)).data.status == 'APPROVED';
+    }
+
+    // --- users/{uid} -----------------------------------------------------------
+    // A user may always read their own doc. Another user's doc is readable only when
+    // an APPROVED link exists between them (either direction) — this lets a parent
+    // read a linked child's displayName / fcmToken, and vice versa. Code lookups go
+    // through the dedicated childCodes collection, so users reads stay self-or-linked.
+    // A user may only write their own doc.
+    match /users/{uid} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid ||
+        isApprovedLink(request.auth.uid, uid) ||
+        isApprovedLink(uid, request.auth.uid)
+      );
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- childCodes/{code} -----------------------------------------------------
+    // Maps a 12-digit code -> child uid. Any signed-in user may read (a parent must
+    // resolve a code to send a link request). A child may create only their own code
+    // doc (uid must equal their auth uid). Codes are immutable: no update/delete.
+    match /childCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // --- links/{parentUid}_{childUid} -----------------------------------------
+    // Create: only the parent, only a PENDING link they own (parentUid == auth.uid).
+    // Read:   only the two participants.
+    // Update: only the child (childUid == auth.uid), and only to flip the status
+    //         (parentUid/childUid must be unchanged). A parent can never self-approve.
+    // Delete: never.
+    match /links/{linkId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentUid ||
+        request.auth.uid == resource.data.childUid
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.parentUid == request.auth.uid &&
+        request.resource.data.status == 'PENDING' &&
+        request.resource.data.childUid != request.auth.uid;
+      allow update: if isSignedIn() &&
+        request.auth.uid == resource.data.childUid &&
+        request.resource.data.parentUid == resource.data.parentUid &&
+        request.resource.data.childUid == resource.data.childUid &&
+        request.resource.data.status in ['APPROVED', 'REJECTED'];
+      allow delete: if false;
+    }
+
+    // --- goals/{autoId} --------------------------------------------------------
+    // Create/edit reward+target: only the parent, and only when an APPROVED link to
+    //   the childUid exists.
+    // Read: either participant (parent or child).
+    // Child update: the child may update ONLY currentRecitationCount / isCompleted on
+    //   their own goals (all other fields must be unchanged); this is how recitation
+    //   progress is recorded. Delete: never.
+    match /goals/{goalId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentUid ||
+        request.auth.uid == resource.data.childUid
+      );
+
+      allow create: if isSignedIn() &&
+        request.resource.data.parentUid == request.auth.uid &&
+        isApprovedLink(request.auth.uid, request.resource.data.childUid);
+
+      // Parent edit (reward / target changes), still requires the approved link.
+      allow update: if isSignedIn() &&
+        request.auth.uid == resource.data.parentUid &&
+        request.resource.data.parentUid == resource.data.parentUid &&
+        request.resource.data.childUid == resource.data.childUid &&
+        isApprovedLink(request.auth.uid, resource.data.childUid);
+
+      // Child progress update: only the two progress fields may change.
+      allow update: if isSignedIn() &&
+        request.auth.uid == resource.data.childUid &&
+        request.resource.data.parentUid == resource.data.parentUid &&
+        request.resource.data.childUid == resource.data.childUid &&
+        request.resource.data.rewardType == resource.data.rewardType &&
+        request.resource.data.rewardDescription == resource.data.rewardDescription &&
+        request.resource.data.targetRecitationCount == resource.data.targetRecitationCount;
+
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1099014481275",
+    "project_id": "anushtanam-shastralife",
+    "storage_bucket": "anushtanam-shastralife.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1099014481275:android:3e62a98dcd29d1d13889de",
+        "android_client_info": {
+          "package_name": "shastralife.anushtanam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGZek00gonDOqHHNDeI8lurx17W4WrrhU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

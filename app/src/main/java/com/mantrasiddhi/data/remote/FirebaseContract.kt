@@ -1,0 +1,70 @@
+/*
+ * Anushtanam - Gayatri Mantra Recitation App
+ * Copyright (c) 2026. All rights reserved.
+ *
+ * This is a demo application. Not for production use.
+ */
+package com.mantrasiddhi.data.remote
+
+/**
+ * Firestore collection names, field keys, and identity conventions for the Phase B
+ * cloud backend. Kept in one place so the client and the security rules / Cloud
+ * Function stay in lockstep.
+ */
+object FirebaseContract {
+    // Collections
+    const val COLLECTION_USERS = "users"
+    const val COLLECTION_CHILD_CODES = "childCodes"
+    const val COLLECTION_LINKS = "links"
+    const val COLLECTION_GOALS = "goals"
+
+    // users/{uid}
+    const val FIELD_ROLE = "role"
+    const val FIELD_DISPLAY_NAME = "displayName"
+    const val FIELD_LINK_CODE = "linkCode"
+    const val FIELD_FCM_TOKEN = "fcmToken"
+    const val FIELD_CREATED_AT = "createdAt"
+
+    // childCodes/{code}
+    const val FIELD_UID = "uid"
+
+    // links/{parentUid}_{childUid}
+    const val FIELD_PARENT_UID = "parentUid"
+    const val FIELD_CHILD_UID = "childUid"
+    const val FIELD_CHILD_NAME = "childName"
+    const val FIELD_PARENT_NAME = "parentName"
+    const val FIELD_STATUS = "status"
+    const val FIELD_UPDATED_AT = "updatedAt"
+
+    // goals/{autoId}
+    const val FIELD_REWARD_TYPE = "rewardType"
+    const val FIELD_REWARD_DESCRIPTION = "rewardDescription"
+    const val FIELD_TARGET_COUNT = "targetRecitationCount"
+    const val FIELD_CURRENT_COUNT = "currentRecitationCount"
+    const val FIELD_IS_COMPLETED = "isCompleted"
+
+    /** Synthetic email domain for child accounts (no real mailbox). */
+    const val CHILD_EMAIL_DOMAIN = "@child.anushtanam.app"
+
+    /** Length of the numeric child ID / link code. */
+    const val CODE_LENGTH = 12
+
+    const val PIN_LENGTH = 6
+
+    /** Builds the synthetic Firebase email for a child [code]: `c<code>@child.anushtanam.app`. */
+    fun childEmail(code: String): String = "c$code$CHILD_EMAIL_DOMAIN"
+
+    /** Builds the `links` document id for a (parent, child) pair. */
+    fun linkId(parentUid: String, childUid: String): String = "${parentUid}_$childUid"
+
+    /** True when [email] is a synthetic child email. */
+    fun isChildEmail(email: String?): Boolean = email?.endsWith(CHILD_EMAIL_DOMAIN) == true
+
+    /** Extracts the 12-digit code from a synthetic child [email], or null. */
+    fun codeFromChildEmail(email: String?): String? {
+        if (!isChildEmail(email)) return null
+        val local = email!!.substringBefore(CHILD_EMAIL_DOMAIN)
+        val code = local.removePrefix("c")
+        return code.takeIf { it.length == CODE_LENGTH && it.all(Char::isDigit) }
+    }
+}

@@ -120,7 +120,7 @@ fun LoginScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(state.profiles) { profile ->
+                        items(state.profiles, key = { it.id }) { profile ->
                             ProfileGridItem(
                                 profile = profile,
                                 onClick = { viewModel.selectProfile(profile) }
