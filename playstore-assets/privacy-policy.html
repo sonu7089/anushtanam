@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Anushtanam</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.65;
+         max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; color: #1c1c1e; }
+  h1 { color: #C00012; margin-bottom: 4px; }
+  h2 { color: #C00012; margin-top: 36px; font-size: 1.15rem; }
+  .updated { color: #666; font-size: .9rem; margin-top: 0; }
+  .callout { background: #FFF3E0; border-left: 4px solid #C00012; padding: 14px 18px; margin: 24px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 9px 12px; text-align: left; vertical-align: top; font-size: .95rem; }
+  th { background: #faf7f2; }
+  code { background: #f4f4f5; padding: 1px 5px; border-radius: 3px; font-size: .9em; }
+</style>
+</head>
+<body>
+
+<h1>Privacy Policy for Anushtanam</h1>
+<p class="updated">Last updated: 23 July 2026</p>
+
+<div class="callout">
+  <strong>Summary:</strong> Anushtanam is a mantra practice app. Most of what you do — reciting,
+  pronunciation feedback, and reminders — happens entirely on your device. If you choose to create
+  an account, some data (such as your email, profile name, and practice goals) is stored securely in
+  the cloud using Google Firebase so features like parent–child linking and goal sync can work. We do
+  not use advertising, and we do not sell your data.
+</div>
+
+<h2>1. Who we are</h2>
+<p>
+  Anushtanam ("the app") is a devotional mantra practice application published by Nitish Songara
+  ("we", "us"). This policy explains what information the app handles and why. Questions:
+  <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>.
+</p>
+
+<h2>2. On-device features (no data leaves your device)</h2>
+<p>
+  The core practice experience runs locally on your device and transmits nothing to us:
+</p>
+<ul>
+  <li><strong>Speech / pronunciation feedback</strong> — recitation is processed by your device's
+      on-device speech recognition. Audio is not recorded, stored, or uploaded.</li>
+  <li><strong>Approximate location</strong> — used only in an on-device calculation of local sunrise
+      and sunset times for Sandhya reminders. It is not transmitted or stored off your device.</li>
+  <li><strong>Local practice history</strong> — your recitation history and progress are stored in a
+      private database on your device.</li>
+</ul>
+
+<h2>3. Account and cloud features (data we collect)</h2>
+<p>
+  Some features are optional and require an account. If you use them, we collect and store the
+  following using Google Firebase (Authentication, Cloud Firestore, and Cloud Messaging):
+</p>
+<table>
+  <tr><th>Data</th><th>Why</th><th>Where it is stored</th></tr>
+  <tr>
+    <td>Email address and password (parent accounts)</td>
+    <td>To create and sign in to a parent account.</td>
+    <td>Firebase Authentication. Passwords are handled by Firebase and are not visible to us.</td>
+  </tr>
+  <tr>
+    <td>Profile name / display name</td>
+    <td>To identify accounts and show who is practising.</td>
+    <td>Cloud Firestore.</td>
+  </tr>
+  <tr>
+    <td>Account identifiers (user ID, link codes, child code)</td>
+    <td>To manage accounts and to link a parent to a child profile.</td>
+    <td>Firebase Authentication and Cloud Firestore.</td>
+  </tr>
+  <tr>
+    <td>Practice goals (targets, recitation counts, reward description, completion status)</td>
+    <td>To set goals and let a linked parent follow progress.</td>
+    <td>Cloud Firestore.</td>
+  </tr>
+  <tr>
+    <td>Parent–child link (parent name, child name, link status)</td>
+    <td>To connect a parent account with a child profile.</td>
+    <td>Cloud Firestore.</td>
+  </tr>
+  <tr>
+    <td>Push notification token</td>
+    <td>To deliver reminders and goal notifications.</td>
+    <td>Firebase Cloud Messaging / Cloud Firestore.</td>
+  </tr>
+</table>
+<p>
+  We use <strong>no advertising</strong> and <strong>no advertising identifier</strong>. We do not use
+  analytics or tracking SDKs. Data is transmitted over encrypted (HTTPS/TLS) connections.
+</p>
+
+<h2>4. How we use your data</h2>
+<p>
+  We use the data above only to provide the app's features: creating and securing accounts, linking a
+  parent to a child profile, syncing practice goals, and sending reminders/notifications. We do not use
+  it for advertising or profiling, and we do not sell it.
+</p>
+
+<h2>5. Sharing</h2>
+<p>
+  We do not sell your data and do not share it for advertising. Your data is processed on our behalf by
+  Google Firebase as our service provider, subject to Google's security and privacy protections. If a
+  parent and child are linked, the parent can see that child's linked profile name and practice goal
+  progress.
+</p>
+
+<h2>6. Children's privacy</h2>
+<p>
+  Anushtanam is intended for family use, including children, and supports child profiles that a parent
+  sets up and manages. A child profile is created and linked by a parent using a link code; child
+  profiles use a synthetic internal identifier rather than a real email address. For a child profile we
+  store the child's chosen profile name, practice goals/progress, and the parent–child link so a parent
+  can follow along.
+</p>
+<p>
+  We collect only what is needed to provide these features, we do not use children's data for
+  advertising, and we do not sell it. We do not knowingly collect personal information from a child
+  beyond what a parent provides when setting up and using the profile. A parent can review or request
+  deletion of a child's profile and associated data at any time by contacting us at the email below or
+  by using the in-app options.
+</p>
+
+<h2>7. Data retention and deletion</h2>
+<p>
+  On-device data is removed when you clear the app's storage or uninstall the app. For account and cloud
+  data, you can request deletion of your account and associated data — including a linked child profile —
+  by emailing <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>. We will delete
+  the associated cloud data on request.
+</p>
+
+<h2>8. Security</h2>
+<p>
+  On-device data is kept in the app's private, OS-protected storage. Cloud data is stored using Google
+  Firebase and transmitted over encrypted connections. Authentication and access are managed by Firebase.
+</p>
+
+<h2>9. Changes to this policy</h2>
+<p>
+  If this policy changes, the updated version will be posted at this URL with a revised "Last updated"
+  date. Material changes will be reflected in an app update.
+</p>
+
+<h2>10. Contact</h2>
+<p>
+  Questions or data requests: <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>.
+</p>
+
+</body>
+</html>
