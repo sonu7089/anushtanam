@@ -16,9 +16,13 @@
     <!-- Optional "Use my location" path; the manual region picker works without it. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- enableOnBackInvokedCallback=false: targetSdk 36 (Android 16) turns predictive
+         back ON by default; opting out preserves the exact pre-36 back-navigation
+         behavior. Deliberate no-behavior-change choice for the compliance update. -->
     <application
         android:name=".MantraSiddhiApplication"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

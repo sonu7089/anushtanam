@@ -20,14 +20,17 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.mantrasiddhi"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "shastralife.anushtanam"
         minSdk = 33
-        targetSdk = 35
-        versionCode = 7
-        versionName = "1.2"
+        // targetSdk 36 (Android 16): required by Play policy from Aug 31, 2026.
+        targetSdk = 36
+        versionCode = 8
+        // Patch bump so installed builds are distinguishable from 1.2 (vc5-7);
+        // identical versionNames across codes caused real debugging confusion.
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

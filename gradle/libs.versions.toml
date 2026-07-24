@@ -1,5 +1,9 @@
 [versions]
-agp = "8.5.0"
+# 8.9.1: minimum AGP for compileSdk 36 (Android 16); also includes the automatic
+# 16 KB zip alignment of uncompressed native libs (added in 8.5.1) that Play's
+# "memory page size" check requires. Deliberately NOT AGP 9.x — that would force
+# a Kotlin 2 migration (behavior risk) for an advisory-only console metric.
+agp = "8.9.1"
 kotlin = "1.9.24"
 ksp = "1.9.24-1.0.20"
 composeBom = "2024.06.00"
@@ -18,7 +22,9 @@ junit5 = "5.10.2"
 mockk = "1.13.10"
 coroutines = "1.8.1"
 activityCompose = "1.9.0"
-datastore = "1.1.1"
+# 1.1.7 is the 16 KB-page-size-compliant build of libdatastore_shared_counter.so.
+# Do NOT bump to 1.2.0 — it regressed 16 KB ELF alignment (flutter/flutter#182898).
+datastore = "1.1.7"
 json = "20231013"
 googleServices = "4.4.2"
 firebaseBom = "33.5.1"
