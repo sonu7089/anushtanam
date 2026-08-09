@@ -8,6 +8,7 @@ package com.mantrasiddhi.presentation.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.preferences.SandhyaPreferences
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.GetProfilesUseCase
@@ -43,8 +44,8 @@ class LoginViewModel @Inject constructor(
     private fun loadProfiles() {
         viewModelScope.launch {
             getProfilesUseCase()
-                .catch { e ->
-                    _uiState.value = LoginUiState.Error(e.message ?: "Failed to load profiles")
+                .catch {
+                    _uiState.value = LoginUiState.Error(R.string.login_error_load_profiles)
                 }
                 .collect { profiles ->
                     // Preseeded data might take a split second, wait if empty initially

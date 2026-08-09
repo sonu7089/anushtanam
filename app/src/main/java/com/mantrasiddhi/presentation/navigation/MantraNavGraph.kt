@@ -66,6 +66,7 @@ import com.mantrasiddhi.presentation.screens.login.LoginScreen
 import com.mantrasiddhi.presentation.screens.login.LoginViewModel
 import com.mantrasiddhi.presentation.screens.practice.PracticeScreen
 import com.mantrasiddhi.presentation.screens.progress.ProgressScreen
+import com.mantrasiddhi.presentation.screens.purashcharana.PurashcharanaScreen
 import com.mantrasiddhi.presentation.screens.recitation.RecitationScreen
 import com.mantrasiddhi.presentation.screens.sandhya.SandhyaScreen
 import com.mantrasiddhi.presentation.screens.settings.SettingsScreen
@@ -82,7 +83,10 @@ private val NavigationRouteOrder = mapOf(
     Screen.ChildProgress.route to 5,
     Screen.Sandhya.route to 6,
     Screen.Settings.route to 7,
-    Screen.Targets.route to 8
+    Screen.Targets.route to 8,
+    // Purashcharana is a detail push from Home, like Targets, so it slides in from the
+    // right of everything the bottom bar can reach.
+    Screen.Purashcharana.route to 9
 )
 
 /**
@@ -121,7 +125,8 @@ fun MantraApp(
         Screen.ChildAuth.route,
         Screen.Family.route,
         Screen.Sandhya.route,
-        Screen.Targets.route
+        Screen.Targets.route,
+        Screen.Purashcharana.route
     )
     val showBottomBar = currentRoute != null && currentRoute !in detailRoutes
     val isParent = currentUser?.profileType == ProfileType.PARENT
@@ -272,7 +277,8 @@ fun MantraApp(
                     onNavigateToTargets = { navController.navigate(Screen.Targets.route) },
                     onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) },
                     onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) },
-                    onNavigateToFamily = { navController.navigate(Screen.Family.route) }
+                    onNavigateToFamily = { navController.navigate(Screen.Family.route) },
+                    onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) }
                 )
             }
 
@@ -302,6 +308,13 @@ fun MantraApp(
 
             composable(Screen.Sandhya.route) {
                 SandhyaScreen(viewModel = hiltViewModel())
+            }
+
+            composable(Screen.Purashcharana.route) {
+                PurashcharanaScreen(
+                    viewModel = hiltViewModel(),
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable(Screen.Settings.route) {

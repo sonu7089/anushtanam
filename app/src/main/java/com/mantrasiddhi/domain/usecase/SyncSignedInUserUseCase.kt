@@ -12,6 +12,8 @@ import com.mantrasiddhi.domain.model.AccountRole
 import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
+import com.mantrasiddhi.domain.repository.PurashcharanaRepository
+import com.mantrasiddhi.domain.repository.PurashcharanaSyncRepository
 import com.mantrasiddhi.domain.repository.SessionRepository
 import com.mantrasiddhi.domain.repository.TargetRepository
 import com.mantrasiddhi.domain.repository.TargetSyncRepository
@@ -35,7 +37,9 @@ class SyncSignedInUserUseCase @Inject constructor(
     private val userPreferencesDataStore: UserPreferencesDataStore,
     private val sandhyaPreferences: SandhyaPreferences,
     private val targetRepository: TargetRepository,
-    private val targetSyncRepository: TargetSyncRepository
+    private val targetSyncRepository: TargetSyncRepository,
+    private val purashcharanaRepository: PurashcharanaRepository,
+    private val purashcharanaSyncRepository: PurashcharanaSyncRepository
 ) {
     suspend operator fun invoke(account: AuthAccount): Long {
         val profileType = when (account.role) {
@@ -85,6 +89,27 @@ class SyncSignedInUserUseCase @Inject constructor(
                         mirrored.copy(userId = localId, setByUserId = localId)
                     )
                 }
+            }
+        }
+
+        // Restore the mirrored Purashcharana. A sankalpa is 24,00,000 japa — years of
+        // work — so unlike the target restore this one also runs when a local sankalpa
+        // already exists, to raise a count the cloud knows to be higher. The decision
+        // itself is pure (see PurashcharanaReconciler) and can only ever raise; an
+        // offline login simply skips it.
+        runCatching {
+            // Drop anything the mirror's throttle is still holding first. It may have been
+            // captured before this account signed in, and writing it after the reconcile
+            // would push a superseded count back over the record we are about to adopt.
+            purashcharanaSyncRepository.discardPending()
+            val local = purashcharanaRepository.getActive(localId)
+            val remote = purashcharanaSyncRepository.fetchMirrored()
+            when (val action = PurashcharanaReconciler.resolve(local, remote)) {
+                is PurashcharanaReconcileAction.Restore ->
+                    purashcharanaRepository.adoptRemote(localId, action.remote)
+                is PurashcharanaReconcileAction.RaiseLocal ->
+                    purashcharanaRepository.adoptRemote(localId, action.merged)
+                PurashcharanaReconcileAction.None -> Unit
             }
         }
 

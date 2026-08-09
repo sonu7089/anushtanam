@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.targets
 
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.RewardType
@@ -130,7 +131,7 @@ class TargetsViewModelTest {
 
         val state = viewModel.uiState.value
         assertTrue(state is TargetsUiState.Error)
-        assertEquals("No active user profile selected.", (state as TargetsUiState.Error).message)
+        assertEquals(R.string.targets_error_no_profile, (state as TargetsUiState.Error).messageResId)
     }
 
     @Test
@@ -206,7 +207,13 @@ class TargetsViewModelTest {
         viewModel.createTarget(108, RewardType.OTHER, "", null)
         runCurrent()
 
-        assertTrue(events.any { it is TargetsEvent.ShowError && it.message == "Already has active target" })
+        assertTrue(
+            events.any {
+                it is TargetsEvent.ShowError &&
+                    it.messageResId == R.string.targets_error_create_failed &&
+                    it.detail == "Already has active target"
+            }
+        )
         job.cancel()
     }
 

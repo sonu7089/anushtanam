@@ -12,6 +12,8 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import androidx.annotation.StringRes
+import com.mantrasiddhi.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ProducerScope
@@ -46,7 +48,7 @@ class SpeechRecognitionService @Inject constructor(
             // fall back to the network recognizer — that silent fallback produced the
             // transient, inconsistent results we want to eliminate.
             if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-                trySend(SpeechResult.Error(ERROR_MODEL_UNAVAILABLE, MODEL_MISSING_MESSAGE))
+                trySend(SpeechResult.Error(ERROR_MODEL_UNAVAILABLE, R.string.speech_error_model_missing))
                 close()
                 return
             }
@@ -80,12 +82,12 @@ class SpeechRecognitionService @Inject constructor(
                     // 5 = ERROR_CLIENT. On the on-device recognizer these indicate the
                     // Hindi model is missing or broken; surface a clear error so the gate
                     // can route the user back to the download screen — no network fallback.
-                    val message = if (error == 13 || error == 14 || error == 5) {
-                        MODEL_MISSING_MESSAGE
+                    val messageResId = if (error == 13 || error == 14 || error == 5) {
+                        R.string.speech_error_model_missing
                     } else {
-                        getErrorMessage(error)
+                        errorMessageResId(error)
                     }
-                    trySend(SpeechResult.Error(error, message))
+                    trySend(SpeechResult.Error(error, messageResId))
                     close()
                 }
 
@@ -153,20 +155,25 @@ class SpeechRecognitionService @Inject constructor(
         }
     }
 
-    private fun getErrorMessage(errorCode: Int): String {
+    /**
+     * Maps a recognizer error code to the sentence the sadhak sees. Resource ids, not text:
+     * the Abhyas screen renders this verbatim, so it has to come from `strings.xml`.
+     */
+    @StringRes
+    private fun errorMessageResId(errorCode: Int): Int {
         return when (errorCode) {
-            SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
-            SpeechRecognizer.ERROR_CLIENT -> "Client side error"
-            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Insufficient permissions"
-            SpeechRecognizer.ERROR_NETWORK -> "Network error"
-            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-            SpeechRecognizer.ERROR_NO_MATCH -> "No speech match found"
-            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer busy"
-            SpeechRecognizer.ERROR_SERVER -> "Server error"
-            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech input"
-            13 -> "Hindi offline speech model not downloaded" // ERROR_LANGUAGE_UNAVAILABLE
-            14 -> "Language not supported" // ERROR_LANGUAGE_NOT_SUPPORTED
-            else -> "Unknown error ($errorCode)"
+            SpeechRecognizer.ERROR_AUDIO -> R.string.speech_error_audio
+            SpeechRecognizer.ERROR_CLIENT -> R.string.speech_error_client
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> R.string.speech_error_permission
+            SpeechRecognizer.ERROR_NETWORK -> R.string.speech_error_network
+            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> R.string.speech_error_network_timeout
+            SpeechRecognizer.ERROR_NO_MATCH -> R.string.speech_error_no_match
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> R.string.speech_error_busy
+            SpeechRecognizer.ERROR_SERVER -> R.string.speech_error_server
+            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> R.string.speech_error_speech_timeout
+            13 -> R.string.speech_error_model_missing // ERROR_LANGUAGE_UNAVAILABLE
+            14 -> R.string.speech_error_language_not_supported // ERROR_LANGUAGE_NOT_SUPPORTED
+            else -> R.string.speech_error_unknown
         }
     }
 
@@ -179,9 +186,5 @@ class SpeechRecognitionService @Inject constructor(
 
         /** Error code surfaced when the on-device Hindi model is unavailable at capture time. */
         const val ERROR_MODEL_UNAVAILABLE = 13
-
-        /** User-facing message shown when the Hindi voice model is missing during capture. */
-        const val MODEL_MISSING_MESSAGE =
-            "Hindi voice model unavailable. Please reinstall it from the voice model screen to continue."
     }
 }

@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.auth
 
+import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.AccountRole
 import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.usecase.SendParentPasswordResetUseCase
@@ -83,7 +84,7 @@ class AuthViewModelTest {
 
         coVerify { syncSignedInUserUseCase(parentAccount) }
         assertTrue(events.any { it is AuthEvent.NavigateToHome })
-        assertNull(viewModel.uiState.value.errorMessage)
+        assertNull(viewModel.uiState.value.errorMessageResId)
         job.cancel()
     }
 
@@ -95,7 +96,7 @@ class AuthViewModelTest {
 
         viewModel.signInParent("meera@example.com", "wrong")
 
-        assertEquals("bad creds", viewModel.uiState.value.errorMessage)
+        assertEquals("bad creds", viewModel.uiState.value.errorDetail)
         assertTrue(events.none { it is AuthEvent.NavigateToHome })
         job.cancel()
     }
@@ -103,7 +104,10 @@ class AuthViewModelTest {
     @Test
     fun `parent login validates blank input without calling backend`() = runTest(testDispatcher) {
         viewModel.signInParent("", "")
-        assertTrue(viewModel.uiState.value.errorMessage!!.isNotBlank())
+        assertEquals(
+            R.string.auth_error_missing_credentials,
+            viewModel.uiState.value.errorMessageResId
+        )
         coVerify(exactly = 0) { signInParentUseCase(any(), any()) }
     }
 

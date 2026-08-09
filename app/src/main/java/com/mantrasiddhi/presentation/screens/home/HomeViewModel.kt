@@ -8,6 +8,8 @@ package com.mantrasiddhi.presentation.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
+import com.mantrasiddhi.domain.usecase.GetActivePurashcharanaUseCase
 import com.mantrasiddhi.domain.usecase.GetDashboardStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,9 +18,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,7 +29,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val getDashboardStatsUseCase: GetDashboardStatsUseCase
+    private val getDashboardStatsUseCase: GetDashboardStatsUseCase,
+    private val getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -40,23 +44,31 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             getCurrentUserUseCase().flatMapLatest { user ->
                 if (user != null) {
-                    getDashboardStatsUseCase(user.id).catch { e ->
-                        emit(null)
-                    }.map { stats ->
+                    combine(
+                        getDashboardStatsUseCase(user.id).catch { emit(null) },
+                        // The Purashcharana is one card on a dashboard, so it may neither
+                        // break the page nor hold it up: `catch` degrades a failure to null,
+                        // and `onStart` seeds a null so `combine` can emit as soon as the
+                        // stats arrive instead of waiting on the sankalpa query.
+                        getActivePurashcharanaUseCase(user.id)
+                            .catch { emit(null) }
+                            .onStart { emit(null) }
+                    ) { stats, purashcharana ->
                         if (stats != null) {
                             HomeUiState.Success(
                                 user = stats.user,
                                 todayCount = stats.todayRecitationCount,
                                 activeTarget = stats.activeTarget,
                                 streakDays = stats.streakDays,
-                                childrenProgress = stats.childrenProgress
+                                childrenProgress = stats.childrenProgress,
+                                purashcharana = purashcharana
                             )
                         } else {
-                            HomeUiState.Error("Failed to load dashboard statistics.")
+                            HomeUiState.Error(R.string.home_error_load_failed)
                         }
                     }
                 } else {
-                    flowOf(HomeUiState.Error("No active profile selected."))
+                    flowOf(HomeUiState.Error(R.string.home_error_no_profile))
                 }
             }.collect { state ->
                 _uiState.value = state

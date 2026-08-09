@@ -61,7 +61,7 @@ fun WelcomeScreen(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "अनुष्ठानम्",
+                text = stringResource(id = R.string.app_name_devanagari),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.SemiBold,

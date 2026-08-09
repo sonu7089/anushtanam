@@ -12,10 +12,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.mantrasiddhi.data.local.dao.PurashcharanaDao
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
+import com.mantrasiddhi.data.local.entity.PurashcharanaEntity
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
@@ -30,9 +32,10 @@ import javax.inject.Provider
         UserProfileEntity::class,
         TargetEntity::class,
         RecitationSessionEntity::class,
-        SandhyaLogEntity::class
+        SandhyaLogEntity::class,
+        PurashcharanaEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -41,6 +44,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     abstract fun targetDao(): TargetDao
     abstract fun recitationDao(): RecitationDao
     abstract fun sandhyaLogDao(): SandhyaLogDao
+    abstract fun purashcharanaDao(): PurashcharanaDao
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
@@ -154,6 +158,33 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v5 → v6: adds the `purashcharana` table backing the Purashcharana sankalpa
+         * (one lakh japa per akshara). Purely additive — no existing table is touched,
+         * so targets, sessions and Sandhya logs carry over untouched. Column types and
+         * the index name match Room's generated v6 schema for [PurashcharanaEntity]
+         * exactly, so the runtime identity-hash check passes.
+         */
+        val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `purashcharana` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`userId` INTEGER NOT NULL, " +
+                        "`mantraAksharaCount` INTEGER NOT NULL, " +
+                        "`targetJapaCount` INTEGER NOT NULL, " +
+                        "`currentJapaCount` INTEGER NOT NULL, " +
+                        "`startedAtMillis` INTEGER NOT NULL, " +
+                        "`completedAtMillis` INTEGER, " +
+                        "`isActive` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_purashcharana_userId` " +
+                        "ON `purashcharana` (`userId`)"
+                )
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -163,10 +194,11 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1→v5 migration chain. No destructive fallback: a missing or
+            // Contiguous v1→v6 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
-            // a published user's recitation history, targets, and Sandhya logs.
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            // a published user's recitation history, targets, Sandhya logs, and the
+            // years of japa recorded against a Purashcharana.
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

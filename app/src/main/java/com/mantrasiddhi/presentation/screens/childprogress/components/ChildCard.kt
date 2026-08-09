@@ -79,7 +79,7 @@ fun ChildCard(
                 }
                 
                 Text(
-                    text = "Target: $targetText",
+                    text = stringResource(id = R.string.child_card_sankalpa_format, targetText),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )

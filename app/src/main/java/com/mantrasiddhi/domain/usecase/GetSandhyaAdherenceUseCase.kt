@@ -37,7 +37,7 @@ class GetSandhyaAdherenceUseCase @Inject constructor(
         repository.observeLogs(userId).map { compute(it) }
 
     companion object {
-        /** A ritual counts as "on time" if performed within this window of the cue. */
+        /** An anushtanam counts as "on time" if performed within this window of the cue. */
         const val ON_TIME_WINDOW_MIN = 10L
 
         /** A period needs at least this many scheduled occurrences to win "most consistent". */

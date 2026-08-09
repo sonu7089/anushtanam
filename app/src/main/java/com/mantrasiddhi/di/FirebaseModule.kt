@@ -17,11 +17,13 @@ import com.mantrasiddhi.data.remote.FirebaseAuthRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreGoalRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreLinkRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreProgressRepositoryImpl
+import com.mantrasiddhi.data.remote.FirestorePurashcharanaSyncRepositoryImpl
 import com.mantrasiddhi.data.remote.FirestoreTargetSyncRepositoryImpl
 import com.mantrasiddhi.domain.repository.AuthRepository
 import com.mantrasiddhi.domain.repository.GoalRepository
 import com.mantrasiddhi.domain.repository.LinkRepository
 import com.mantrasiddhi.domain.repository.ProgressSyncRepository
+import com.mantrasiddhi.domain.repository.PurashcharanaSyncRepository
 import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import dagger.Binds
 import dagger.Module
@@ -73,4 +75,10 @@ abstract class FirebaseBindsModule {
     @Binds
     @Singleton
     abstract fun bindTargetSyncRepository(impl: FirestoreTargetSyncRepositoryImpl): TargetSyncRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPurashcharanaSyncRepository(
+        impl: FirestorePurashcharanaSyncRepositoryImpl
+    ): PurashcharanaSyncRepository
 }

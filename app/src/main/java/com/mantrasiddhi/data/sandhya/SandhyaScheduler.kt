@@ -71,7 +71,7 @@ class SandhyaScheduler @Inject constructor(
         }
         // Compute the target local day once, here, and carry it on the intent so the
         // receiver buckets the occurrence under the same day the UI assumes (avoids a
-        // timezone/DST shift between scheduling and firing splitting a ritual day).
+        // timezone/DST shift between scheduling and firing splitting an anushtanam day).
         val dateKey = SandhyaDateKey.of(eventMillis, settings.zone())
         val triggerAt = eventMillis - SandhyaContract.LEAD_MILLIS
         alarmManager.setAndAllowWhileIdle(

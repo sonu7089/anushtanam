@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.practice
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.audio.AudioCaptureService
 import com.mantrasiddhi.data.audio.BenchmarkAudioPlayer
 import com.mantrasiddhi.data.audio.RecordedAudioPlayer
@@ -43,7 +45,9 @@ sealed interface PracticeUiState {
     data class Recording(val partialText: String, val secondsElapsed: Int) : PracticeUiState
     data object Processing : PracticeUiState
     data class ShowingResults(val evaluation: MantraEvaluation) : PracticeUiState
-    data class Error(val message: String) : PracticeUiState
+
+    /** @property messageResId copy to show; the ViewModel never builds display text itself. */
+    data class Error(@StringRes val messageResId: Int) : PracticeUiState
 }
 
 /**
@@ -218,10 +222,10 @@ class PracticeModeViewModel @Inject constructor(
 
             speechRecognitionService.startListening()
                 .flowOn(Dispatchers.Main)
-                .catch { e ->
+                .catch {
                     timerJob.cancel()
                     watchdogJob.cancel()
-                    _uiState.value = PracticeUiState.Error(e.message ?: "Speech recognition failed")
+                    _uiState.value = PracticeUiState.Error(R.string.practice_error_speech_failed)
                 }
                 .collect { result ->
                     when (result) {
@@ -250,7 +254,7 @@ class PracticeModeViewModel @Inject constructor(
                             if (accumulatedText.isNotBlank()) {
                                 finalizeRecording(accumulatedText)
                             } else {
-                                _uiState.value = PracticeUiState.Error(result.message)
+                                _uiState.value = PracticeUiState.Error(result.messageResId)
                             }
                         }
                     }
@@ -334,7 +338,7 @@ class PracticeModeViewModel @Inject constructor(
                 // learners get on-screen results instead. Button haptics remain.
                 _uiState.value = PracticeUiState.ShowingResults(evaluation)
             } catch (e: Exception) {
-                _uiState.value = PracticeUiState.Error(e.message ?: "Failed to evaluate recitation")
+                _uiState.value = PracticeUiState.Error(R.string.practice_error_evaluate_failed)
             }
         }
     }

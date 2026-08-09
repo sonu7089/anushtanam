@@ -137,7 +137,7 @@ private fun ProgressErrorScreen(message: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Error",
+                contentDescription = stringResource(id = R.string.progress_error_icon_desc),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(bottom = 8.dp)
             )

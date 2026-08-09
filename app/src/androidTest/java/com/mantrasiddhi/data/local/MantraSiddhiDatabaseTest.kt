@@ -216,4 +216,67 @@ class MantraSiddhiDatabaseTest {
         }
         migratedDb.close()
     }
+
+    /**
+     * Verifies the v5 → v6 migration: the `purashcharana` table and its userId index are
+     * created, and the additive migration leaves existing target data untouched. A
+     * Purashcharana spans years, so an upgrade that dropped user data here would be
+     * unrecoverable.
+     */
+    @Test
+    @Throws(IOException::class)
+    fun migrate5To6_addsPurashcharanaTable() {
+        val dbName = "migration-test-5-6"
+
+        // Create the v5 schema and seed a target that must survive the upgrade.
+        migrationHelper.createDatabase(dbName, 5).apply {
+            execSQL(
+                "INSERT INTO targets (id, userId, setByUserId, targetRecitationCount, " +
+                    "currentRecitationCount, rewardType, rewardDescription, isCompleted) " +
+                    "VALUES (1, 2, 2, 108, 40, 'TOY', 'New toy car', 0)"
+            )
+            close()
+        }
+
+        // Run the migration and validate against the generated v6 schema.
+        val migratedDb = migrationHelper.runMigrationsAndValidate(
+            dbName,
+            6,
+            true,
+            MantraSiddhiDatabase.MIGRATION_5_6
+        )
+
+        // purashcharana exists with exactly the sankalpa columns.
+        migratedDb.query("PRAGMA table_info(purashcharana)").use { cursor ->
+            val columns = mutableSetOf<String>()
+            val nameIdx = cursor.getColumnIndex("name")
+            while (cursor.moveToNext()) {
+                columns.add(cursor.getString(nameIdx))
+            }
+            assertEquals(
+                setOf(
+                    "id", "userId", "mantraAksharaCount", "targetJapaCount",
+                    "currentJapaCount", "startedAtMillis", "completedAtMillis", "isActive"
+                ),
+                columns
+            )
+        }
+
+        // The userId index is there: it is hit on every verified recitation.
+        migratedDb.query(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='index_purashcharana_userId'"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+        }
+
+        // Pre-existing target data survived untouched.
+        migratedDb.query(
+            "SELECT currentRecitationCount, rewardDescription FROM targets WHERE id = 1"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(40, cursor.getInt(0))
+            assertEquals("New toy car", cursor.getString(1))
+        }
+        migratedDb.close()
+    }
 }

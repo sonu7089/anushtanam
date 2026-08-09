@@ -50,6 +50,18 @@ object GayatriMantra {
     /** Number of padas (lines) in the mantra. */
     const val PADA_COUNT: Int = 4
 
+    /**
+     * Aksharas (syllables) in the Savitri gayatri proper — the three padas
+     * `tatsavitur varenyam / bhargo devasya dhimahi / dhiyo yo nah prachodayat`.
+     *
+     * The pranava (ॐ) and the vyahritis (भूर् भुवः स्वः) are recited with it but are
+     * not part of the 24, which is why the verse is called a gayatri at all: the metre
+     * is three padas of eight aksharas. A Purashcharana is reckoned against this count
+     * (24 x 1,00,000 = 24,00,000 japa), so it must not silently drift with the
+     * word list above.
+     */
+    const val AKSHARA_COUNT: Int = 24
+
     /** Canonical Latin transliterations, in order (used for text-based scoring). */
     val transliterations: List<String> = words.map { it.transliteration }
 

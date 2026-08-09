@@ -84,7 +84,7 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "अनुष्ठानम्",
+                text = stringResource(id = R.string.app_name_devanagari),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.SemiBold,
@@ -134,7 +134,7 @@ fun LoginScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = state.message,
+                            text = stringResource(id = state.messageResId),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center

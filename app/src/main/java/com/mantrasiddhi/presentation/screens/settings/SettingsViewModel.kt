@@ -45,6 +45,14 @@ class SettingsViewModel @Inject constructor(
     val languageDisplay: StateFlow<String> = preferencesDataStore.languageDisplayFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "BOTH")
 
+    /**
+     * Swara (pitch-accent) assessment. Off by default: EvaluateRecitationUseCase skips the
+     * swara layer entirely while this is false, so the Abhyas screen shows no swara card
+     * until the sadhak asks for it.
+     */
+    val advancedVedicMode: StateFlow<Boolean> = preferencesDataStore.advancedVedicModeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
@@ -57,6 +65,12 @@ class SettingsViewModel @Inject constructor(
     fun setLanguageDisplay(display: String) {
         viewModelScope.launch {
             preferencesDataStore.setLanguageDisplay(display)
+        }
+    }
+
+    fun setAdvancedVedicMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesDataStore.setAdvancedVedicMode(enabled)
         }
     }
 

@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.childprogress
 
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ChildProgress
 import com.mantrasiddhi.domain.model.ProfileType
@@ -138,7 +139,7 @@ class ChildProgressViewModelTest {
 
         val state = viewModel.uiState.value
         assertTrue(state is ChildProgressUiState.Error)
-        assertEquals("Access Denied: Only parent profiles can view child progress.", (state as ChildProgressUiState.Error).message)
+        assertEquals(R.string.child_error_parent_only, (state as ChildProgressUiState.Error).messageResId)
     }
 
     @Test

@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.auth
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.usecase.SendParentPasswordResetUseCase
 import com.mantrasiddhi.domain.usecase.SignInChildUseCase
@@ -51,12 +53,12 @@ class AuthViewModel @Inject constructor(
     private var pendingChildAccount: AuthAccount? = null
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _uiState.update { it.copy(errorMessageResId = null, errorDetail = null) }
     }
 
     fun signInParent(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
-            fail("Enter your email and password")
+            fail(R.string.auth_error_missing_credentials)
             return
         }
         run { signInParentUseCase(email, password) }
@@ -64,7 +66,7 @@ class AuthViewModel @Inject constructor(
 
     fun signUpParent(email: String, password: String, displayName: String) {
         if (email.isBlank() || password.length < 6 || displayName.isBlank()) {
-            fail("Enter a name, email, and a password of at least 6 characters")
+            fail(R.string.auth_error_signup_incomplete)
             return
         }
         run { signUpParentUseCase(email, password, displayName) }
@@ -80,7 +82,7 @@ class AuthViewModel @Inject constructor(
      */
     fun signUpChild(displayName: String, pin: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
             signUpChildUseCase(displayName, pin)
                 .onSuccess { account ->
                     pendingChildAccount = account
@@ -88,9 +90,7 @@ class AuthViewModel @Inject constructor(
                         it.copy(isLoading = false, generatedChildId = account.linkCode)
                     }
                 }
-                .onFailure { e ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = e.friendly()) }
-                }
+                .onFailure { e -> failWith(e) }
         }
     }
 
@@ -107,41 +107,53 @@ class AuthViewModel @Inject constructor(
 
     fun sendParentPasswordReset(email: String) {
         if (email.isBlank()) {
-            fail("Enter your email to reset the password")
+            fail(R.string.auth_error_reset_email_missing)
             return
         }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
             sendParentPasswordResetUseCase(email)
                 .onSuccess {
                     _uiState.update { it.copy(isLoading = false) }
                     _events.emit(AuthEvent.PasswordResetSent)
                 }
-                .onFailure { e ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = e.friendly()) }
-                }
+                .onFailure { e -> failWith(e) }
         }
     }
 
     /** Runs an auth call, syncs the local profile, then navigates home. */
     private fun run(call: suspend () -> Result<AuthAccount>) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
             call()
                 .onSuccess { account ->
                     syncSignedInUserUseCase(account)
                     _uiState.update { it.copy(isLoading = false) }
                     _events.emit(AuthEvent.NavigateToHome)
                 }
-                .onFailure { e ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = e.friendly()) }
-                }
+                .onFailure { e -> failWith(e) }
         }
     }
 
-    private fun fail(message: String) {
-        _uiState.update { it.copy(isLoading = false, errorMessage = message) }
+    /** Surfaces a validation problem we can word ourselves. */
+    private fun fail(@StringRes messageResId: Int) {
+        _uiState.update {
+            it.copy(isLoading = false, errorMessageResId = messageResId, errorDetail = null)
+        }
     }
 
-    private fun Throwable.friendly(): String = message ?: "Something went wrong. Please try again."
+    /**
+     * Surfaces a failed auth call. Firebase's own message ("wrong password", "email already
+     * in use") is far more useful than any sentence we could write here, so it is carried
+     * alongside the localizable fallback and the screen picks the detail when present.
+     */
+    private fun failWith(e: Throwable) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                errorMessageResId = R.string.auth_error_generic,
+                errorDetail = e.message
+            )
+        }
+    }
 }

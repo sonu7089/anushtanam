@@ -84,7 +84,13 @@ fun ChildProgressScreen(
                     snackbarHostState.showSnackbar(context.getString(R.string.child_target_set_success))
                 }
                 is ChildProgressEvent.ShowError -> {
-                    snackbarHostState.showSnackbar(context.getString(R.string.child_error_format, event.message))
+                    // Prefer the failure's own detail when the layer below supplied one;
+                    // it names the actual problem better than the generic sentence can.
+                    val reason = event.detail?.takeIf { it.isNotBlank() }
+                        ?: context.getString(event.messageResId)
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.child_error_format, reason)
+                    )
                 }
             }
         }
@@ -119,7 +125,7 @@ fun ChildProgressScreen(
                 is ChildProgressUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = state.message,
+                            text = stringResource(id = state.messageResId),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(16.dp)
@@ -191,7 +197,10 @@ fun ChildProgressScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Text(text = detailState.message, color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    text = stringResource(id = detailState.messageResId),
+                                    color = MaterialTheme.colorScheme.error
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(onClick = { viewModel.clearSelectedChild() }) {
                                     Text(text = stringResource(id = R.string.child_button_go_back))

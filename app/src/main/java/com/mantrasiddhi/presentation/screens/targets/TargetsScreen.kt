@@ -74,7 +74,13 @@ fun TargetsScreen(
                     snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_abandoned))
                 }
                 is TargetsEvent.ShowError -> {
-                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_error, event.message))
+                    // Prefer the failure's own detail when the layer below supplied one;
+                    // it names the actual problem better than the generic sentence can.
+                    val reason = event.detail?.takeIf { it.isNotBlank() }
+                        ?: context.getString(event.messageResId)
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.targets_snack_error, reason)
+                    )
                 }
             }
         }
@@ -107,7 +113,7 @@ fun TargetsScreen(
                 }
                 is TargetsUiState.Error -> {
                     Text(
-                        text = state.message,
+                        text = stringResource(id = state.messageResId),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(16.dp)

@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.data.speech
 
+import androidx.annotation.StringRes
+
 /**
  * Result states for speech recognition.
  */
@@ -32,6 +34,12 @@ sealed interface SpeechResult {
 
     /**
      * Emitted when an error occurs during speech recognition.
+     *
+     * @property code The raw [android.speech.SpeechRecognizer] error code, kept so callers
+     *   can react to specific failures (e.g. back off on ERROR_RECOGNIZER_BUSY).
+     * @property messageResId The sadhak-facing sentence for [code]. Carried as a resource id
+     *   rather than text because this reaches the screen verbatim and all copy lives in
+     *   `strings.xml`.
      */
-    data class Error(val code: Int, val message: String) : SpeechResult
+    data class Error(val code: Int, @StringRes val messageResId: Int) : SpeechResult
 }

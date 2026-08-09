@@ -38,6 +38,7 @@ class EvaluateRecitationUseCaseTest {
     private lateinit var evaluationDiagnostics: EvaluationDiagnostics
     private lateinit var swaraAnalyzer: SwaraAnalyzer
     private lateinit var progressSyncRepository: ProgressSyncRepository
+    private lateinit var incrementPurashcharanaUseCase: IncrementPurashcharanaUseCase
     private lateinit var evaluateRecitationUseCase: EvaluateRecitationUseCase
 
     @BeforeEach
@@ -50,10 +51,12 @@ class EvaluateRecitationUseCaseTest {
         evaluationDiagnostics = mockk(relaxed = true)
         swaraAnalyzer = mockk(relaxed = true)
         progressSyncRepository = mockk(relaxed = true)
+        incrementPurashcharanaUseCase = mockk(relaxed = true)
         // Explicit stub: relaxed mocks cannot synthesize a default kotlin.Result.
         coEvery {
             progressSyncRepository.recordSession(any(), any(), any())
         } returns Result.success(Unit)
+        coEvery { incrementPurashcharanaUseCase(any()) } returns Result.success(null)
         every { appPreferencesRepository.recitationSensitivity } returns flowOf(0.85)
         // Default: an explicit sensitivity is set, preserving the legacy gate behaviour.
         every { appPreferencesRepository.isRecitationSensitivityExplicit } returns flowOf(true)
@@ -66,7 +69,8 @@ class EvaluateRecitationUseCaseTest {
             determineLearnerLevelUseCase,
             evaluationDiagnostics,
             swaraAnalyzer,
-            progressSyncRepository
+            progressSyncRepository,
+            incrementPurashcharanaUseCase
         )
     }
 
@@ -78,7 +82,8 @@ class EvaluateRecitationUseCaseTest {
         determineLearnerLevelUseCase,
         evaluationDiagnostics,
         swaraAnalyzer,
-        progressSyncRepository
+        progressSyncRepository,
+        incrementPurashcharanaUseCase
     )
 
     @Test

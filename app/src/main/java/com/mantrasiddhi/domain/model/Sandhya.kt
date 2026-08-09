@@ -29,7 +29,7 @@ enum class SandhyaStatus {
     /** The reminder fired (a row is created at this point). */
     NOTIFIED,
 
-    /** The user confirmed they performed the ritual. */
+    /** The sadhak confirmed they performed the anushtanam. */
     OBSERVED,
 
     /** The day passed without the user marking it done. */
@@ -39,7 +39,7 @@ enum class SandhyaStatus {
 /**
  * One scheduled Sandhya occurrence and its outcome. [dateKey] is the local
  * calendar day in `yyyyMMdd` form, used for day-bucketing and streaks so that
- * timezone/DST shifts never split or merge a ritual day.
+ * timezone/DST shifts never split or merge an anushtanam day.
  */
 data class SandhyaLog(
     val id: Long,

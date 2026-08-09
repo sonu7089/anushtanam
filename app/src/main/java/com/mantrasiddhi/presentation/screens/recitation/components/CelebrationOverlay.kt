@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,10 +26,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.RewardType
+import com.mantrasiddhi.presentation.components.LotusIllustration
 
 @Composable
 fun CelebrationOverlay(
@@ -61,11 +62,9 @@ fun CelebrationOverlay(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "🌸 ✨ 🎉 ✨ 🌸",
-                    fontSize = 32.sp,
-                    textAlign = TextAlign.Center
-                )
+                // The brand lotus, not a row of party emoji: completing a sankalpa is a
+                // quiet moment, and the copy below it is deliberately unhurried.
+                LotusIllustration(modifier = Modifier.size(72.dp))
 
                 Text(
                     text = stringResource(R.string.recitation_goal_reached),

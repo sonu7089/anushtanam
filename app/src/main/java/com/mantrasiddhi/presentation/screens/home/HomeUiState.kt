@@ -6,18 +6,33 @@
  */
 package com.mantrasiddhi.presentation.screens.home
 
+import androidx.annotation.StringRes
+
 import com.mantrasiddhi.domain.model.ChildProgress
+import com.mantrasiddhi.domain.model.Purashcharana
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
+
     data class Success(
         val user: UserProfile,
         val todayCount: Int,
         val activeTarget: Target?,
         val streakDays: Int,
-        val childrenProgress: List<ChildProgress> = emptyList()
+        val childrenProgress: List<ChildProgress> = emptyList(),
+        /**
+         * The active Purashcharana, or `null` when none has been taken — and also when it
+         * could not be loaded. The dashboard must survive a failure in this one card, so
+         * the Home card simply falls back to its "not enrolled" invitation.
+         */
+        val purashcharana: Purashcharana? = null
     ) : HomeUiState
-    data class Error(val message: String) : HomeUiState
+
+    /**
+     * A resource id rather than a resolved string: the ViewModel has no Context and must
+     * not bake English into state. The composable resolves it with `stringResource`.
+     */
+    data class Error(@StringRes val messageResId: Int) : HomeUiState
 }

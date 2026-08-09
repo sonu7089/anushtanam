@@ -179,7 +179,10 @@ private fun SessionHistoryItem(session: RecitationSession) {
             }
 
             // Right duration
-            val durationSec = String.format(Locale.getDefault(), "%.1fs", session.durationMs / 1000f)
+            val durationSec = stringResource(
+                id = R.string.progress_session_duration_format,
+                session.durationMs / 1000f
+            )
             Text(
                 text = durationSec,
                 fontSize = 13.sp,

@@ -20,6 +20,8 @@ object FirebaseContract {
     /** One doc per uid mirroring the user's active SELF-target (restore on reinstall). */
     const val COLLECTION_SELF_TARGETS = "selfTargets"
     const val COLLECTION_PROGRESS = "progress"
+    /** One doc per uid mirroring the sadhak's Purashcharana sankalpa (strictly private). */
+    const val COLLECTION_PURASHCHARANA = "purashcharana"
 
     // users/{uid}
     const val FIELD_ROLE = "role"
@@ -56,6 +58,16 @@ object FirebaseContract {
     const val FIELD_DAY_SESSIONS = "n"
     const val FIELD_DAY_CORRECT = "c"
     const val FIELD_DAY_SCORE_SUM = "s"
+
+    // purashcharana/{uid} — the sankalpa mirror. The count is written ABSOLUTE (never as
+    // an increment), so these keys always describe the whole record; isCompleted and
+    // updatedAt above are reused rather than duplicated.
+    const val FIELD_AKSHARA_COUNT = "mantraAksharaCount"
+    const val FIELD_TARGET_JAPA_COUNT = "targetJapaCount"
+    const val FIELD_CURRENT_JAPA_COUNT = "currentJapaCount"
+    const val FIELD_STARTED_AT = "startedAtMillis"
+    const val FIELD_COMPLETED_AT = "completedAtMillis"
+    const val FIELD_IS_ACTIVE = "isActive"
 
     /** Synthetic email domain for child accounts (no real mailbox). */
     const val CHILD_EMAIL_DOMAIN = "@child.anushtanam.app"

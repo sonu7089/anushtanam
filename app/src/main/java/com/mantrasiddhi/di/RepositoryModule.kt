@@ -8,11 +8,13 @@ package com.mantrasiddhi.di
 
 import com.mantrasiddhi.data.SessionManager
 import com.mantrasiddhi.data.repository.AppPreferencesRepositoryImpl
+import com.mantrasiddhi.data.repository.PurashcharanaRepositoryImpl
 import com.mantrasiddhi.data.repository.RecitationRepositoryImpl
 import com.mantrasiddhi.data.repository.SandhyaLogRepositoryImpl
 import com.mantrasiddhi.data.repository.TargetRepositoryImpl
 import com.mantrasiddhi.data.repository.UserRepositoryImpl
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
+import com.mantrasiddhi.domain.repository.PurashcharanaRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import com.mantrasiddhi.domain.repository.SandhyaLogRepository
 import com.mantrasiddhi.domain.repository.SessionRepository
@@ -63,4 +65,10 @@ abstract class RepositoryModule {
     abstract fun bindSandhyaLogRepository(
         impl: SandhyaLogRepositoryImpl
     ): SandhyaLogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPurashcharanaRepository(
+        impl: PurashcharanaRepositoryImpl
+    ): PurashcharanaRepository
 }

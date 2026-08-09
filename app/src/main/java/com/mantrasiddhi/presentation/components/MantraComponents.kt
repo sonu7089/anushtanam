@@ -35,11 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mantrasiddhi.R
 import com.mantrasiddhi.presentation.theme.AnushtanamSpacing
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -201,13 +203,24 @@ fun ProgressRing(
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
 
+    // Resolved outside the semantics lambda because stringResource is @Composable and the
+    // lambda runs outside composition. Built from the SETTLED `progress`, never from
+    // `animatedProgress`: reading the animation State here (composition scope, unlike the
+    // semantics and draw lambdas below) would invalidate this composable on every frame of
+    // the 800 ms tween. A screen reader should hear the real figure anyway, not a
+    // mid-animation one.
+    val ringDescription = stringResource(
+        id = R.string.progress_ring_percent_desc,
+        (progress.coerceIn(0f, 1f) * 100).toInt()
+    )
+
     Box(
         modifier = modifier.semantics {
             progressBarRangeInfo = ProgressBarRangeInfo(
                 current = animatedProgress,
                 range = 0f..1f
             )
-            contentDescription = "${(animatedProgress * 100).toInt()}% complete"
+            contentDescription = ringDescription
         },
         contentAlignment = Alignment.Center
     ) {

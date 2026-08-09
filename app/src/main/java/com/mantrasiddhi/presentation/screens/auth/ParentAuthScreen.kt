@@ -146,7 +146,10 @@ fun ParentAuthScreen(
                 shape = MaterialTheme.shapes.medium
             )
 
-            uiState.errorMessage?.let { error ->
+            // Firebase's own wording is more specific than our fallback, so prefer it.
+            val authError = uiState.errorDetail?.takeIf { it.isNotBlank() }
+                ?: uiState.errorMessageResId?.let { stringResource(id = it) }
+            authError?.let { error ->
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = error,

@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -109,6 +110,12 @@ fun MicButton(
             MaterialTheme.colorScheme.primary
         }
 
+        // One label for both the click action and the node description. The button is
+        // shared by Abhyas and Japa, so the wording has to read correctly on both.
+        val micLabel = stringResource(
+            id = if (isRecording) R.string.mic_stop_japa else R.string.mic_start_japa
+        )
+
         Box(
             modifier = Modifier
                 .size(76.dp)
@@ -116,11 +123,11 @@ fun MicButton(
                 .background(buttonColor)
                 .clickable(
                     enabled = !isProcessing,
-                    onClickLabel = if (isRecording) "Stop recitation" else "Start recitation",
+                    onClickLabel = micLabel,
                     onClick = onClick
                 )
                 .semantics {
-                    contentDescription = if (isRecording) "Stop recitation" else "Start recitation"
+                    contentDescription = micLabel
                 },
             contentAlignment = Alignment.Center
         ) {

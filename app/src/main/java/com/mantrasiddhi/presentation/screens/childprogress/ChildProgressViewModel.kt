@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.childprogress
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ChildProgress
 import com.mantrasiddhi.domain.model.RewardType
@@ -42,7 +44,8 @@ sealed interface ChildProgressUiState {
         val parentUser: UserProfile,
         val childrenProgress: List<ChildProgress>
     ) : ChildProgressUiState
-    data class Error(val message: String) : ChildProgressUiState
+    /** @property messageResId copy to show; the ViewModel never builds display text itself. */
+    data class Error(@StringRes val messageResId: Int) : ChildProgressUiState
 }
 
 /**
@@ -55,11 +58,20 @@ sealed interface ChildDetailUiState {
         val childProgress: ChildProgress,
         val weakWords: List<String>
     ) : ChildDetailUiState
-    data class Error(val message: String) : ChildDetailUiState
+    /** @property messageResId copy to show; the ViewModel never builds display text itself. */
+    data class Error(@StringRes val messageResId: Int) : ChildDetailUiState
 }
 
 sealed class ChildProgressEvent {
-    data class ShowError(val message: String) : ChildProgressEvent()
+    /**
+     * @param messageResId the parent-facing sentence.
+     * @param detail a throwable's own message when one exists. It is not localizable, so the
+     *   screen prefers it only because it is more specific than the generic fallback.
+     */
+    data class ShowError(
+        @StringRes val messageResId: Int,
+        val detail: String? = null
+    ) : ChildProgressEvent()
     data object TargetSetSuccess : ChildProgressEvent()
 }
 
@@ -103,13 +115,13 @@ class ChildProgressViewModel @Inject constructor(
                             }
                         }
                     } else {
-                        flowOf(ChildProgressUiState.Error("Access Denied: Only parent profiles can view child progress."))
+                        flowOf(ChildProgressUiState.Error(R.string.child_error_parent_only))
                     }
                 } else {
-                    flowOf(ChildProgressUiState.Error("No active parent profile selected."))
+                    flowOf(ChildProgressUiState.Error(R.string.child_error_no_parent_profile))
                 }
-            }.catch { e ->
-                emit(ChildProgressUiState.Error(e.message ?: "Failed to retrieve children progress."))
+            }.catch {
+                emit(ChildProgressUiState.Error(R.string.child_error_load_children))
             }.collect { state ->
                 _uiState.value = state
             }
@@ -129,10 +141,10 @@ class ChildProgressViewModel @Inject constructor(
                 if (progress != null) {
                     ChildDetailUiState.Success(progress, weakWords)
                 } else {
-                    ChildDetailUiState.Error("Child profile not found.")
+                    ChildDetailUiState.Error(R.string.child_error_not_found)
                 }
-            }.catch { e ->
-                emit(ChildDetailUiState.Error(e.message ?: "Failed to load child details."))
+            }.catch {
+                emit(ChildDetailUiState.Error(R.string.child_error_load_details))
             }.collect { state ->
                 _detailUiState.value = state
             }
@@ -172,7 +184,12 @@ class ChildProgressViewModel @Inject constructor(
                 }
                 _events.emit(ChildProgressEvent.TargetSetSuccess)
             }.onFailure { e ->
-                _events.emit(ChildProgressEvent.ShowError(e.message ?: "Failed to set child target."))
+                _events.emit(
+                    ChildProgressEvent.ShowError(
+                        messageResId = R.string.child_error_set_target,
+                        detail = e.message
+                    )
+                )
             }
         }
     }

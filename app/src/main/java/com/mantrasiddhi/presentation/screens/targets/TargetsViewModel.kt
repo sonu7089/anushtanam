@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.targets
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
@@ -43,14 +45,23 @@ sealed interface TargetsUiState {
         val completedTargets: List<Target>,
         val children: List<UserProfile> = emptyList()
     ) : TargetsUiState
-    data class Error(val message: String) : TargetsUiState
+    /** @property messageResId copy to show; the ViewModel never builds display text itself. */
+    data class Error(@StringRes val messageResId: Int) : TargetsUiState
 }
 
 /**
  * One-shot UI Events from Targets screen.
  */
 sealed class TargetsEvent {
-    data class ShowError(val message: String) : TargetsEvent()
+    /**
+     * @param messageResId the sadhak-facing sentence.
+     * @param detail a throwable's own message when one exists. It is not localizable, so the
+     *   screen prefers it only because it is more specific than the generic fallback.
+     */
+    data class ShowError(
+        @StringRes val messageResId: Int,
+        val detail: String? = null
+    ) : TargetsEvent()
     data object TargetCreated : TargetsEvent()
     data object TargetAbandoned : TargetsEvent()
 }
@@ -100,10 +111,10 @@ class TargetsViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    flowOf(TargetsUiState.Error("No active user profile selected."))
+                    flowOf(TargetsUiState.Error(R.string.targets_error_no_profile))
                 }
-            }.catch { e ->
-                emit(TargetsUiState.Error(e.message ?: "Failed to load targets data."))
+            }.catch {
+                emit(TargetsUiState.Error(R.string.targets_error_load_failed))
             }.collect { state ->
                 _uiState.value = state
             }
@@ -145,10 +156,15 @@ class TargetsViewModel @Inject constructor(
                     }
                     _events.emit(TargetsEvent.TargetCreated)
                 }.onFailure { e ->
-                    _events.emit(TargetsEvent.ShowError(e.message ?: "Failed to set target."))
+                    _events.emit(
+                        TargetsEvent.ShowError(
+                            messageResId = R.string.targets_error_create_failed,
+                            detail = e.message
+                        )
+                    )
                 }
             } else {
-                _events.emit(TargetsEvent.ShowError("State is not ready to create target."))
+                _events.emit(TargetsEvent.ShowError(R.string.targets_error_not_ready))
             }
         }
     }
@@ -165,7 +181,7 @@ class TargetsViewModel @Inject constructor(
                 if (succeeded) {
                     _events.emit(TargetsEvent.TargetAbandoned)
                 } else {
-                    _events.emit(TargetsEvent.ShowError("No active target found to abandon."))
+                    _events.emit(TargetsEvent.ShowError(R.string.targets_error_none_active))
                 }
             }
         }

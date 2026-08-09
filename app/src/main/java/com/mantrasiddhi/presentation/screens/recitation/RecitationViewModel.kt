@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.presentation.screens.recitation
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mantrasiddhi.R
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.model.ProfileType
@@ -19,6 +21,7 @@ import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.CreateTargetUseCase
 import com.mantrasiddhi.domain.usecase.DetectRecitationBoundaryUseCase
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
+import com.mantrasiddhi.domain.usecase.FlushPurashcharanaSyncUseCase
 import com.mantrasiddhi.domain.usecase.GetActiveTargetUseCase
 import com.mantrasiddhi.data.audio.SoundEffectsPlayer
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
@@ -67,18 +70,29 @@ sealed interface RecitationUiState {
         // The just-completed target whose reward the celebration overlay displays.
         // Held separately because a completed target is no longer the "active" target
         // (getActiveForUser excludes completed rows), so activeTarget is null by then.
-        val celebrationTarget: Target? = null
+        val celebrationTarget: Target? = null,
+        // Monotonically increasing id, bumped exactly once per counted japa, so the UI can
+        // key a LaunchedEffect on it and fire one confirmation pulse. It is an id and not a
+        // boolean because this state is re-emitted on every partial speech result: a flag
+        // would either re-trigger on every emission or be cleared before it could be seen.
+        // 0 means "no japa counted in this session yet".
+        val japaCountedPulseId: Long = 0L
     ) : RecitationUiState
 
-    data class Error(val message: String) : RecitationUiState
+    /**
+     * A resource id rather than a resolved string: the ViewModel has no Context and must
+     * not bake English into state. The composable resolves it with `stringResource`.
+     */
+    data class Error(@StringRes val messageResId: Int) : RecitationUiState
 }
 
 /**
  * State representing feedback for the latest recitation.
  *
  * Only emitted for attempts that need the reciter's attention (incorrect / retry);
- * a correct recitation is acknowledged by the bell sound and the progress update
- * alone — no overlay.
+ * a correct recitation is acknowledged by the bell sound, the progress update and the
+ * expanding-ring pulse ([RecitationUiState.Active.japaCountedPulseId]) — never by a card
+ * the sadhak has to read or dismiss mid-japa.
  */
 data class RecitationFeedbackState(
     val isCorrect: Boolean,
@@ -93,7 +107,16 @@ data class RecitationFeedbackState(
  */
 sealed interface RecitationEvent {
     data object TargetCreated : RecitationEvent
-    data class ShowError(val message: String) : RecitationEvent
+
+    /**
+     * @param messageResId Localized reason, resolved by the composable.
+     * @param detail A throwable's own message when one exists. It is not localizable, so it
+     *   is kept separate from [messageResId] instead of being formatted into state here.
+     */
+    data class ShowError(
+        @StringRes val messageResId: Int,
+        val detail: String? = null
+    ) : RecitationEvent
 }
 
 /**
@@ -126,7 +149,8 @@ class RecitationViewModel @Inject constructor(
     private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase,
     private val soundEffectsPlayer: SoundEffectsPlayer,
     private val feedbackStringProvider: FeedbackStringProvider,
-    private val incrementActiveCloudGoalUseCase: IncrementActiveCloudGoalUseCase
+    private val incrementActiveCloudGoalUseCase: IncrementActiveCloudGoalUseCase,
+    private val flushPurashcharanaSyncUseCase: FlushPurashcharanaSyncUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
@@ -155,6 +179,13 @@ class RecitationViewModel @Inject constructor(
 
     /** Wall-clock time of the last non-blank speech result, for the silence flush. */
     private var lastSpeechTimeMs = 0L
+
+    /**
+     * Counter behind [RecitationUiState.Active.japaCountedPulseId]. Bumped only when an
+     * evaluation actually counts, and then carried unchanged through every subsequent
+     * emission until the next counted japa.
+     */
+    private var japaPulseCounter = 0L
 
     /** A cut mantra segment waiting to be scored. */
     private data class SegmentJob(
@@ -196,7 +227,8 @@ class RecitationViewModel @Inject constructor(
                     }
                     emitActiveState()
                 } else {
-                    _uiState.value = RecitationUiState.Error("No active user profile found.")
+                    _uiState.value =
+                        RecitationUiState.Error(R.string.recitation_error_no_profile)
                 }
             }
         }
@@ -206,6 +238,11 @@ class RecitationViewModel @Inject constructor(
      * Publishes the Active state. By default the cached [activeTarget] is used so this
      * is cheap enough to call on every partial speech result; pass [refreshTarget] to
      * re-read the target from the DB (after an evaluation or target creation).
+     *
+     * [japaCountedPulseId] defaults to the current [japaPulseCounter] so every emission —
+     * including the many triggered by partial speech results — carries the id of the last
+     * counted japa unchanged. The UI therefore sees a *new* id only when one more japa was
+     * actually counted, which is what makes a single confirmation pulse fire per mantra.
      */
     private fun emitActiveState(
         isListening: Boolean = isListeningLoopActive,
@@ -213,6 +250,7 @@ class RecitationViewModel @Inject constructor(
         lastFeedback: RecitationFeedbackState? = null,
         showCelebration: Boolean = false,
         celebrationTarget: Target? = null,
+        japaCountedPulseId: Long = japaPulseCounter,
         refreshTarget: Boolean = false
     ) {
         val user = activeUser ?: return
@@ -225,7 +263,8 @@ class RecitationViewModel @Inject constructor(
                 recentSessions = recentSessionsList,
                 lastFeedback = lastFeedback,
                 showCelebration = showCelebration,
-                celebrationTarget = celebrationTarget
+                celebrationTarget = celebrationTarget,
+                japaCountedPulseId = japaCountedPulseId
             )
             return
         }
@@ -239,7 +278,8 @@ class RecitationViewModel @Inject constructor(
                 recentSessions = recentSessionsList,
                 lastFeedback = lastFeedback,
                 showCelebration = showCelebration,
-                celebrationTarget = celebrationTarget
+                celebrationTarget = celebrationTarget,
+                japaCountedPulseId = japaCountedPulseId
             )
         }
     }
@@ -256,7 +296,7 @@ class RecitationViewModel @Inject constructor(
         val user = activeUser
         if (user == null) {
             viewModelScope.launch {
-                _events.emit(RecitationEvent.ShowError("No active user profile found."))
+                _events.emit(RecitationEvent.ShowError(R.string.recitation_error_no_profile))
             }
             return
         }
@@ -277,7 +317,12 @@ class RecitationViewModel @Inject constructor(
                 emitActiveState(refreshTarget = true)
                 _events.emit(RecitationEvent.TargetCreated)
             }.onFailure { e ->
-                _events.emit(RecitationEvent.ShowError(e.message ?: "Failed to set target."))
+                _events.emit(
+                    RecitationEvent.ShowError(
+                        messageResId = R.string.recitation_error_target_failed,
+                        detail = e.message
+                    )
+                )
             }
         }
     }
@@ -306,7 +351,20 @@ class RecitationViewModel @Inject constructor(
         isListeningLoopActive = false
         listeningJob?.cancel()
         listeningJob = null
+        flushPurashcharanaMirror()
         emitActiveState(isListening = false)
+    }
+
+    /**
+     * Pushes the japa the Purashcharana cloud mirror is still holding back.
+     *
+     * The mirror throttles ordinary japa to protect the write budget, so the end of a
+     * session is where the last stretch would otherwise sit only in Room until the next
+     * recitation. Best-effort and fire-and-forget: nothing on this screen waits on it.
+     */
+    private fun flushPurashcharanaMirror() {
+        val userId = activeUser?.id ?: return
+        viewModelScope.launch { runCatching { flushPurashcharanaSyncUseCase(userId) } }
     }
 
     /**
@@ -489,6 +547,14 @@ class RecitationViewModel @Inject constructor(
                     ?.getOrNull() == true
             }
 
+            // Silent visual confirmation. Bumping the id here — and only here — is what
+            // makes JapaCountedPulse fire exactly one expanding ring per counted japa. The
+            // target-completed path below falls through this same branch, so the pulse also
+            // plays under the celebration dialog, which simply draws on top of it.
+            if (evaluation.isCorrect) {
+                japaPulseCounter++
+            }
+
             // Correct recitations get no overlay — the bell + progress update is the
             // feedback. Only an incorrect attempt surfaces a hint card.
             var feedback: RecitationFeedbackState? = null
@@ -560,6 +626,14 @@ class RecitationViewModel @Inject constructor(
                 celebrationTarget = completedTarget,
                 refreshTarget = true
             )
+
+            // The queue drains after the loop has already been stopped, so this is where
+            // the LAST japa of a session lands — including the one that completed a
+            // target above. Flush here as well as in stopRecitation so the final japa is
+            // mirrored even though it was counted after the mic was closed.
+            if (!isListeningLoopActive) {
+                flushPurashcharanaMirror()
+            }
         } catch (e: Exception) {
             // Ignore
         }

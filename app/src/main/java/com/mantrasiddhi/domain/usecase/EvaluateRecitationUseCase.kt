@@ -28,6 +28,10 @@ import javax.inject.Inject
 /**
  * Use case to evaluate a Gayatri Mantra recitation, save the session,
  * and increment active target count if correct and in normal mode.
+ *
+ * The same verified-japa branch is the only thing that advances an active
+ * Purashcharana, so that long sankalpa can only ever be filled with japa the app
+ * itself heard and accepted.
  */
 class EvaluateRecitationUseCase @Inject constructor(
     private val recitationRepository: RecitationRepository,
@@ -37,7 +41,8 @@ class EvaluateRecitationUseCase @Inject constructor(
     private val determineLearnerLevelUseCase: DetermineLearnerLevelUseCase,
     private val evaluationDiagnostics: EvaluationDiagnostics,
     private val swaraAnalyzer: SwaraAnalyzer,
-    private val progressSyncRepository: ProgressSyncRepository
+    private val progressSyncRepository: ProgressSyncRepository,
+    private val incrementPurashcharanaUseCase: IncrementPurashcharanaUseCase
 ) {
 
     /**
@@ -94,6 +99,13 @@ class EvaluateRecitationUseCase @Inject constructor(
 
         if (mode == RecitationMode.NORMAL && evaluation.isCorrect) {
             incrementTargetUseCase(userId)
+            // Only japa Anushtanam actually heard and verified advances the
+            // Purashcharana: a sankalpa of 24,00,000 japa means nothing if a count can
+            // be typed in or earned in Abhyas, where the sadhak is still learning and
+            // may stop mid-mantra. This one branch is the only place the count moves.
+            // Best-effort: a Purashcharana failure must never break scoring, which is
+            // what the sadhak is actually waiting for.
+            runCatching { incrementPurashcharanaUseCase(userId) }
         }
         return evaluation
     }

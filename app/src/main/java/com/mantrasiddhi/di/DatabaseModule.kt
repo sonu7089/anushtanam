@@ -8,6 +8,7 @@ package com.mantrasiddhi.di
 
 import android.content.Context
 import com.mantrasiddhi.data.local.MantraSiddhiDatabase
+import com.mantrasiddhi.data.local.dao.PurashcharanaDao
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.TargetDao
@@ -53,6 +54,11 @@ object DatabaseModule {
     @Provides
     fun provideSandhyaLogDao(db: MantraSiddhiDatabase): SandhyaLogDao {
         return db.sandhyaLogDao()
+    }
+
+    @Provides
+    fun providePurashcharanaDao(db: MantraSiddhiDatabase): PurashcharanaDao {
+        return db.purashcharanaDao()
     }
 
     @Provides

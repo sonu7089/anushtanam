@@ -57,7 +57,13 @@ fun AudioPlayerBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            val playPauseDescription = if (isPlaying) "Pause benchmark audio" else "Play benchmark audio"
+            val playPauseDescription = stringResource(
+                id = if (isPlaying) {
+                    R.string.practice_pause_reference_desc
+                } else {
+                    R.string.practice_play_reference_desc
+                }
+            )
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier
@@ -96,7 +102,11 @@ fun AudioPlayerBar(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${(positionMs / 1000)}s / 16s",
+                        text = stringResource(
+                            id = R.string.practice_reference_position_format,
+                            (positionMs / 1000).toInt(),
+                            (totalDurationMs / 1000).toInt()
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )

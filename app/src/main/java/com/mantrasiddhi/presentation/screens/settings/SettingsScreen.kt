@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +65,7 @@ fun SettingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
+    val advancedVedicMode by viewModel.advancedVedicMode.collectAsState()
 
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
@@ -289,6 +291,56 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Advanced (Vedic): the swara layer. The Sadhana Marg teaching on Home points
+            // the sadhak here, so this control has to exist for that instruction to be
+            // followable. Everything behind it already shipped — the preference, the
+            // repository flow, the analyzer gate in EvaluateRecitationUseCase, and the
+            // swara card on the Abhyas screen — only the switch was missing.
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_advanced_section),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_advanced_vedic_mode),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.settings_advanced_vedic_mode_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Switch(
+                            checked = advancedVedicMode,
+                            onCheckedChange = { viewModel.setAdvancedVedicMode(it) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // App Info
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -325,7 +377,7 @@ fun SettingsScreen(
                         },
                         trailingContent = {
                             Text(
-                                text = "1.0.0-demo",
+                                text = stringResource(R.string.settings_about_app_version_value),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )

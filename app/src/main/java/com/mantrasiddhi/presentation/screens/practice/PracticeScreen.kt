@@ -320,7 +320,7 @@ fun PracticeScreen(
                         modifier = Modifier.padding(vertical = 32.dp)
                     ) {
                         Text(
-                            text = state.message,
+                            text = stringResource(id = state.messageResId),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center

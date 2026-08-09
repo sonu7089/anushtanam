@@ -6,14 +6,17 @@
  */
 package com.mantrasiddhi.presentation.screens.home
 
+import com.mantrasiddhi.R
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.DashboardStats
+import com.mantrasiddhi.domain.usecase.GetActivePurashcharanaUseCase
 import com.mantrasiddhi.domain.usecase.GetDashboardStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +39,7 @@ class HomeViewModelTest {
 
     private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
     private lateinit var getDashboardStatsUseCase: GetDashboardStatsUseCase
+    private lateinit var getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase
     private lateinit var viewModel: HomeViewModel
 
     private val testUser = UserProfile(
@@ -51,6 +55,10 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         getCurrentUserUseCase = mockk()
         getDashboardStatsUseCase = mockk()
+        // The dashboard must not depend on the Purashcharana card; every test here runs
+        // with "no sankalpa taken", which is also the common case.
+        getActivePurashcharanaUseCase = mockk()
+        every { getActivePurashcharanaUseCase(any()) } returns flowOf(null)
     }
 
     @AfterEach
@@ -61,7 +69,7 @@ class HomeViewModelTest {
     @Test
     fun `should_initiallyEmitLoadingState_when_created`() = runTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
         assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
 
@@ -78,7 +86,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(stats)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Success)
@@ -94,10 +102,10 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(null)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Error)
-        assertEquals("Failed to load dashboard statistics.", (state as HomeUiState.Error).message)
+        assertEquals(R.string.home_error_load_failed, (state as HomeUiState.Error).messageResId)
     }
 }

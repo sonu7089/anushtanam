@@ -1,9 +1,10 @@
 rules_version = '2';
 
 // Anushtanam (shastralife.anushtanam) — Firestore security rules for the Phase B
-// cloud backend. The client only stores operational data here plus a compact
-// per-user progress summary; heavy recitation analytics (full session history)
-// stay on-device in Room and are never synced.
+// cloud backend. The client only stores operational data here, a compact per-user
+// progress summary, and the two sankalpa records that must outlive a single phone:
+// the active self-set target and the Purashcharana count. Heavy recitation analytics
+// (full session history) stay on-device in Room and are never synced.
 //
 // Identity model:
 //   - Parent: real Firebase email + password.
@@ -118,6 +119,14 @@ service cloud.firestore {
     // restored after a reinstall / device switch. Strictly private: only the owner
     // may read or write (parent visibility goes through the goals system instead).
     match /selfTargets/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- purashcharana/{uid} ---------------------------------------------------
+    // The sadhak's Purashcharana sankalpa (one lakh japa for every akshara) mirrored so a
+    // count built over years survives reinstall / device switch. Strictly private: only the
+    // owner may read or write. Parents see a child's effort through goals/ and progress/.
+    match /purashcharana/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 

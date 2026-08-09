@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
  * Single source of truth for the `yyyyMMdd` local-day key used to bucket Sandhya
  * occurrences. The zero-padded, fixed-width format sorts lexicographically in the
  * same order as chronologically, which the streak logic relies on. Every writer
- * (reminder fire, mark-as-done) and reader (metrics) must use this so a ritual day
+ * (reminder fire, mark-as-done) and reader (metrics) must use this so an anushtanam day
  * is never split or merged across timezone/DST changes.
  */
 object SandhyaDateKey {

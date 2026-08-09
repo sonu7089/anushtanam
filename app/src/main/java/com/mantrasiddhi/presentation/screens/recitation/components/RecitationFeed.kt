@@ -107,7 +107,13 @@ fun RecitationFeed(
                         ) {
                             Icon(
                                 imageVector = icon,
-                                contentDescription = if (session.isCorrect) "Correct Recitation" else "Incorrect Recitation",
+                                contentDescription = stringResource(
+                                    id = if (session.isCorrect) {
+                                        R.string.recitation_feed_correct_desc
+                                    } else {
+                                        R.string.recitation_feed_incorrect_desc
+                                    }
+                                ),
                                 tint = iconTint,
                                 modifier = Modifier.size(24.dp)
                             )

@@ -46,6 +46,7 @@ import com.mantrasiddhi.presentation.components.PermissionHandler
 import com.mantrasiddhi.presentation.components.RecitationFeedbackOverlay
 import com.mantrasiddhi.presentation.screens.practice.components.MicButton
 import com.mantrasiddhi.presentation.screens.recitation.components.CelebrationOverlay
+import com.mantrasiddhi.presentation.screens.recitation.components.JapaCountedPulse
 import com.mantrasiddhi.presentation.screens.recitation.components.TargetProgressHeader
 import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 import androidx.compose.foundation.layout.height
@@ -70,7 +71,14 @@ fun RecitationScreen(
                     snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_set_success))
                 }
                 is RecitationEvent.ShowError -> {
-                    snackbarHostState.showSnackbar(context.getString(R.string.targets_snack_error, event.message))
+                    // Prefer the failure's own detail when the layer below supplied one;
+                    // otherwise fall back to the localized reason, so the sadhak never
+                    // sees a raw English default string.
+                    val reason = event.detail?.takeIf { it.isNotBlank() }
+                        ?: context.getString(event.messageResId)
+                    snackbarHostState.showSnackbar(
+                        context.getString(R.string.targets_snack_error, reason)
+                    )
                 }
             }
         }
@@ -216,7 +224,7 @@ fun RecitationScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = state.message,
+                        text = stringResource(id = state.messageResId),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
@@ -225,6 +233,13 @@ fun RecitationScreen(
                 }
             }
         }
+
+            // Last child of the outermost Box on purpose: the confirmation belongs to the
+            // whole screen and is centred on it, not on the progress card or the mic. It
+            // declares no pointer input, so taps still reach the mic button beneath it.
+            (uiState as? RecitationUiState.Active)?.let { activeState ->
+                JapaCountedPulse(pulseId = activeState.japaCountedPulseId)
+            }
     }
 }
 }
