@@ -1,0 +1,142 @@
+package com.mantrasiddhi.presentation.components
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.mantrasiddhi.R
+
+enum class LotusArt { LOTUS, RITUAL, EMBLEM }
+
+/** Decorative bitmap art: excluded from accessibility announcements. */
+@Composable
+fun LotusArtwork(art: LotusArt = LotusArt.LOTUS, modifier: Modifier = Modifier) {
+    Image(painter = painterResource(when (art) {
+        LotusArt.LOTUS -> R.drawable.lotus_morning
+        LotusArt.RITUAL -> R.drawable.ritual_still_life
+        LotusArt.EMBLEM -> R.drawable.lotus_emblem
+    }), contentDescription = null,
+        contentScale = if (art == LotusArt.EMBLEM) ContentScale.Fit else ContentScale.Crop,
+        alignment = Alignment.CenterEnd, modifier = modifier)
+}
+
+/** Art and text stay separate so all copy sits on an opaque, contrast-safe surface. */
+@Composable
+fun PageIntro(title: String, description: String, art: LotusArt = LotusArt.LOTUS,
+              modifier: Modifier = Modifier, eyebrow: String? = null) {
+    Column(modifier.fillMaxWidth()) {
+        LotusArtwork(art, Modifier.fillMaxWidth().height(144.dp).clip(MaterialTheme.shapes.large))
+        Spacer(Modifier.height(20.dp))
+        if (eyebrow != null) {
+            Text(eyebrow, style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary, letterSpacing = 1.sp)
+            Spacer(Modifier.height(8.dp))
+        }
+        Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.height(8.dp))
+        Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, modifier.padding(top = 8.dp, bottom = 12.dp),
+        style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+}
+
+/** Keeps paired cards readable on compact screens and with larger accessibility text. */
+@Composable
+fun AdaptivePair(
+    modifier: Modifier = Modifier,
+    first: @Composable (Modifier) -> Unit,
+    second: @Composable (Modifier) -> Unit
+) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        if (maxWidth < 312.dp || LocalDensity.current.fontScale > 1.2f) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                first(Modifier.fillMaxWidth())
+                second(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                first(Modifier.weight(1f).fillMaxHeight())
+                second(Modifier.weight(1f).fillMaxHeight())
+            }
+        }
+    }
+}
+
+/** Shared M3 cards, with a restrained outline and no colored elevation wash. */
+@Composable
+fun LotusCard(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.large,
+    colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)),
+    content: @Composable ColumnScope.() -> Unit
+) = Card(modifier = modifier, shape = shape, colors = colors, elevation = elevation, border = border, content = content)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LotusCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.large,
+    colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)),
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.985f else 1f,
+        spring(dampingRatio = 0.85f, stiffness = 550f), label = "cardPress")
+    Card(onClick = onClick, modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+        enabled = enabled, shape = shape, colors = colors, elevation = elevation, border = border,
+        interactionSource = interactionSource, content = content)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LotusTopAppBar(
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+    scrollBehavior: TopAppBarScrollBehavior? = null
+) {
+    TopAppBar(title = { ProvideTextStyle(MaterialTheme.typography.titleLarge) { title() } },
+        modifier = modifier, navigationIcon = navigationIcon, actions = actions,
+        colors = colors, scrollBehavior = scrollBehavior)
+}
+
+@Composable
+fun PreferenceChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FilterChip(selected = selected, onClick = onClick, modifier = modifier.heightIn(min = 48.dp),
+        shape = RoundedCornerShape(14.dp), label = {
+            Text(text, style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+        }, colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer))
+}

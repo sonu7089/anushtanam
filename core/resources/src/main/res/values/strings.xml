@@ -1,0 +1,661 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Anushtanam</string>
+    <string name="title_home">Home</string>
+    <string name="title_practice">Abhyas</string>
+    <string name="title_recitation">Japa</string>
+    <string name="title_progress">Pragati</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_targets">Sankalpa</string>
+    <string name="title_child_progress">Child</string>
+
+    <!-- Login / Profile Selection -->
+    <string name="profile_selection_title">Select Profile</string>
+    <string name="profile_selection_subtitle">Who is reciting today?</string>
+    <string name="badge_parent">Parent</string>
+    <string name="badge_child">Child</string>
+    <string name="badge_individual">Individual</string>
+
+    <!-- Home Screen -->
+    <string name="home_greeting">Namaste, %1$s</string>
+    <string name="home_blessed_day">Have a blessed day</string>
+    <string name="home_streak">%1$d day streak</string>
+    <string name="home_today_summary">Today\'s Japa</string>
+    <string name="home_successful_recitations">%1$d recitations counted</string>
+    <string name="home_active_target">Active Sankalpa</string>
+    <!-- Home is where a new sadhak meets the word "sankalpa" first, so it is glossed here.
+         Kept separate from home_active_target, which the Sankalpa screen also renders (and
+         which already carries its own gloss there). -->
+    <string name="home_active_target_gloss">Sankalpa — the vow of how many japa you have taken on</string>
+    <string name="home_start_recitation">Begin Japa</string>
+    <string name="home_practice_mode">Abhyas — practice</string>
+    <string name="home_target_progress">%1$d / %2$d completed</string>
+    <string name="home_quick_actions">Quick Actions</string>
+
+    <!-- Home: Sadhana Marg — short teachings from the tradition, one shown at a time.
+         Written as what the tradition says and what sadhaks report, never as fact. -->
+    <string name="home_wisdom_title">Sadhana Marg</string>
+    <string name="home_wisdom_subtitle">Small things sadhaks learn on the path, one at a time.</string>
+    <string name="home_wisdom_next">Next teaching</string>
+
+    <string name="wisdom_nadi_shuddhi_title">Nadi Shuddhi — the channels being cleaned</string>
+    <string name="wisdom_nadi_shuddhi_body">When japa becomes steady and the swaras sit right, sadhaks describe small twitches in different parts of the body. The tradition calls this a sign of nadi shuddhi — the subtle channels being cleaned. It is said to come only after a very long time of unbroken japa, so do not go looking for it. Keep reciting patiently; this level takes years to reach.</string>
+
+    <string name="wisdom_akshara_title">Akshara — the syllables you are counting</string>
+    <string name="wisdom_akshara_body">The Gayatri proper holds 24 aksharas, or syllables, across its three padas. Sanskrit mantras are measured in aksharas and not in words or minutes, because each syllable carries its own sound and weight. This is also what a Purashcharana is measured against: one lakh japa for every akshara the mantra holds. Sound each one fully and the count takes care of itself.</string>
+
+    <string name="wisdom_swara_title">Swara — the pitch that carries the mantra</string>
+    <string name="wisdom_swara_body">A Vedic mantra is not only sounds but pitches. Every akshara carries one of three notes — udatta, the raised note; anudatta, the lowered note; and svarita, the fall from raised to low — and that movement is part of the mantra itself. Recited flat, the words are right but something is missing. Turn on Advanced (Vedic) mode in Settings and Anushtanam will assess your swara alongside your pronunciation.</string>
+
+    <string name="wisdom_trikala_title">Trikala Sandhya — the three junctures</string>
+    <string name="wisdom_trikala_body">Sandhya means a joining: dawn, midday and dusk, where one part of the day meets the next. The tradition asks the sadhak to sit at these three junctures rather than whenever it happens to be convenient. Keeping even one juncture every single day builds more than one long sitting a week. Anushtanam works out the three timings from the sun where you live.</string>
+
+    <string name="wisdom_mala_title">Mala — counting on 108 beads</string>
+    <string name="wisdom_mala_body">A mala carries 108 beads so that the hand keeps the count and the mind is left free for the mantra. Sadhaks count because a sankalpa needs an honest number, not because the number is the point. A small round kept every day goes further than a thousand in one burst and then a week of nothing. Here, Anushtanam is your mala — it counts only what it actually hears.</string>
+
+    <string name="wisdom_ajapa_title">Ajapa — when japa continues on its own</string>
+    <string name="wisdom_ajapa_body">Sadhaks describe a stage where the mantra keeps sounding inside without being started — while walking, while working, while falling asleep. The tradition calls this ajapa japa, japa without reciting. It is said to arrive on its own, far along the path, and never by being forced. Until then the work stays simple: sit, recite, count.</string>
+
+    <string name="wisdom_niyama_title">Niyama — the small rules that hold a sadhana</string>
+    <string name="wisdom_niyama_body">Sit at the same time, on the same seat, facing the same direction. Come with a clean body and an unhurried mind, and do not announce your count to others. These niyamas, the small rules of the vow, look trivial on any single day. Over years they are what keeps a sadhana from quietly falling away.</string>
+
+    <string name="wisdom_shraddha_title">Shraddha — earnestness before speed</string>
+    <string name="wisdom_shraddha_body">Shraddha is faith and earnestness: meaning what you say while you are saying it. Rushing the aksharas to push a number up empties the japa of the very thing that makes it work. Ten japa recited with attention are worth more than a hundred hurried ones. Anushtanam will count either, but only one of them is sadhana.</string>
+
+    <!-- Targets Screen -->
+    <string name="targets_title">Sankalpa — the vow you have taken</string>
+    <string name="target_amount_earned">Earned: ₹%1$.2f</string>
+    <string name="no_active_targets">No sankalpa is running right now.</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_logout">Logout / Switch Profile</string>
+    <string name="settings_db_reseeded">Database successfully re-seeded with demo data!</string>
+    <string name="settings_change_profile_description">To change which sadhak (practitioner) is using the app, tap Switch Profile below.</string>
+    <string name="settings_app_settings">App Settings</string>
+    <string name="settings_theme_preference">Theme Preference</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_script_display">Mantra Script Display</string>
+    <string name="settings_script_devanagari">Sanskrit</string>
+    <string name="settings_script_transliteration">English</string>
+    <string name="settings_script_both">Both</string>
+    <string name="settings_evaluation_sensitivity">Evaluation Sensitivity</string>
+    <string name="settings_match_percent">%1$d%% Match</string>
+    <string name="settings_lax_label">Lax (75%)</string>
+    <string name="settings_strict_label">Strict (95%)</string>
+    <string name="settings_sensitivity_lax">Lax (Beginner)</string>
+    <string name="settings_sensitivity_normal">Normal (Recommended)</string>
+    <string name="settings_sensitivity_strict">Strict (Advanced)</string>
+    <string name="settings_demo_administration">Demo Administration</string>
+    <string name="settings_demo_admin_description">Instantly wipe the local Room database and re-seed it with rich mock history, sankalpa progress, and rewards for test accounts.</string>
+    <string name="settings_reset_db_button">Reset &amp; Re-Seed Database</string>
+    <string name="settings_about_anushtanam">About Anushtanam</string>
+    <string name="settings_about_app_version">App Version</string>
+    <string name="settings_about_speech_engine">Speech Engine</string>
+    <string name="settings_about_speech_engine_value">Offline SpeechRecognizer</string>
+    <string name="settings_about_local_storage">Local Storage</string>
+    <string name="settings_about_local_storage_value">Room SQLite Database</string>
+    <string name="settings_switch_profile">Switch Profile (Log Out)</string>
+    <string name="settings_reset_dialog_title">Reset &amp; Re-Seed Data?</string>
+    <string name="settings_reset_dialog_message">This will wipe every japa record, all sankalpa progress, and all rewards from the database. It will immediately re-populate Arjun, Aarav, Meera, and Priya with rich analytical details, and log you out. Proceed?</string>
+    <string name="settings_reset_confirm">Yes, Re-Seed</string>
+    <string name="settings_reset_cancel">Cancel</string>
+
+    <!-- Practice Mode (Abhyas) -->
+    <string name="practice_listen">Listen</string>
+    <string name="practice_start">Start Abhyas</string>
+    <string name="practice_stop">Stop Recording</string>
+    <string name="practice_try_again">Try Again</string>
+    <string name="practice_toggle_translation">Toggle Transliteration</string>
+    <string name="practice_overall_score">Overall Score</string>
+    <string name="practice_processing">Listening to your recitation…</string>
+    <string name="practice_feedback_title">Pronunciation Feedback</string>
+    <string name="practice_tip_title">A note for your sadhana</string>
+    <string name="practice_intro">Abhyas is practice — recite the Gayatri Mantra here as often as you like. Nothing is counted towards a sankalpa. After recording, tap any word to see how it went.</string>
+    <string name="gayatri_mantra">Gayatri Mantra</string>
+    <string name="practice_tap_word_chip">Tap on any word chip to review details:</string>
+    <string name="practice_time_seconds">Time: %1$ds</string>
+    <string name="practice_listen_reference">Listen to Reference Pronunciation</string>
+    <string name="practice_encouragement_excellent">Clear and steady. Your recitation stayed with the reference all the way through.</string>
+    <string name="practice_encouragement_good">Close. Tap the yellow or red words below to see what to adjust.</string>
+    <string name="practice_encouragement_practice">Stay with it. Slow down and let each akshara — each syllable — sound fully.</string>
+
+    <!-- Recitation Mode (Japa) -->
+    <string name="recitation_begin">Begin Japa</string>
+    <string name="recitation_pause">Pause</string>
+    <string name="recitation_stop">Stop</string>
+    <string name="recitation_correct">Counted</string>
+    <string name="recitation_try_again">Try again!</string>
+    <string name="recitation_japa_counted">Japa counted</string>
+    <string name="recitation_no_target">No active sankalpa</string>
+    <string name="recitation_set_target_warning">Take a sankalpa — a vow of how many japa — in the Sankalpa tab first.</string>
+    <string name="recitation_recent_title">Recent Japa</string>
+    <string name="recitation_goal_reached">🙏 Sankalpa complete</string>
+    <string name="recitation_reward_earned">%1$s %2$s earned!</string>
+    <string name="recitation_reward_pending">Reward: %1$s %2$s</string>
+    <string name="recitation_dismiss">Dismiss</string>
+    <string name="recitation_feedback_format">Score: %1$.0f%% | Tip: %2$s</string>
+    <string name="recitation_celebration_success_msg">Your sankalpa is complete. Every japa in it was heard and counted.</string>
+    <string name="recitation_celebration_encouragement">Sit quietly for a moment before you rise. Then take the next sankalpa — steady japa, day after day, is what carries a sadhana forward.</string>
+    <string name="recitation_session_title">Japa this session</string>
+    <string name="recitation_status_listening">Listening — recite freely, hands free</string>
+    <string name="recitation_status_paused">Japa paused</string>
+    <string name="target_progress_of">of %1$d</string>
+    <string name="target_progress_percent_completed">%1$d%% Completed</string>
+    <string name="recitation_feed_no_sessions">No japa counted in this session yet.</string>
+    <string name="recitation_feed_silence">[Silence]</string>
+    <string name="recitation_feedback_accuracy_format">%1$d%% Accuracy</string>
+    <string name="recitation_feedback_focus_format">Focus on \"%1$s\": %2$s</string>
+
+    <!-- Progress Screen (Pragati) -->
+    <string name="progress_tab_overview">Overview</string>
+    <string name="progress_tab_daily_chart">Daily Chart</string>
+    <string name="progress_tab_accuracy">Accuracy</string>
+    <string name="progress_tab_word_mastery">Word Mastery</string>
+    <string name="progress_tab_history">History</string>
+    <string name="progress_empty_title">Begin your sadhana</string>
+    <string name="progress_empty_description">No japa has been recorded yet. Open Abhyas to practise with feedback, or Japa to begin counting.</string>
+    <string name="progress_activity_summary">Pragati — how your sadhana is going</string>
+    <string name="progress_total_recitations">Total Japa</string>
+    <string name="progress_out_of_attempts">Out of %1$d attempts</string>
+    <string name="progress_average_accuracy">Average Accuracy</string>
+    <string name="progress_overall_rating">Overall rating</string>
+    <string name="progress_current_streak">Current Streak</string>
+    <string name="progress_streak_days">%1$d Days</string>
+    <string name="progress_streak_keep_up">Keep it unbroken</string>
+    <string name="progress_best_session">Best Session</string>
+    <string name="progress_highest_score">Highest score</string>
+    <string name="progress_recent_sessions">Recent Sessions</string>
+    <string name="progress_chart_recitations_per_day">Japa Per Day (Last 7 Days)</string>
+    <string name="progress_chart_accuracy_trend">Accuracy Trend (Last 7 Days)</string>
+    <string name="progress_word_mastery_title">Word Pronunciation Mastery</string>
+    <string name="progress_word_mastery_description">Shows your average score for each word of the mantra, across every session.</string>
+    <string name="progress_history_title">Japa Session History</string>
+    <string name="progress_no_sessions">No sessions recorded yet.</string>
+    <string name="progress_mode_practice">Abhyas</string>
+    <string name="progress_mode_recitation">Japa</string>
+    <string name="progress_correct_badge">Counted</string>
+    <string name="progress_legend_mastered">Mastered (≥85%)</string>
+    <string name="progress_legend_learning">Learning (70-85%)</string>
+    <string name="progress_legend_focus">Focus (&lt;70%)</string>
+
+    <!-- Per-axis trends &amp; focus drill (Phase 4.4) -->
+    <string name="progress_axis_trends_title">Axis Trends (Last 7 Days)</string>
+    <string name="progress_axis_correctness">Correctness</string>
+    <string name="progress_axis_completeness">Completeness</string>
+    <string name="progress_axis_pronunciation">Pronunciation</string>
+    <string name="progress_focus_drill_title">Today\'s Abhyas Focus</string>
+    <string name="progress_focus_drill_subtitle">Take these words into your next abhyas — the weakest, and the longest untouched.</string>
+    <string name="progress_focus_drill_mastery">%1$d%%</string>
+    <string name="progress_focus_reason_new">Line %1$d • Not practiced yet</string>
+    <string name="progress_focus_reason_weak">Line %1$d • Needs work</string>
+    <string name="progress_focus_reason_overdue">Line %1$d • Time to review</string>
+
+    <!-- Syllable-level contrastive feedback (Phase 4.1).
+         Placeholders (positional): %1$s spoken fragment, %2$s reference syllable,
+         %3$s key sound, %4$s correction hint, %5$s reference word. -->
+    <string name="feedback_dropped_aspiration">You said \"%1$s\" — the \"%3$s\" in \"%2$s\" needs a breath of air: say \"%4$s\".</string>
+    <string name="feedback_added_aspiration">You said \"%1$s\" — soften the \"%3$s\" in \"%2$s\"; it shouldn\'t be breathy.</string>
+    <string name="feedback_dental_for_retroflex">You said \"%1$s\" — \"%2$s\" uses a soft dental \"%3$s\" (tongue on the teeth), not a hard retroflex.</string>
+    <string name="feedback_retroflex_for_dental">You said \"%1$s\" — \"%2$s\" uses a hard retroflex \"%3$s\" (tongue curled back), not a dental.</string>
+    <string name="feedback_shortened_vowel">You said \"%1$s\" — hold the long vowel in \"%2$s\" a little longer.</string>
+    <string name="feedback_lengthened_vowel">You said \"%1$s\" — keep the vowel in \"%2$s\" short and crisp.</string>
+    <string name="feedback_vowel_quality">You said \"%1$s\" — adjust the vowel sound in \"%2$s\".</string>
+    <string name="feedback_missing_visarga">You said \"%1$s\" — end \"%2$s\" with a soft visarga echo (a gentle \"ah\").</string>
+    <string name="feedback_missing_nasal">You said \"%1$s\" — include the nasal sound in \"%2$s\".</string>
+    <string name="feedback_missing_sound">You said \"%1$s\" — the \"%3$s\" sound in \"%2$s\" was dropped.</string>
+    <string name="feedback_place_or_manner">You said \"%1$s\" — focus on the \"%3$s\" sound in \"%2$s\".</string>
+    <string name="feedback_voicing">You said \"%1$s\" — check the voicing of \"%3$s\" in \"%2$s\".</string>
+    <string name="feedback_missing_word">You skipped \"%5$s\" — try to include it, starting with \"%2$s\".</string>
+    <string name="feedback_generic">Focus on the \"%2$s\" akshara of \"%5$s\" for clearer pronunciation.</string>
+    <string name="feedback_word_accurate">Beautifully done — \"%5$s\" was clear and accurate.</string>
+    <string name="feedback_unclear_audio">Unclear audio — try again in a quieter spot.</string>
+    <string name="practice_listen_self">Hear Yourself</string>
+    <string name="practice_listen_reference_word">Hear Reference Word</string>
+    <string name="practice_feedback_spoken">Spoken: %1$s</string>
+    <string name="practice_feedback_skipped">— (Skipped)</string>
+    <string name="practice_feedback_accuracy">Accuracy: %1$d%%</string>
+
+    <!-- Generic -->
+    <string name="error_unknown">An unknown error occurred.</string>
+    <string name="loading">Loading...</string>
+
+    <!-- Sankalpa and Reward Strings -->
+    <string name="target_set_new">Take a Sankalpa</string>
+    <string name="target_abandon">Set Aside Sankalpa</string>
+    <string name="target_abandon_confirm">Set this sankalpa aside? The japa you have already counted stays in your record.</string>
+    <string name="target_history">Past Sankalpas</string>
+    <string name="target_dialog_title">Take a Sankalpa</string>
+    <string name="target_dialog_preset">Preset count: %1$d</string>
+    <string name="target_dialog_custom">Custom count</string>
+    <string name="target_dialog_confirm">Take Sankalpa</string>
+    <string name="target_dialog_cancel">Cancel</string>
+    <string name="target_dialog_child_selector">Sankalpa for profile:</string>
+
+    <!-- Reward picker (parent-set, non-monetary-or-monetary) -->
+    <string name="target_dialog_reward_title">Reward</string>
+    <string name="target_dialog_reward_desc_label">What\'s the reward? e.g. New cricket bat</string>
+    <string name="target_dialog_reward_parent_only">Only a parent can attach a reward to a sankalpa.</string>
+    <string name="target_reward_label">Reward: %1$s %2$s</string>
+    <string name="reward_type_money">Money</string>
+    <string name="reward_type_food">Food</string>
+    <string name="reward_type_gift">Gift</string>
+    <string name="reward_type_outing">Outing</string>
+    <string name="reward_type_toy">Toy</string>
+    <string name="reward_type_other">Other</string>
+
+    <!-- Parent Child Strings -->
+    <string name="children_progress_title">Children\'s Pragati</string>
+    <string name="child_struggle_words">Words To Work On</string>
+    <string name="child_sessions">Sessions</string>
+    <string name="child_set_target">Set Sankalpa</string>
+    <string name="child_daily_recitations">Japa Each Day</string>
+    <string name="child_no_weak_words">Clear and steady — no word needs special work right now.</string>
+    <string name="child_details_title">%1$s\'s Profile</string>
+    <string name="child_total_recitations">Total japa: %1$d</string>
+    <string name="child_goals_completed_label">Sankalpas Kept</string>
+
+    <!-- Sankalpa Screen Refactored -->
+    <string name="targets_completed_description">Completed</string>
+    <string name="targets_completed_goal_title">Sankalpa Complete</string>
+    <string name="targets_completed_recitations_count">%1$d Japa Counted</string>
+    <string name="targets_snack_set_success">Sankalpa taken.</string>
+    <string name="targets_snack_abandoned">Sankalpa set aside.</string>
+    <string name="targets_snack_error">Something went wrong: %1$s</string>
+    <string name="targets_abandon_dialog_title">Set Aside Sankalpa</string>
+    <string name="targets_abandon_confirm_btn">Set aside</string>
+    <string name="targets_abandon_cancel_btn">Cancel</string>
+    <string name="targets_percent_format">%1$d%%</string>
+    <string name="target_dialog_recitation_count">How many japa</string>
+    <string name="target_dialog_custom_count_label">Your own count</string>
+    <string name="target_dialog_error_invalid_count">Please enter a valid count greater than 0</string>
+
+    <!-- Child Progress screen specific strings -->
+    <string name="child_target_set_success">Sankalpa set for your child.</string>
+    <string name="child_error_format">Something went wrong: %1$s</string>
+    <string name="child_no_profiles">No child profiles associated with this account.</string>
+    <string name="child_button_go_back">Go Back</string>
+    <string name="child_desc_back">Back</string>
+    <string name="child_active_target_status">Active Sankalpa</string>
+    <string name="child_no_active_target">No sankalpa is running for %1$s.</string>
+    <string name="child_struggle_words_desc">Below is the list of top 3 words %1$s struggles to pronounce accurately:</string>
+    <string name="child_desc_improvement_area">Improvement area</string>
+
+    <!-- Phase 5: robustness / graceful degradation -->
+    <string name="practice_unclear_audio_banner">We couldn\'t hear you clearly. Find a quieter spot and try again — your score may not be reliable.</string>
+    <string name="practice_pronunciation_not_assessed">Pronunciation wasn\'t assessed from audio (too quiet or noisy). Completeness and correctness were still scored.</string>
+
+    <!-- Phase 5.5: Advanced / Vedic (swara) mode -->
+    <string name="settings_advanced_section">Advanced (Vedic)</string>
+    <string name="settings_advanced_vedic_mode">Swara / Pitch accuracy</string>
+    <string name="settings_advanced_vedic_mode_desc">Assess the Vedic pitch accents — swara (udātta / anudātta / svarita) — from your audio. Adds a separate swara score; it does not change your normal pronunciation score. Best turned on once you are comfortable with the aksharas.</string>
+    <string name="practice_swara_title">Swara (Pitch) Accuracy</string>
+    <string name="practice_swara_accuracy">%1$d%% pitch match</string>
+    <string name="practice_swara_not_assessed">Swara not assessed — needs clear audio.</string>
+    <string name="practice_swara_hint_good">Your pitch contour closely follows the benchmark recitation.</string>
+    <string name="practice_swara_hint_flat">Your recitation is fairly flat — let the pitch rise and fall with the benchmark.</string>
+    <string name="practice_swara_hint_direction">Watch the accent direction — you are rising where the benchmark falls (or vice-versa).</string>
+
+    <!-- Voice Model enforcement / download screen -->
+    <string name="voice_model_title_required">Voice model required</string>
+    <string name="voice_model_title_unsupported">Voice model unavailable</string>
+    <string name="voice_model_title_unavailable">On-device voice unavailable</string>
+    <string name="voice_model_body_required">Anushtanam listens to your recitation entirely on your device, using the Hindi voice model. It isn\'t installed yet, so Abhyas and Japa can\'t run. Install it once to use them fully offline — no internet needed afterwards, and no transient errors.</string>
+    <string name="voice_model_body_downloading">Your device is installing the Hindi voice model. This can take a few minutes on Wi-Fi. Return here and tap Check again once it has finished.</string>
+    <string name="voice_model_body_unsupported">This device\'s speech service doesn\'t list Hindi as an installable on-device language. Try the manual steps below, or update \"Speech Recognition &amp; Synthesis\" (Speech Services by Google) from the Play Store, then check again.</string>
+    <string name="voice_model_body_unavailable">This device has no on-device voice recognition service, which Anushtanam needs to hear your japa offline. Install or enable \"Speech Recognition &amp; Synthesis\" (Speech Services by Google), then check again.</string>
+    <string name="voice_model_download_button">Download voice model</string>
+    <string name="voice_model_try_again">Try again</string>
+    <string name="voice_model_download_failed">Couldn\'t start the download. Check your connection and try again, or use the manual steps below.</string>
+    <string name="voice_model_downloading_percent">Downloading… %1$d%%</string>
+    <string name="voice_model_downloading_preparing">Preparing download…</string>
+    <string name="voice_model_system_downloading">A download is already in progress on your device.</string>
+    <string name="voice_model_open_settings">Open voice input settings</string>
+    <string name="voice_model_check_again">I\'ve installed it — Check again</string>
+    <string name="voice_model_show_steps">Show manual steps</string>
+    <string name="voice_model_hide_steps">Hide manual steps</string>
+    <string name="voice_model_steps_title">Install the Hindi voice model manually</string>
+    <string name="voice_model_step_1">1. Open your phone\'s Settings app.</string>
+    <string name="voice_model_step_2">2. Go to System → Languages &amp; input → On-device speech recognition. (On some phones: General management → Voice input, or Settings → Apps → Speech Recognition &amp; Synthesis.)</string>
+    <string name="voice_model_step_3">3. Tap Add languages (or the + button) and choose हिन्दी (Hindi – India).</string>
+    <string name="voice_model_step_4">4. Stay on Wi-Fi and wait for the download to finish.</string>
+    <string name="voice_model_step_5">5. Return to Anushtanam and tap \"I\'ve installed it — Check again\".</string>
+    <string name="voice_model_steps_note">Exact menu names vary by phone brand. Look for \"on-device speech recognition\", \"voice input\", or \"Speech Recognition &amp; Synthesis\".</string>
+
+    <!-- Sandhya Vandan -->
+    <string name="title_sandhya">Sandhya Vandan</string>
+    <string name="home_sandhya_title">Sandhya Vandan</string>
+    <string name="home_sandhya_subtitle">Dawn, noon &amp; dusk reminders by the sun</string>
+
+    <!-- Notification channel + content -->
+    <string name="sandhya_channel_name">Sandhya Vandan reminders</string>
+    <string name="sandhya_channel_desc">Daily prompts to perform Sandhya Vandan at sunrise, solar noon, and sunset.</string>
+    <string name="sandhya_notif_title">Time for %1$s</string>
+    <string name="sandhya_notif_text">%1$s is around %2$s. Take five minutes for your anushtanam.</string>
+    <string name="sandhya_mark_done">Mark as done</string>
+
+    <!-- Parent sankalpa notification (posted when a parent sets a sankalpa for a child) -->
+    <string name="goal_channel_name">Parent goals</string>
+    <string name="goal_channel_desc">Alerts when a parent sets a new japa sankalpa for a child.</string>
+    <string name="goal_notif_title">A new sankalpa from your parent 🙏</string>
+    <string name="goal_notif_text">Recite %1$d japa to earn: %2$s</string>
+    <string name="goal_notif_reward_generic">a special reward</string>
+
+    <!-- Period names -->
+    <string name="sandhya_period_pratah">Prātaḥ Sandhya</string>
+    <string name="sandhya_period_madhyahna">Mādhyāhnika Sandhya</string>
+    <string name="sandhya_period_sayam">Sāyaṃ Sandhya</string>
+
+    <!-- Solar event labels -->
+    <string name="sandhya_event_sunrise">Sunrise</string>
+    <string name="sandhya_event_noon">Sun at zenith</string>
+    <string name="sandhya_event_sunset">Sunset</string>
+
+    <!-- Screen -->
+    <string name="sandhya_intro">Keep the three daily junctures (sandhi-kāla) — dawn, midday and dusk. Timings are worked out from the sun for your region; a reminder arrives five minutes before each.</string>
+    <string name="sandhya_enable_title">Daily reminders</string>
+    <string name="sandhya_enable_desc">Notify me before sunrise, solar noon, and sunset.</string>
+    <string name="sandhya_region_label">Region</string>
+    <string name="sandhya_change">Change</string>
+    <string name="sandhya_use_location">Use my location</string>
+    <string name="sandhya_select_region_title">Set your location</string>
+    <string name="sandhya_search_hint">Search city or place…</string>
+    <string name="sandhya_search_action">Search</string>
+    <string name="sandhya_search_prompt">Type a city, town, or place name and search.</string>
+    <string name="sandhya_searching">Searching…</string>
+    <string name="sandhya_search_no_results">No places found. Try a different name.</string>
+    <string name="sandhya_search_error">Search failed. Check your internet connection and try again.</string>
+    <string name="sandhya_region_current">Current location</string>
+    <string name="sandhya_today_title">Today\'s timings</string>
+    <string name="sandhya_reminder_at">Reminder %1$s</string>
+    <string name="sandhya_status_done">Done ✓</string>
+    <string name="sandhya_status_mark">Mark done</string>
+    <string name="sandhya_status_missed">Missed</string>
+    <string name="sandhya_status_upcoming">Upcoming</string>
+    <string name="sandhya_polar_none">Not applicable at this latitude today</string>
+    <string name="sandhya_approx_note">Reminders use battery-friendly timing and may arrive a few minutes off.</string>
+
+    <!-- Permissions -->
+    <string name="sandhya_notif_perm_title">Allow notifications</string>
+    <string name="sandhya_notif_perm_desc">Anushtanam needs notification access to remind you for each Sandhya. Reminders won\'t appear until it\'s allowed.</string>
+    <string name="sandhya_notif_perm_button">Allow notifications</string>
+    <string name="sandhya_location_denied">Location unavailable. Please pick your region manually.</string>
+
+    <!-- Metrics -->
+    <string name="sandhya_metrics_title">Your adherence</string>
+    <string name="sandhya_metrics_empty">Enable reminders and mark your Sandhya done to start tracking adherence.</string>
+    <string name="sandhya_adherence_label">Adherence</string>
+    <string name="sandhya_total_observed">%1$d Sandhyas observed</string>
+    <string name="sandhya_streak_full_label">Full trisandhyā streak</string>
+    <string name="sandhya_streak_any_label">Showing-up streak</string>
+    <string name="sandhya_streak_days">%1$d days</string>
+    <string name="sandhya_streak_best">Best: %1$d days</string>
+    <string name="sandhya_ontime_label">On time</string>
+    <string name="sandhya_ontime_value">%1$d%%</string>
+    <string name="sandhya_punctuality_ontime">Usually right on time</string>
+    <string name="sandhya_punctuality_early">Usually %1$d min early</string>
+    <string name="sandhya_punctuality_late">Usually %1$d min late</string>
+    <string name="sandhya_most_consistent">You keep %1$s most consistently</string>
+    <string name="sandhya_per_period_title">By juncture</string>
+    <string name="sandhya_per_period_value">%1$d / %2$d (%3$d%%)</string>
+    <string name="sandhya_trend_title">Last 7 days</string>
+    <string name="sandhya_percent">%1$d%%</string>
+
+    <!-- Phase B: Cloud auth (welcome / parent / child) -->
+    <string name="auth_welcome_subtitle">Sign in to keep your sankalpa in sync across devices</string>
+    <string name="auth_role_parent">I am a Parent</string>
+    <string name="auth_role_child">I am a Child</string>
+    <string name="auth_back">Back</string>
+    <string name="auth_name_label">Your name</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_login">Log in</string>
+    <string name="auth_create_account">Create account</string>
+    <string name="auth_parent_login_title">Parent Login</string>
+    <string name="auth_parent_signup_title">Parent Sign-up</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_reset_sent">Password reset email sent</string>
+    <string name="auth_have_account">Already have an account? Log in</string>
+    <string name="auth_need_account">New here? Create an account</string>
+    <string name="auth_child_login_title">Child Login</string>
+    <string name="auth_child_signup_title">Child Sign-up</string>
+    <string name="auth_child_id_label">Your 12-digit ID</string>
+    <string name="auth_pin_label">6-digit PIN</string>
+    <string name="auth_child_create">Create my ID</string>
+    <string name="auth_child_have_id">Already have an ID? Log in</string>
+    <string name="auth_child_need_id">New here? Get an ID</string>
+    <string name="auth_child_id_reveal_title">Your ID is ready!</string>
+    <string name="auth_child_id_reveal_subtitle">Share this ID with your parent so they can send you a sankalpa. You will use it with your PIN to log in.</string>
+    <string name="auth_child_id_continue">Continue</string>
+    <string name="auth_child_id_copied">ID copied</string>
+    <string name="auth_copy">Copy</string>
+
+    <!-- Phase B: Home entry -->
+    <string name="home_family_title">Family</string>
+    <string name="home_family_subtitle">Link a parent or child and set a shared sankalpa</string>
+
+    <!-- Phase B: Family screen -->
+    <string name="family_title">Family</string>
+    <string name="family_link_child_title">Link a child</string>
+    <string name="family_link_child_subtitle">Enter your child\'s 12-digit ID. They approve the request on their device.</string>
+    <string name="family_child_id_label">Child\'s 12-digit ID</string>
+    <string name="family_send_request">Send link request</string>
+    <string name="family_your_children">Your children</string>
+    <string name="family_no_children">No linked children yet. Send a link request above.</string>
+    <string name="family_view_goals">View sankalpas</string>
+    <string name="family_hide_goals">Hide sankalpas</string>
+    <string name="family_set_goal">Set sankalpa</string>
+    <string name="family_no_goals_for_child">No sankalpa set for this child yet.</string>
+    <string name="family_your_id_title">Your ID</string>
+    <string name="family_your_id_subtitle">Share this ID with your parent so they can link and set a sankalpa.</string>
+    <string name="family_link_requests">Link requests</string>
+    <string name="family_no_requests">No pending requests.</string>
+    <string name="family_request_from">%1$s wants to link with you</string>
+    <string name="family_approve">Approve</string>
+    <string name="family_reject">Reject</string>
+    <string name="family_goals_from_parent">Sankalpas from your parent</string>
+    <string name="family_no_goals">No sankalpa yet. Your parent can set one for you.</string>
+    <string name="family_goal_progress">%1$d / %2$d japa</string>
+    <string name="family_goal_completed">Complete — reward earned 🙏</string>
+    <string name="family_goal_dialog_title">Set a sankalpa for %1$s</string>
+    <string name="family_goal_dialog_confirm">Set sankalpa</string>
+    <string name="family_link_request_sent">Link request sent</string>
+    <string name="family_link_approved">Linked!</string>
+    <string name="family_goal_created">Sankalpa set</string>
+    <string name="family_generic_error">Something went wrong. Please try again.</string>
+
+    <!-- Phase B: FCM push fallback body -->
+    <string name="goal_push_generic_body">Open Anushtanam to see your new sankalpa.</string>
+
+    <!-- ===================================================================
+         Purashcharana — the great sankalpa: one lakh japa per akshara.
+         Counts are written with Indian digit grouping (1,00,000 / 24,00,000)
+         because that is how the reader thinks about lakhs.
+         =================================================================== -->
+    <string name="title_purashcharana">Purashcharana</string>
+    <string name="home_purashcharana_title">Purashcharana — the great sankalpa</string>
+    <string name="home_purashcharana_subtitle_open">One lakh japa for every akshara of the Gayatri. Read what it asks before you begin.</string>
+    <string name="home_purashcharana_subtitle_enrolled">%1$s of %2$s japa</string>
+    <string name="home_purashcharana_cta">Open Purashcharana</string>
+
+    <string name="purashcharana_what_title">What a Purashcharana is</string>
+    <string name="purashcharana_what_body">A Purashcharana is the great mission of a mantra sadhak: to recite the mantra one lakh — 1,00,000 — times for every akshara, every syllable, that it holds. The Gayatri holds 24 aksharas, so a full Purashcharana is 24 x 1,00,000 = 24,00,000 japa. This is the work of years, not weeks, and it is meant to be. Anushtanam only keeps the count and marks each milestone as it passes, so you always know where you stand on the path.</string>
+    <string name="purashcharana_math_format">%1$d aksharas x 1,00,000 = %2$s japa</string>
+    <string name="purashcharana_gayatri_note">The 24 aksharas are the three padas of the Savitri Gayatri itself. The pranava and the vyahritis are not counted.</string>
+    <string name="purashcharana_take_sankalpa">Take the Sankalpa</string>
+    <string name="purashcharana_sankalpa_dialog_title">Take this sankalpa?</string>
+    <string name="purashcharana_sankalpa_dialog_body">You are vowing to recite 24,00,000 Gayatri japa, for as many years as it takes. Only japa that Anushtanam hears and verifies will count towards it. You may set the sankalpa aside at any time, and the japa you have counted stays in your record.</string>
+    <string name="purashcharana_sankalpa_dialog_confirm">Yes, I take it</string>
+    <string name="purashcharana_sankalpa_dialog_cancel">Not yet</string>
+    <string name="purashcharana_enrolled_snack">Sankalpa taken. May it be completed.</string>
+
+    <string name="purashcharana_progress_format">%1$s of %2$s</string>
+    <string name="purashcharana_percent_format">%1$s%% complete</string>
+    <string name="purashcharana_day_number">Day %1$d of your sankalpa</string>
+    <string name="purashcharana_remaining_format">%1$s japa remaining</string>
+    <string name="purashcharana_next_milestone_format">Next milestone: %1$s</string>
+
+    <string name="purashcharana_pace_title">Your pace</string>
+    <string name="purashcharana_pace_none">No verified japa yet, so there is nothing to measure. Recite a few and your pace will appear here.</string>
+    <string name="purashcharana_pace_format">About %1$d japa a day so far</string>
+    <string name="purashcharana_eta_format">At this pace, about %1$s to go</string>
+    <string name="purashcharana_eta_years">%1$d years</string>
+    <string name="purashcharana_eta_months">%1$d months</string>
+    <string name="purashcharana_eta_days">%1$d days</string>
+
+    <string name="purashcharana_milestones_title">Milestones on the path</string>
+    <string name="purashcharana_milestone_reached">Reached</string>
+    <string name="purashcharana_milestone_next">Next</string>
+
+    <string name="purashcharana_niyama_title">Niyama — keeping the sankalpa</string>
+    <string name="purashcharana_niyama_body">Sit at the same time each day, on the same seat, facing the same direction. Come with a clean body and an unhurried mind. Do not skip a day meaning to make it up with a bigger count tomorrow — it is the small daily number that finishes a Purashcharana. And do not announce your count to others; the vow is between you and the mantra.</string>
+
+    <string name="purashcharana_counting_title">How the count is kept</string>
+    <string name="purashcharana_counting_body">Only japa that Anushtanam actually hears and verifies is counted. Nothing can be added by hand — there is no way to type a number in, and no one can raise it for you. What you see here is an honest record of what you truly recited. While you are signed in, that record is also kept safe against your account, so a new phone or a fresh install does not cost you the years already behind you.</string>
+
+    <string name="purashcharana_withdraw">Set aside this sankalpa</string>
+    <string name="purashcharana_withdraw_dialog_title">Set the sankalpa aside?</string>
+    <string name="purashcharana_withdraw_dialog_body">The japa you have counted stays in your record; nothing is lost. You can take the sankalpa again whenever you are ready to continue.</string>
+    <string name="purashcharana_withdraw_confirm">Set aside</string>
+    <string name="purashcharana_withdraw_cancel">Keep going</string>
+    <string name="purashcharana_withdrawn_snack">Sankalpa set aside.</string>
+
+    <string name="purashcharana_complete_title">Purnahuti</string>
+    <string name="purashcharana_complete_body">24,00,000 japa, every one of them heard and counted. Your Purashcharana is complete. Sit quietly with it for a while before you decide what comes next.</string>
+    <string name="purashcharana_back">Back</string>
+    <string name="purashcharana_error_format">Something went wrong: %1$s</string>
+
+    <!-- Purashcharana milestone names: Sanskrit term + a plain-English gloss -->
+    <string name="milestone_arambha_title">Arambha</string>
+    <string name="milestone_arambha_gloss">The beginning — 1,008 japa</string>
+    <string name="milestone_dasha_sahasra_title">Dasha Sahasra</string>
+    <string name="milestone_dasha_sahasra_gloss">Ten thousand japa</string>
+    <string name="milestone_sahasra_avritti_title">Sahasra Avritti</string>
+    <string name="milestone_sahasra_avritti_gloss">A thousand japa for each of the 24 aksharas — 24,000 japa</string>
+    <string name="milestone_eka_laksha_title">Eka Laksha</string>
+    <string name="milestone_eka_laksha_gloss">One lakh — 1,00,000 japa</string>
+    <string name="milestone_dashamsha_title">Dashamsha</string>
+    <string name="milestone_dashamsha_gloss">One tenth of the way — 2,40,000 japa</string>
+    <string name="milestone_chaturthamsha_title">Chaturthamsha</string>
+    <string name="milestone_chaturthamsha_gloss">One quarter of the way — 6,00,000 japa</string>
+    <string name="milestone_ardha_title">Ardha</string>
+    <string name="milestone_ardha_gloss">Half the path — 12,00,000 japa</string>
+    <string name="milestone_tripada_title">Tripada</string>
+    <string name="milestone_tripada_gloss">Three quarters — 18,00,000 japa</string>
+    <string name="milestone_antima_title">Antima</string>
+    <string name="milestone_antima_gloss">The final stretch — 21,60,000 japa</string>
+    <string name="milestone_purnahuti_title">Purnahuti</string>
+    <string name="milestone_purnahuti_gloss">The full offering — 24,00,000 japa complete</string>
+
+    <!-- ===================================================================== -->
+    <!-- Hardcoded-string sweep                                                -->
+    <!-- Copy that used to sit as English literals inside Kotlin. Appended as   -->
+    <!-- one block so the rest of this file keeps its original ordering.        -->
+    <!-- ===================================================================== -->
+
+    <!-- Brand wordmark shown beneath the Latin app name on splash / welcome / profile-choice -->
+    <string name="app_name_devanagari">अनुष्ठानम्</string>
+
+    <!-- Shared components -->
+    <string name="progress_ring_percent_desc">%1$d%% complete</string>
+
+    <!-- Mic button: shared by Abhyas and Japa, so the label reads for both -->
+    <string name="mic_start_japa">Start reciting your japa</string>
+    <string name="mic_stop_japa">Stop reciting</string>
+
+    <!-- Abhyas: reference-recitation player -->
+    <string name="practice_play_reference_desc">Play the reference japa</string>
+    <string name="practice_pause_reference_desc">Pause the reference japa</string>
+    <string name="practice_reference_position_format">%1$ds / %2$ds</string>
+
+    <!-- Abhyas: failures that reach the sadhak -->
+    <string name="practice_error_speech_failed">The voice engine stopped listening. Take a breath and begin again.</string>
+    <string name="practice_error_evaluate_failed">That japa could not be scored. Please try once more.</string>
+
+    <!-- Japa: recent-recitation feed row icons -->
+    <string name="recitation_feed_correct_desc">Recited correctly — this japa was counted</string>
+    <string name="recitation_feed_incorrect_desc">Not counted — this one needs another attempt</string>
+
+    <!-- Pragati (progress) -->
+    <string name="progress_error_icon_desc">Something went wrong</string>
+    <string name="progress_session_duration_format">%1$.1fs</string>
+
+    <!-- Sankalpa screen failures -->
+    <string name="targets_error_no_profile">No profile is active right now. Choose one and try again.</string>
+    <string name="targets_error_load_failed">Your sankalpa could not be loaded just now.</string>
+    <string name="targets_error_create_failed">That sankalpa could not be taken. Please try again.</string>
+    <string name="targets_error_not_ready">Still getting ready — take your sankalpa again in a moment.</string>
+    <string name="targets_error_none_active">There is no running sankalpa to set aside.</string>
+
+    <!-- Child progress: sankalpa summary and failures -->
+    <string name="child_card_sankalpa_format">Sankalpa: %1$s</string>
+    <string name="child_error_parent_only">Only a parent profile can see a child\'s progress.</string>
+    <string name="child_error_no_parent_profile">No parent profile is active right now.</string>
+    <string name="child_error_load_children">Your children\'s progress could not be loaded.</string>
+    <string name="child_error_not_found">That child profile could not be found.</string>
+    <string name="child_error_load_details">This child\'s details could not be loaded.</string>
+    <string name="child_error_set_target">That sankalpa could not be set. Please try again.</string>
+
+    <!-- Profile chooser -->
+    <string name="login_error_load_profiles">The profiles on this device could not be loaded.</string>
+
+    <!-- Sign-in / sign-up validation -->
+    <string name="auth_error_missing_credentials">Enter your email and password.</string>
+    <string name="auth_error_signup_incomplete">Enter your name, your email, and a password of at least 6 characters.</string>
+    <string name="auth_error_reset_email_missing">Enter your email so the reset link can be sent.</string>
+    <string name="auth_error_generic">Something went wrong. Please try again.</string>
+
+    <!-- Settings -->
+    <string name="settings_about_app_version_value">1.2.1</string>
+
+    <!-- Voice engine failures. Surfaced verbatim on the Abhyas screen. -->
+    <string name="speech_error_model_missing">The Hindi voice model is not available. Install it again from the voice model screen to continue.</string>
+    <string name="speech_error_audio">The microphone could not record. Check that nothing else is using it.</string>
+    <string name="speech_error_client">The voice engine could not start. Please try again.</string>
+    <string name="speech_error_permission">Anushtanam needs microphone permission to hear your japa.</string>
+    <string name="speech_error_network">The voice engine reported a network problem.</string>
+    <string name="speech_error_network_timeout">The voice engine timed out waiting for a reply.</string>
+    <string name="speech_error_no_match">Nothing recognisable was heard. Recite a little more clearly and try again.</string>
+    <string name="speech_error_busy">The voice engine is still busy with your last attempt. Try again in a moment.</string>
+    <string name="speech_error_server">The voice engine reported a server problem.</string>
+    <string name="speech_error_speech_timeout">No speech was heard. Begin your japa when you are ready.</string>
+    <string name="speech_error_language_not_supported">This device\'s voice engine does not support Hindi.</string>
+    <string name="speech_error_unknown">The voice engine stopped unexpectedly.</string>
+
+    <!-- Home failures. Resource ids rather than English literals in HomeViewModel, which
+         has no Context and must not carry UI copy. -->
+    <string name="home_error_load_failed">Your dashboard could not be loaded just now. Please try again in a moment.</string>
+    <string name="home_error_no_profile">No profile is active right now. Choose one and try again.</string>
+
+    <!-- Japa screen failures. RecitationViewModel has no Context, so it carries resource
+         ids and the screen resolves them; the same shape the rest of the app now uses. -->
+    <string name="recitation_error_no_profile">No profile is active right now. Choose one and begin your japa again.</string>
+    <string name="recitation_error_target_failed">That sankalpa could not be taken. Please try again.</string>
+    <string name="lotus_welcome_eyebrow">A LITTLE SPACE FOR THE SACRED</string>
+    <string name="lotus_welcome_title">A quieter mind.\nA daily practice.</string>
+    <string name="lotus_japa_completed">japa completed\ntoday</string>
+    <string name="lotus_daily_practice">Your daily practice</string>
+    <string name="lotus_listen_learn">Listen. Learn. Refine.</string>
+    <string name="lotus_begin_recitation">Settle in and begin.</string>
+    <string name="lotus_beyond_practice">Along your path</string>
+    <string name="lotus_parent_intro">Practice grows together.</string>
+    <string name="lotus_parent_description">A space to encourage your family, celebrate progress, and build a daily rhythm.</string>
+    <string name="lotus_child_intro">Begin at your own pace.</string>
+    <string name="lotus_child_description">A little practice, a little patience. Your next step starts here.</string>
+    <string name="lotus_progress_intro">Every day adds up.</string>
+    <string name="lotus_progress_description">See the rhythm of your practice and the progress you have made.</string>
+    <string name="lotus_targets_intro">An intention to return to.</string>
+    <string name="lotus_targets_description">Give your daily practice a direction with a personal sankalpa.</string>
+    <string name="lotus_family_intro">Room to grow together.</string>
+    <string name="lotus_family_description">Encouragement, shared intentions, and small steps forward.</string>
+    <string name="lotus_settings_intro">Make this space yours.</string>
+    <string name="lotus_settings_description">Choose how your practice looks, reads, and feels.</string>
+    <string name="lotus_children_intro">Encourage every small step.</string>
+    <string name="lotus_children_description">A clear view of each child’s practice and progress.</string>
+    <string name="lotus_recitation_intro">One mantra at a time.</string>
+    <string name="lotus_practice_intro">Listen closely. Practice gently.</string>
+    <string name="lotus_sandhya_intro">A rhythm with the sun.</string>
+    <string name="lotus_purashcharana_intro">A practice for the long journey.</string>
+</resources>

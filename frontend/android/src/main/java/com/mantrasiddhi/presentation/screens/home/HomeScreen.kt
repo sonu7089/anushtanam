@@ -1,0 +1,185 @@
+package com.mantrasiddhi.presentation.screens.home
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.mantrasiddhi.resources.R
+import com.mantrasiddhi.domain.model.ProfileType
+import com.mantrasiddhi.presentation.components.*
+import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
+import com.mantrasiddhi.presentation.screens.home.components.PurashcharanaHomeCard
+import com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    onNavigateToRecitation: () -> Unit,
+    onNavigateToPractice: () -> Unit,
+    onNavigateToTargets: () -> Unit,
+    onNavigateToChildProgress: () -> Unit,
+    onNavigateToSandhya: () -> Unit = {},
+    onNavigateToFamily: () -> Unit = {},
+    onNavigateToPurashcharana: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    when (val state = uiState) {
+        HomeUiState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        is HomeUiState.Error -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(state.messageResId), color = MaterialTheme.colorScheme.error)
+        }
+        is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
+            onNavigateToTargets, onNavigateToChildProgress, onNavigateToSandhya,
+            onNavigateToFamily, onNavigateToPurashcharana, modifier)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun HomeContent(
+    state: HomeUiState.Success,
+    onRecitation: () -> Unit, onPractice: () -> Unit, onTargets: () -> Unit,
+    onChildren: () -> Unit, onSandhya: () -> Unit, onFamily: () -> Unit,
+    onPurashcharana: () -> Unit, modifier: Modifier = Modifier
+) {
+    Scaffold(modifier = modifier, topBar = {
+        LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
+            actions = { ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp)) })
+    }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Column {
+                Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(20.dp))
+                LotusArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(156.dp).clip(MaterialTheme.shapes.large))
+            }
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.widthIn(min = 160.dp)) {
+                    Text(stringResource(R.string.home_today_summary), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(R.string.lotus_japa_completed), modifier = Modifier.widthIn(max = 132.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if (state.streakDays > 0) {
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Text(stringResource(R.string.home_streak, state.streakDays),
+                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                }
+            }
+            Column {
+                SectionLabel(stringResource(R.string.lotus_daily_practice))
+                AdaptivePair(first = { cardModifier ->
+                    PracticeEntry(stringResource(R.string.title_practice), stringResource(R.string.lotus_listen_learn),
+                        onPractice, cardModifier, false)
+                }, second = { cardModifier ->
+                    PracticeEntry(stringResource(R.string.title_recitation), stringResource(R.string.lotus_begin_recitation),
+                        onRecitation, cardModifier, true)
+                })
+            }
+            LotusCard(onClick = onTargets, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.home_active_target), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.home_active_target_gloss), style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    val target = state.activeTarget
+                    if (target == null) {
+                        Text(stringResource(R.string.no_active_targets), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.home_target_progress, target.currentRecitationCount,
+                                target.targetRecitationCount), style = MaterialTheme.typography.headlineSmall,
+                                modifier = Modifier.weight(1f))
+                            Text(stringResource(R.string.targets_percent_format, (target.progress * 100).toInt()),
+                                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        LinearProgressIndicator(progress = { target.progress }, modifier = Modifier.fillMaxWidth()
+                            .height(6.dp).clip(MaterialTheme.shapes.small), trackColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+                        if (target.hasReward) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(stringResource(R.string.target_reward_label, target.rewardType.emoji, target.rewardDescription),
+                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                }
+            }
+            PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
+            Column {
+                SectionLabel(stringResource(R.string.lotus_beyond_practice))
+                HomeLink(stringResource(R.string.home_sandhya_title), stringResource(R.string.home_sandhya_subtitle), onSandhya)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HomeLink(stringResource(R.string.home_family_title), stringResource(R.string.home_family_subtitle), onFamily)
+            }
+            SadhanaWisdomCard()
+            if (state.user.profileType == ProfileType.PARENT && state.childrenProgress.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SectionLabel(stringResource(R.string.children_progress_title))
+                    state.childrenProgress.forEach { ChildCard(it, onChildren) }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, modifier: Modifier, primary: Boolean) {
+    LotusCard(onClick = onClick, modifier = modifier, border = null,
+        colors = CardDefaults.cardColors(
+            containerColor = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer)) {
+        Column(Modifier.fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(12.dp))
+            Text(subtitle, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.align(Alignment.End).size(20.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeLink(title: String, subtitle: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = MaterialTheme.colorScheme.background) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.width(16.dp))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}

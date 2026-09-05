@@ -1,3 +1,5 @@
+> Historical audit from the previous design. For the current UI, see [design decisions](design-decisions.md) and [verification](verification.md).
+
 # MD3 Compliance Audit Report
 
 Target: com.mantrasiddhi (Anushtanam App)
