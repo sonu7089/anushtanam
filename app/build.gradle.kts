@@ -27,8 +27,8 @@ android {
         minSdk = 33
         // targetSdk 36 (Android 16): required by Play policy from Aug 31, 2026.
         targetSdk = 36
-        // Incrementing to 10 as versionCode 9 was consumed by Google Play Console
-        versionCode = 10
+        // Incrementing to 11 as versionCode 10 was consumed by Google Play Console
+        versionCode = 11
         // Minor bump, not a patch: this release adds the Purashcharana sankalpa with its
         // cloud mirror, the Sadhana Marg teachings, the japa-counted pulse, and the
         // Sanskrit-in-English pass across the whole app.
@@ -39,9 +39,12 @@ android {
             useSupportLibrary = true
         }
 
+    }
+
+    androidResources {
         // Keep only English + Hindi locale resources; strips the ~80 locales that
         // libraries (Material, AppCompat) bundle but this app never uses.
-        resourceConfigurations += listOf("en", "hi")
+        localeFilters += listOf("en", "hi")
     }
 
     signingConfigs {
