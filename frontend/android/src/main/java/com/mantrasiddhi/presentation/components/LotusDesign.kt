@@ -3,6 +3,7 @@ package com.mantrasiddhi.presentation.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -14,7 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -22,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 
-enum class LotusArt { LOTUS, RITUAL, EMBLEM }
+enum class LotusArt { LOTUS, RITUAL, EMBLEM, RIVER, DIYA, JASMINE, FAMILY }
 
 /** Decorative bitmap art: excluded from accessibility announcements. */
 @Composable
@@ -31,18 +35,43 @@ fun LotusArtwork(art: LotusArt = LotusArt.LOTUS, modifier: Modifier = Modifier) 
         LotusArt.LOTUS -> R.drawable.lotus_morning
         LotusArt.RITUAL -> R.drawable.ritual_still_life
         LotusArt.EMBLEM -> R.drawable.lotus_emblem
+        LotusArt.RIVER -> R.drawable.river_dawn
+        LotusArt.DIYA -> R.drawable.diya_cutout
+        LotusArt.JASMINE -> R.drawable.jasmine_sprig
+        LotusArt.FAMILY -> R.drawable.family_hands
     }), contentDescription = null,
-        contentScale = if (art == LotusArt.EMBLEM) ContentScale.Fit else ContentScale.Crop,
+        contentScale = if (art in listOf(LotusArt.EMBLEM, LotusArt.DIYA, LotusArt.JASMINE)) ContentScale.Fit else ContentScale.Crop,
         alignment = Alignment.CenterEnd, modifier = modifier)
 }
 
-/** Art and text stay separate so all copy sits on an opaque, contrast-safe surface. */
+/** Extends only the artwork into the page gutters. Reading and touch bounds stay inset. */
+private fun Modifier.artworkBleed() = layout { measurable, constraints ->
+    val gutter = 24.dp.roundToPx()
+    val expanded = constraints.copy(minWidth = constraints.maxWidth + gutter * 2,
+        maxWidth = constraints.maxWidth + gutter * 2)
+    val placeable = measurable.measure(expanded)
+    layout(constraints.maxWidth, placeable.height) { placeable.placeRelative(-gutter, 0) }
+}
+
+/** A scene that fades into the actual theme background, without a photo-card border. */
+@Composable
+fun AmbientArtwork(art: LotusArt, modifier: Modifier = Modifier) {
+    val background = MaterialTheme.colorScheme.background
+    Box(modifier.artworkBleed()) {
+        LotusArtwork(art, Modifier.matchParentSize())
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+            0f to background, 0.18f to background.copy(alpha = 0.05f),
+            0.53f to Color.Transparent, 0.83f to background.copy(alpha = 0.9f), 1f to background)))
+    }
+}
+
+/** The scene and heading share one canvas; the reading area ends on an opaque surface. */
 @Composable
 fun PageIntro(title: String, description: String, art: LotusArt = LotusArt.LOTUS,
               modifier: Modifier = Modifier, eyebrow: String? = null) {
-    Column(modifier.fillMaxWidth()) {
-        LotusArtwork(art, Modifier.fillMaxWidth().height(144.dp).clip(MaterialTheme.shapes.large))
-        Spacer(Modifier.height(20.dp))
+    Box(modifier.fillMaxWidth()) {
+      AmbientArtwork(art, Modifier.fillMaxWidth().height(248.dp))
+      Column(Modifier.fillMaxWidth().padding(top = 218.dp)) {
         if (eyebrow != null) {
             Text(eyebrow, style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary, letterSpacing = 1.sp)
@@ -52,6 +81,7 @@ fun PageIntro(title: String, description: String, art: LotusArt = LotusArt.LOTUS
         Spacer(Modifier.height(8.dp))
         Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
+      }
     }
 }
 

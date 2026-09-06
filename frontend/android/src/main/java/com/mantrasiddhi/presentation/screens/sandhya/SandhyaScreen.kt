@@ -58,6 +58,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -143,7 +147,7 @@ fun SandhyaScreen(
                     .padding(24.dp)
             ) {
                 PageIntro(stringResource(R.string.lotus_sandhya_intro),
-                    stringResource(R.string.sandhya_intro), LotusArt.LOTUS)
+                    stringResource(R.string.sandhya_intro), LotusArt.RIVER)
                 Spacer(Modifier.height(16.dp))
 
                 RegionCard(
@@ -372,7 +376,7 @@ private fun TodayRow(
 }
 
 @Composable
-private fun MetricsSection(adherence: SandhyaAdherence) {
+internal fun MetricsSection(adherence: SandhyaAdherence) {
     LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(24.dp)) {
             Text(
@@ -395,7 +399,7 @@ private fun MetricsSection(adherence: SandhyaAdherence) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(72.dp)) {
                     ProgressRing(
-                        progress = adherence.overallAdherenceRate.toFloat(),
+                        progress = adherence.overallAdherenceRate.toFloat().coerceIn(0f, 1f),
                         modifier = Modifier.fillMaxSize(),
                         strokeWidth = 8.dp
                     ) {
@@ -472,36 +476,22 @@ private fun MetricsSection(adherence: SandhyaAdherence) {
             )
             Spacer(Modifier.height(8.dp))
             adherence.perPeriod.forEach { pa ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(periodNameRes(pa.period)),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.width(120.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(periodNameRes(pa.period)), Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text(stringResource(R.string.sandhya_per_period_value,
+                            pa.observed, pa.scheduled, (pa.rate * 100).roundToInt()),
+                            Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(
-                        progress = pa.rate.toFloat(),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(
-                            R.string.sandhya_per_period_value,
-                            pa.observed,
-                            pa.scheduled,
-                            (pa.rate * 100).roundToInt()
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        progress = { pa.rate.toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest)
                 }
             }
 
@@ -543,35 +533,30 @@ private fun StreakStat(label: String, value: Int, best: Int, modifier: Modifier 
 }
 
 @Composable
-private fun WeeklyTrend(points: List<TrendPoint>) {
-    val maxScheduled = (points.maxOfOrNull { it.scheduled } ?: 0).coerceAtLeast(1)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
+internal fun WeeklyTrend(points: List<TrendPoint>) {
+    // Scale to the largest recorded or scheduled count. Imported/extra observations
+    // still have a truthful bar, even when they exceed the original schedule.
+    val maximum = points.maxOfOrNull { maxOf(it.scheduled, it.observed, 1) } ?: 1
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         points.forEach { point ->
-            val fraction = if (point.scheduled == 0) 0f else point.observed.toFloat() / maxScheduled
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height((60 * fraction).dp.coerceAtLeast(2.dp))
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = point.dateKey.takeLast(2),
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            val fraction = (point.observed.toFloat() / maximum).coerceIn(0f, 1f)
+            val announcement = stringResource(R.string.sandhya_trend_day_description,
+                point.dateKey, point.observed, point.scheduled)
+            Column(Modifier.weight(1f).semantics(mergeDescendants = true) {
+                contentDescription = announcement
+            }, horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.fillMaxWidth().height(72.dp).testTag("trend-lane-${point.dateKey}"),
+                    contentAlignment = Alignment.BottomCenter) {
+                    Box(Modifier.fillMaxWidth().height((72 * fraction).dp.coerceAtLeast(2.dp))
+                        .testTag("trend-bar-${point.dateKey}")
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(if (point.observed > 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant))
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(point.dateKey.takeLast(2), Modifier.clearAndSetSemantics {},
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

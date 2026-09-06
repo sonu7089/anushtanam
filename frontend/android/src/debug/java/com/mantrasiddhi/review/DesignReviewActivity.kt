@@ -32,6 +32,7 @@ import com.mantrasiddhi.presentation.screens.practice.components.*
 import com.mantrasiddhi.presentation.screens.recitation.components.TargetProgressHeader
 import com.mantrasiddhi.presentation.screens.family.*
 import com.mantrasiddhi.presentation.screens.sandhya.SandhyaScreen
+import com.mantrasiddhi.presentation.screens.sandhya.MetricsSection
 import com.mantrasiddhi.presentation.screens.targets.components.*
 import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
 import com.mantrasiddhi.presentation.screens.voicemodel.VoiceModelScreen
@@ -64,6 +65,13 @@ object ReviewFixtures {
     val target = Target(1, 1, 1, 108, 36)
     val childProgress = ChildProgress(child, target.copy(userId = 2), 216, 2)
     val home = HomeUiState.Success(parent, 36, target, 7, listOf(childProgress))
+    val completedSandhya = SandhyaAdherence.EMPTY.copy(
+        totalScheduled = 21, totalObserved = 21, overallAdherenceRate = 1.0,
+        currentStreakAllThree = 7, longestStreakAllThree = 12,
+        currentStreakAtLeastOne = 7, longestStreakAtLeastOne = 18,
+        perPeriod = SandhyaPeriod.entries.map { PeriodAdherence(it, 7, 7) },
+        onTimeCount = 21, onTimeRate = 1.0, mostConsistentPeriod = SandhyaPeriod.PRATAH,
+        last7Days = (1..7).map { TrendPoint("2026090$it", it.toLong(), 3, 3) })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,7 +122,7 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         "child-id" -> ChildIdReveal("123456789012", false, {})
                         "home" -> HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {})
                         "settings" -> SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH",
-                            false, { onDarkChange(it == "DARK") }, {}, {}, {})
+                            { onDarkChange(it == "DARK") }, {}, {})
                         "progress" -> ReviewPage(R.string.title_progress, scroll = false) {
                             ProgressContent(ProgressUiState.Success(RecitationOverviewStats(128, 108, .92, 7, .98),
                                 emptyList(), emptyList(), emptyList(), emptyList()))
@@ -123,11 +131,11 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             PurashcharanaContent(null, {}, {})
                         }
                         "family" -> ReviewPage(R.string.family_title) {
-                            PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description))
+                            PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
                             ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), {}, {}, {})
                         }
                         "children" -> ReviewPage(R.string.children_progress_title) {
-                            PageIntro(stringResource(R.string.lotus_children_intro), stringResource(R.string.lotus_children_description))
+                            PageIntro(stringResource(R.string.lotus_children_intro), stringResource(R.string.lotus_children_description), LotusArt.FAMILY)
                             ChildCard(ReviewFixtures.childProgress, {})
                         }
                         "targets" -> ReviewPage(R.string.targets_title) {
@@ -138,6 +146,9 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             SetTargetDialog(ReviewFixtures.parent, emptyList(), {}, { _, _, _, _ -> })
                         }
                         "sandhya" -> SandhyaScreen(hiltViewModel())
+                        "sandhya-complete" -> ReviewPage(R.string.title_sandhya) {
+                            MetricsSection(ReviewFixtures.completedSandhya)
+                        }
                         "practice" -> ReviewPage(R.string.home_practice_mode) {
                             Text(stringResource(R.string.lotus_practice_intro), style = MaterialTheme.typography.headlineSmall)
                             AudioPlayerBar(false, 0, {})
@@ -146,7 +157,7 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { MicButton(false, false, {}) }
                         }
                         "recitation" -> ReviewPage(R.string.title_recitation) {
-                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LotusArtwork(LotusArt.EMBLEM, Modifier.size(84.dp)) }
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LotusArtwork(LotusArt.DIYA, Modifier.size(104.dp)) }
                             Text(stringResource(R.string.lotus_recitation_intro), style = MaterialTheme.typography.headlineSmall)
                             TargetProgressHeader(ReviewFixtures.target)
                             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { MicButton(true, false, {}) }

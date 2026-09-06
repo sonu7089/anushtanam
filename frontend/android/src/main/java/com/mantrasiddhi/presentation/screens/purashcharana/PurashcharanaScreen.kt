@@ -8,6 +8,7 @@ package com.mantrasiddhi.presentation.screens.purashcharana
 
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.LotusArtwork
+import com.mantrasiddhi.presentation.components.AmbientArtwork
 import androidx.compose.foundation.layout.heightIn
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
 import com.mantrasiddhi.presentation.components.LotusCard
@@ -190,7 +191,7 @@ internal fun PurashcharanaContent(
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-        LotusArtwork(LotusArt.RITUAL, Modifier.fillMaxWidth().height(160.dp).clip(MaterialTheme.shapes.large))
+        AmbientArtwork(LotusArt.RITUAL, Modifier.fillMaxWidth().height(224.dp))
         Spacer(Modifier.height(24.dp))
         Text(stringResource(R.string.lotus_purashcharana_intro), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(20.dp))

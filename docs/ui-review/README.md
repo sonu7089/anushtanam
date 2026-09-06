@@ -2,7 +2,25 @@
 
 Captured from the Android debug build on an API 37 emulator. These are production Compose components with local sample profiles, counts, and targets. No account was created and no cloud data was seeded for the gallery. Practice and recitation show representative component states; the recording screenshot does not represent a live microphone session.
 
-## Light theme
+## Latest refinement, 6 September 2026
+
+These captures include the new imagery, floating custom navigation, plain-English copy, and completed Sandhya charts. The gallery below them records the previous design pass.
+
+| Screen | Light | Dark |
+| --- | --- | --- |
+| Home | [Open](home-light-refined.png) | [Open](home-dark-refined.png) |
+| Welcome | [Open](welcome-light-refined.png) | |
+| Settings | [Open](settings-light-refined.png) | [Open](settings-dark-refined.png) |
+| Family | [Open](family-light-refined.png) | |
+| Japa | [Open](recitation-light-refined.png) | |
+| Sandhya | [Open](sandhya-light-refined.png) | [Open](sandhya-dark-refined.png) |
+| Completed Sandhya charts | [Open](sandhya-complete-light-refined.png) | [Open](sandhya-complete-dark-refined.png) |
+
+At 320dp width and 150% text: [Home](home-light-refined-compact.png), [Settings](settings-light-refined-compact.png), [completed Sandhya](sandhya-complete-light-refined-compact.png), and [charts after scrolling](sandhya-complete-light-refined-compact-scrolled.png).
+
+See [verification and scope](../ui-refinement.md).
+
+## Original light theme
 
 | Screen | Screenshot |
 | --- | --- |

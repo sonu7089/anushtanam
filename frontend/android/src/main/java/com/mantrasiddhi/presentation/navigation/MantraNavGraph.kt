@@ -10,57 +10,32 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mantrasiddhi.domain.model.ProfileType
-import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.presentation.AuthGateState
 import com.mantrasiddhi.presentation.MainViewModel
 import com.mantrasiddhi.presentation.components.VoiceModelGate
@@ -370,83 +345,5 @@ private fun AuthGate(
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-private data class NavItem(
-    val screen: Screen,
-    val activeIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    val inactiveIcon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
-@Composable
-fun MantraBottomBar(
-    navController: NavHostController,
-    isParent: Boolean
-) {
-    val items = androidx.compose.runtime.remember(isParent) {
-        buildList {
-            add(NavItem(Screen.Home, Icons.Default.Home, Icons.Outlined.Home))
-            add(NavItem(Screen.Practice, Icons.Default.Edit, Icons.Outlined.Edit))
-            add(NavItem(Screen.Recitation, Icons.Default.PlayArrow, Icons.Outlined.PlayArrow))
-            add(NavItem(Screen.Progress, Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List))
-            if (isParent) {
-                add(NavItem(Screen.ChildProgress, Icons.Default.Face, Icons.Outlined.Face))
-            }
-            add(NavItem(Screen.Settings, Icons.Default.Settings, Icons.Outlined.Settings))
-        }
-    }
-
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    val compact = LocalConfiguration.current.screenWidthDp < 360 || LocalDensity.current.fontScale > 1.2f
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-        items.forEach { navItem ->
-            val isSelected = currentRoute == navItem.screen.route
-            val label = stringResource(id = navItem.screen.labelResId)
-            val navigate = {
-                if (currentRoute != navItem.screen.route) {
-                    navController.navigate(navItem.screen.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            }
-            if (compact) {
-                // Six parent destinations retain full touch targets when labels would be squeezed.
-                Box(Modifier.weight(1f).height(80.dp), contentAlignment = Alignment.Center) {
-                    IconButton(onClick = navigate,
-                        modifier = Modifier.size(48.dp).semantics { selected = isSelected },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                                else androidx.compose.ui.graphics.Color.Transparent,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant)) {
-                        Icon(if (isSelected) navItem.activeIcon else navItem.inactiveIcon, label)
-                    }
-                }
-            } else {
-            NavigationBarItem(
-                icon = { 
-                    Icon(
-                        imageVector = if (isSelected) navItem.activeIcon else navItem.inactiveIcon, 
-                        contentDescription = label
-                    ) 
-                },
-                label = { Text(text = label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant),
-                selected = isSelected,
-                onClick = navigate
-            )
-            }
-        }
     }
 }

@@ -21,7 +21,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
     val currentUser by viewModel.currentUser.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
-    val advancedVedicMode by viewModel.advancedVedicMode.collectAsState()
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -30,24 +29,27 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
             }
         }
     }
-    SettingsContent(currentUser, themeMode, languageDisplay, advancedVedicMode,
-        viewModel::setThemeMode, viewModel::setLanguageDisplay, viewModel::setAdvancedVedicMode,
+    SettingsContent(currentUser, themeMode, languageDisplay,
+        viewModel::setThemeMode, viewModel::setLanguageDisplay,
         viewModel::logout, modifier)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisplay: String,
-    advancedVedicMode: Boolean, onTheme: (String) -> Unit, onLanguage: (String) -> Unit,
-    onAdvanced: (Boolean) -> Unit, onLogout: () -> Unit, modifier: Modifier = Modifier) {
+    onTheme: (String) -> Unit, onLanguage: (String) -> Unit,
+    onLogout: () -> Unit, modifier: Modifier = Modifier) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            Column {
-                Text(stringResource(R.string.lotus_settings_intro), style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.lotus_settings_description), style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.fillMaxWidth().heightIn(min = 152.dp)) {
+                LotusArtwork(LotusArt.JASMINE, Modifier.align(Alignment.CenterEnd).width(110.dp).height(180.dp))
+                Column(Modifier.fillMaxWidth(0.74f).padding(vertical = 16.dp)) {
+                    Text(stringResource(R.string.lotus_settings_intro), style = MaterialTheme.typography.headlineMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.lotus_settings_description), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             user?.let {
                 LotusCard(Modifier.fillMaxWidth()) {
@@ -57,7 +59,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(it.name, style = MaterialTheme.typography.headlineSmall)
-                                Text(it.profileType.name, style = MaterialTheme.typography.labelMedium,
+                                Text(stringResource(if (it.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT) R.string.badge_parent else R.string.badge_child), style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.secondary)
                             }
                         }
@@ -87,21 +89,6 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                         "TRANSLITERATION" to R.string.settings_script_transliteration,
                         "BOTH" to R.string.settings_script_both).forEach { (value, label) ->
                         PreferenceChip(stringResource(label), languageDisplay == value, { onLanguage(value) })
-                    }
-                }
-            }
-            Column {
-                SectionLabel(stringResource(R.string.settings_advanced_section))
-                LotusCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.settings_advanced_vedic_mode), style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(6.dp))
-                            Text(stringResource(R.string.settings_advanced_vedic_mode_desc),
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Switch(checked = advancedVedicMode, onCheckedChange = onAdvanced)
                     }
                 }
             }

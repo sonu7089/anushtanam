@@ -1,5 +1,7 @@
 # Redesign verification
 
+The follow-up refinement, tested against the owner's latest backend edits on 6 September 2026, is documented in [ui-refinement.md](ui-refinement.md). It has 405 passing tests and an updated screenshot gallery. The results below describe the original design pass.
+
 Verified on branch `codex/lotus-ui-overhaul`, 5 September 2026.
 
 ## Builds and checks

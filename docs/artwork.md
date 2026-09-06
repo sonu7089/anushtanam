@@ -1,14 +1,14 @@
 # Artwork and font provenance
 
-All three bitmap assets were generated with the built-in image-generation tool for this redesign. They are bundled locally and require no runtime image service. Originals were copied into the project without altering the image content or alpha channel.
+All seven bitmap assets were generated with the built-in image-generation tool for this redesign. They are bundled locally and require no runtime image service. Originals were copied into the project without altering the image content or alpha channel.
 
 | File in `frontend/android/src/main/res/drawable-nodpi` | Use |
 | --- | --- |
-| `lotus_morning.png` | Welcome, home, family, Sandhya, and secondary introductions |
-| `ritual_still_life.png` | Parent sign-in, progress, sankalpa, and Purashcharana |
-| `lotus_emblem.png` | Raster brand emblem, launch icon, empty states, and japa |
+| `lotus_morning.png` | Welcome, Home, and child sign-in |
+| `ritual_still_life.png` | Progress, goals, and Purashcharana |
+| `lotus_emblem.png` | Raster brand emblem, launch icon, empty states, and milestones |
 
-The launcher wraps the transparent emblem in an Android inset drawable to keep it inside the adaptive-icon safe area. Standard native Material control icons and functional charts remain native UI; decorative vector logos and the drawn lamp have been replaced.
+The launcher wraps the transparent emblem in an Android inset drawable to keep it inside the adaptive-icon safe area. Navigation uses custom SVG sources compiled into Android VectorDrawables. Other Material controls and functional charts remain native UI; decorative logos use bitmap assets.
 
 ## Generation prompts
 
@@ -23,6 +23,37 @@ Use case: photorealistic-natural. Asset type: decorative landscape photograph fo
 ### Lotus emblem
 
 Use case: product-mockup. Asset type: raster app brand emblem and Android launcher foreground for a contemplative Indian mantra app. One beautiful small lotus flower sculpture in unglazed ivory porcelain, three-quarter view facing camera, opening symmetrical petals with whisper of dusty mauve at their tips, very pale natural clay center. Photorealistic studio macro object with delicately uneven ceramic grain, soft neutral lighting, exceptional sculptural simplicity. Isolated centered with ample transparent space around all sides, the lotus must fit inside central 60 percent of square canvas for adaptive icon safe zone. Truly transparent background with alpha, no floor or colored disc, no lettering, no watermark, no leaves or stems, no decorative lines, no vector illustration, no mandala, no bright pink or red or gold. The flower must read clearly as a simple physical lotus at small size.
+
+## Additional images, September 2026
+
+Four more images were generated with the built-in image tool. The first three assets are retained. All images are bundled locally. Photographs fade into the current theme background through Compose drawing; no raster image was edited with code.
+
+| Asset | Placement |
+| --- | --- |
+| `river_dawn.png` | Sandhya introduction |
+| `diya_cutout.png` | Japa recording page |
+| `jasmine_sprig.png` | Settings edge decoration |
+| `family_hands.png` | Parent sign-in, Family, and Children |
+
+The diya and jasmine originals contain alpha transparency. The jasmine includes soft photographic haze; the later checkerboard-background edit was rejected and is not packaged.
+
+### New generation prompts
+
+#### river_dawn.png
+
+Use case: photorealistic-natural. Asset type: immersive backdrop in a calm Indian daily prayer Android app. Create an original fine-art editorial photograph, landscape 1536x1024, of a quiet river at first light in India, low soft reeds in the far right foreground, a subtle distant stone ghat, morning mist, small pale sun reflected on still water. No people or buildings dominating the scene. Upper left and bottom left are spacious luminous ivory haze with little detail so this scene can dissolve into white interface space; the river and botanical details gather on the right and top. Warm natural light, subdued sage, cream, faint honey tones, lifelike water and atmospheric perspective, modest and familiar, no dramatic orange sky. No text, no symbols, no UI, no frames, no watermark.
+
+#### diya_cutout.png
+
+Use case: photorealistic-natural. Asset type: genuinely transparent photographic cutout for a prayer app. A single small handmade unglazed terracotta diya with one short cotton wick and a tiny steady golden flame. Natural reddish-brown clay, slightly irregular handmade texture, a few imperfections, three-quarter view slightly from above. Quiet simple everyday Indian prayer lamp, no metal ornamentation. Whole object including the flame visible with generous transparent space on every side. Realistic soft studio illumination, delicate contact shadow only immediately under the base. Square composition. Isolate on a truly transparent alpha background, not white, no checkerboard or fake background. No plate, flowers, text, extra objects, borders, halos or watermark.
+
+#### jasmine_sprig.png
+
+Use case: photorealistic-natural. Asset type: genuinely transparent botanical photographic cutout for subtle decoration around app content. One slender fresh jasmine sprig with five or six small ivory jasmine blossoms and three muted sage green leaves on a delicate curved stem. Lifelike botanical macro photography, soft daylight, fine natural petal texture. Branch enters from the upper right and arcs gently downward toward the center, spacious composition designed to hang from the right edge of a mobile screen. Entire sprig fits within the image. No bouquet or vase. Portrait 1024x1536. Actual transparent alpha background everywhere around the plant, no solid background, no checkerboard, no border, no text, no watermark.
+
+#### family_hands.png
+
+Use case: photorealistic-natural. Asset type: immersive editorial photograph for a family prayer app. A close, candid scene of an Indian parent and a school-age child sitting side by side on a plain cotton mat near an open sunlit window. Only their relaxed hands and laps are framed, no faces. The parent's gently open hand holds a few simple wooden mala beads while the child's hands rest calmly nearby, natural anatomy and credible fingers, no elaborate pose. Simple ivory cotton sleeves, everyday home, warm sense of time shared quietly. Portrait 1024x1536. Main human detail is on the right half; left half and bottom soften into bright ivory linen and natural defocus, suitable for a white page backdrop. Soft natural light, cream, wood and sage tones. No text, no logos, no sacred writing, no dramatic lighting, no graphic borders.
 
 ## Fonts
 

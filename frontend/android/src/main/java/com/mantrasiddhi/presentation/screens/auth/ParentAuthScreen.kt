@@ -116,7 +116,7 @@ fun ParentAuthScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             PageIntro(stringResource(R.string.lotus_parent_intro),
-                stringResource(R.string.lotus_parent_description), LotusArt.RITUAL)
+                stringResource(R.string.lotus_parent_description), LotusArt.FAMILY)
 
             if (isSignUp) {
                 OutlinedTextField(

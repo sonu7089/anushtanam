@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
@@ -61,11 +62,11 @@ internal fun HomeContent(
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Column {
+            Box(Modifier.fillMaxWidth()) {
+                AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(224.dp))
                 Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(20.dp))
-                LotusArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(156.dp).clip(MaterialTheme.shapes.large))
             }
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -158,12 +159,14 @@ private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, 
         colors = CardDefaults.cardColors(
             containerColor = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
             contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer)) {
-        Column(Modifier.fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(title, style = MaterialTheme.typography.headlineSmall)
+        Column(Modifier.fillMaxWidth().fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.width(8.dp))
+                Icon(painterResource(com.mantrasiddhi.R.drawable.arrow_forward), null, Modifier.size(20.dp))
+            }
             Spacer(Modifier.height(12.dp))
             Text(subtitle, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(8.dp))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.align(Alignment.End).size(20.dp))
         }
     }
 }

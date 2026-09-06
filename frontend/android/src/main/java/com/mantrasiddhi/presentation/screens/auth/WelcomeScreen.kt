@@ -28,9 +28,8 @@ fun WelcomeScreen(onSelectParent: () -> Unit, onSelectChild: () -> Unit, modifie
                 }
             }
             Spacer(Modifier.height(28.dp))
-            LotusArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(240.dp)
-                .clip(MaterialTheme.shapes.extraLarge))
-            Spacer(Modifier.height(28.dp))
+            AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(260.dp))
+            Spacer(Modifier.height(4.dp))
             Text(stringResource(R.string.lotus_welcome_eyebrow), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary)
             Spacer(Modifier.height(12.dp))

@@ -7,6 +7,7 @@
 package com.mantrasiddhi.presentation.screens.family
 
 import androidx.compose.foundation.layout.imePadding
+import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
 import com.mantrasiddhi.presentation.components.LotusCard
@@ -108,7 +109,7 @@ fun FamilyScreen(
                 .padding(horizontal = 24.dp).imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
-            PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description))
+            PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
             when (uiState.account?.role) {
                 AccountRole.PARENT -> ParentSection(
                     uiState = uiState,

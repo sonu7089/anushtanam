@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.childprogress
 
+import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.EmptyState
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
@@ -155,7 +156,7 @@ fun ChildProgressScreen(
                             ) {
                                 item {
                                     PageIntro(stringResource(R.string.lotus_children_intro),
-                                        stringResource(R.string.lotus_children_description))
+                                        stringResource(R.string.lotus_children_description), LotusArt.FAMILY)
                                 }
                                 items(state.childrenProgress, key = { it.child.id }) { childProgress ->
                                     ChildCard(

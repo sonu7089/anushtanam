@@ -143,7 +143,7 @@ fun RecitationScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    LotusArtwork(LotusArt.EMBLEM, Modifier.size(84.dp))
+                    LotusArtwork(LotusArt.DIYA, Modifier.size(104.dp))
                     Text(stringResource(R.string.lotus_recitation_intro), style = MaterialTheme.typography.headlineSmall)
                     TargetProgressHeader(target = state.activeTarget)
 
