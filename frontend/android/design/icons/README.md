@@ -1,17 +1,20 @@
 # Navigation icons
 
-Original SVG sources drawn for Anushtanam. All use a 24 by 24 view box, 1.75-unit strokes, round joins, and round caps. They can be opened in any SVG editor.
+The navigation uses Google Material Symbols Rounded, 24px, weight 400, unfilled. These are the original standard SVG paths, compiled locally into Android VectorDrawables. Runtime colors come from the app theme.
 
-| Source | Destination |
+| File | Google symbol |
 | --- | --- |
-| `nav_home.svg` | Home, with a welcoming arched doorway |
-| `nav_practice.svg` | Practice, an open book |
-| `nav_japa.svg` | Japa, a mala and tassel |
-| `nav_progress.svg` | Progress, a rising chart |
-| `nav_children.svg` | Children, two figures |
-| `nav_settings.svg` | Settings, three adjustable sliders |
-| `arrow_forward.svg` | Trailing action on Home practice cards |
+| `nav_home.svg` | `home` |
+| `nav_practice.svg` | `menu_book` |
+| `nav_japa.svg` | `self_improvement` |
+| `nav_progress.svg` | `bar_chart` |
+| `nav_children.svg` | `group` |
+| `nav_settings.svg` | `settings` |
 
-Run `python scripts/generate-navigation-icons.py` from the repository root after editing. The script converts path geometry to Android VectorDrawable XML in the app's drawable directory. No SVG loader or network request is needed at runtime. Keep sources path-only with the shared stroke width, or extend the converter when adding new SVG features.
+Source: [Google Material Symbols](https://github.com/google/material-design-icons/tree/master/symbols/web). Download pattern: `symbols/web/<name>/materialsymbolsrounded/<name>_24px.svg`. Retrieved 6 September 2026. [Official guide](https://developers.google.com/fonts/docs/material_symbols). Apache 2.0 license is in `docs/licenses/material-symbols-APACHE-2.0.txt`.
 
-Compose supplies theme colors, accessible labels, selected-tab semantics, and touch targets. The forward arrow mirrors automatically for right-to-left layouts.
+`arrow_forward.svg` is the app's own trailing action arrow from the earlier UI pass.
+
+Run `python scripts/generate-navigation-icons.py` after editing. The converter preserves the SVG view box, including the negative Y origin used by Material Symbols. Keep sources path-only or extend the converter when adding other SVG elements.
+
+Tab highlighting now fades in place over 140ms. It does not slide or spring across intervening tabs. Route state, parent/child destinations, accessible names, and touch targets are unchanged.

@@ -1,9 +1,9 @@
 package com.mantrasiddhi.presentation.navigation
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -54,7 +54,7 @@ fun MantraBottomBar(navController: NavHostController, isParent: Boolean) {
     })
 }
 
-/** A floating tab bar with shared selection motion and accessible native tab semantics. */
+/** A floating tab bar with a short local color fade and accessible native tab semantics. */
 @Composable
 internal fun FloatingNavigationBar(
     destinations: List<NavigationDestination>, currentRoute: String?, onNavigate: (Screen) -> Unit,
@@ -63,10 +63,6 @@ internal fun FloatingNavigationBar(
     BoxWithConstraints(modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
         val showLabels = maxWidth >= 336.dp && LocalDensity.current.fontScale <= 1.2f
         val itemHeight = if (showLabels) 64.dp else 56.dp
-        val itemWidth = (maxWidth - 8.dp) / destinations.size
-        val selectedIndex = destinations.indexOfFirst { it.screen.route == currentRoute }
-        val selectionOffset by animateDpAsState(itemWidth * selectedIndex.coerceAtLeast(0),
-            spring(dampingRatio = 0.85f, stiffness = 480f), label = "navigationSelection")
         Surface(
             modifier = Modifier.fillMaxWidth().shadow(12.dp, CircleShape,
                 ambientColor = Color.Black.copy(alpha = 0.12f), spotColor = Color.Black.copy(alpha = 0.12f)),
@@ -74,18 +70,17 @@ internal fun FloatingNavigationBar(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         ) {
             Box(Modifier.padding(4.dp)) {
-                if (selectedIndex >= 0) {
-                    Surface(Modifier.offset(x = selectionOffset).width(itemWidth).height(itemHeight),
-                        shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {}
-                }
                 Row(Modifier.fillMaxWidth().selectableGroup()) {
                     destinations.forEach { item ->
                         val selected = item.screen.route == currentRoute
                         val label = stringResource(item.screen.labelResId)
                         val ink by animateColorAsState(
                             if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                            label = "navigationInk")
-                        Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape)
+                            animationSpec = tween(140), label = "navigationInk")
+                        val highlight by animateColorAsState(
+                            if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                            animationSpec = tween(140), label = "navigationHighlight")
+                        Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape).background(highlight)
                             .selectable(selected, role = Role.Tab, onClick = { onNavigate(item.screen) })
                             .semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally,
