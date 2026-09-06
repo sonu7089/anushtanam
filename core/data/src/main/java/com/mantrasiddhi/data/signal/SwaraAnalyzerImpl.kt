@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -12,7 +12,7 @@ import com.mantrasiddhi.domain.evaluation.acoustic.SelfAudioSegmenter
 import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAnalyzer
 import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment
 import com.mantrasiddhi.domain.evaluation.acoustic.SwaraScorer
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -33,23 +33,29 @@ class SwaraAnalyzerImpl @Inject constructor(
     private val benchmarkPitchCache: BenchmarkPitchCache
 ) : SwaraAnalyzer {
 
-    private val benchmarkWordDurationsMs: List<Double> =
-        GayatriMantra.words.map { (it.benchmarkEndMs - it.benchmarkStartMs).toDouble() }
-
-    override suspend fun analyze(audio: RecordedAudio, config: EvaluationConfig): SwaraAssessment {
-        if (audio.isEmpty) return SwaraAssessment.notAssessed()
+    override suspend fun analyze(
+        mantra: Mantra,
+        audio: RecordedAudio,
+        config: EvaluationConfig
+    ): SwaraAssessment {
+        if (audio.isEmpty || !mantra.hasBenchmarkTimings) return SwaraAssessment.notAssessed()
         return withContext(Dispatchers.Default) {
-            runCatching { analyzeInternal(audio, config) }
+            runCatching { analyzeInternal(mantra, audio, config) }
                 .getOrElse { SwaraAssessment.notAssessed() }
         }
     }
 
-    private fun analyzeInternal(audio: RecordedAudio, config: EvaluationConfig): SwaraAssessment {
-        val benchmark = benchmarkPitchCache.contoursPerWord()
+    private fun analyzeInternal(
+        mantra: Mantra,
+        audio: RecordedAudio,
+        config: EvaluationConfig
+    ): SwaraAssessment {
+        val benchmark = benchmarkPitchCache.contoursPerWord(mantra)
         if (benchmark.all { it.isEmpty() }) return SwaraAssessment.notAssessed()
 
-        val learnerContours = GayatriMantra.words.map { word ->
-            val range = SelfAudioSegmenter.sampleRangeFor(audio, benchmarkWordDurationsMs, word.index)
+        val durations = mantra.benchmarkWordDurationsMs
+        val learnerContours = mantra.words.map { word ->
+            val range = SelfAudioSegmenter.sampleRangeFor(audio, durations, word.index)
                 ?: return@map null
             val slice = audio.samples.copyOfRange(range.first, range.last + 1)
             pitchExtractor.extract(slice, audio.sampleRate)

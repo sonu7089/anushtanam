@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -22,12 +22,13 @@ interface PurashcharanaRepository {
     suspend fun getActive(userId: Long): Purashcharana?
 
     /**
-     * Takes the sankalpa for a mantra of [aksharaCount] aksharas.
+     * Takes the sankalpa for the mantra [mantraId], which has [aksharaCount] aksharas.
      *
      * Fails when a Purashcharana is already active for [userId]: a second concurrent
-     * sankalpa would split the sadhak's japa between two counts.
+     * sankalpa would split the sadhak's japa between two counts, whichever mantra each
+     * one is for.
      */
-    suspend fun enroll(userId: Long, aksharaCount: Int): Result<Purashcharana>
+    suspend fun enroll(userId: Long, mantraId: String, aksharaCount: Int): Result<Purashcharana>
 
     /**
      * Adds one verified japa. Returns the updated Purashcharana, or `null` when the

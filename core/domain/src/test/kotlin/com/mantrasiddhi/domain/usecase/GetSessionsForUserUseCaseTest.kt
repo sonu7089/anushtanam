@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.RecitationRepository
@@ -36,6 +37,7 @@ class GetSessionsForUserUseCaseTest {
             RecitationSession(
                 id = 1,
                 userId = 2,
+                mantraId = gayatri.id,
                 mode = RecitationMode.NORMAL,
                 overallScore = 0.96,
                 wordScores = mapOf("om" to 1.0),

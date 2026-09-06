@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -97,6 +97,7 @@ class MantraSiddhiDatabaseTest {
         val session = RecitationSessionEntity(
             id = 1,
             userId = 2,
+            mantraId = "gayatri",
             mode = "NORMAL",
             overallScore = 0.95,
             wordScoresJson = "om:0.95",
@@ -276,6 +277,67 @@ class MantraSiddhiDatabaseTest {
             assertTrue(cursor.moveToFirst())
             assertEquals(40, cursor.getInt(0))
             assertEquals("New toy car", cursor.getString(1))
+        }
+        migratedDb.close()
+    }
+
+    /**
+     * Verifies the v6 -> v7 migration: both `recitation_sessions` and `purashcharana` gain a
+     * `mantraId`, existing rows are backfilled with the mantra the app shipped with, and
+     * nothing else moves.
+     *
+     * The backfill is the load-bearing part. A sadhak's word history and, worse, a
+     * Purashcharana measured in years are keyed to a mantra from this version on; if these
+     * rows came out with no mantra (or the wrong one) the history would read as belonging
+     * to a mantra that was never recited and the sankalpa could not be reconciled.
+     */
+    @Test
+    @Throws(IOException::class)
+    fun migrate6To7_addsMantraId_andBackfillsExistingRows() {
+        val dbName = "migration-test-6-7"
+
+        // Create the v6 schema and seed a session and a sankalpa that must survive.
+        migrationHelper.createDatabase(dbName, 6).apply {
+            execSQL(
+                "INSERT INTO recitation_sessions (id, userId, mode, overallScore, " +
+                    "wordScoresJson, transcription, isCorrect, durationMs, createdAt, " +
+                    "correctness, completeness, pronunciation) " +
+                    "VALUES (1, 2, 'NORMAL', 0.9, 'om:0.9', 'om', 1, 5000, 1700000000000, " +
+                    "0.9, 0.9, 0.9)"
+            )
+            execSQL(
+                "INSERT INTO purashcharana (id, userId, mantraAksharaCount, targetJapaCount, " +
+                    "currentJapaCount, startedAtMillis, completedAtMillis, isActive) " +
+                    "VALUES (1, 2, 24, 2400000, 500000, 1700000000000, NULL, 1)"
+            )
+            close()
+        }
+
+        // Run the migration and validate against the generated v7 schema.
+        val migratedDb = migrationHelper.runMigrationsAndValidate(
+            dbName,
+            7,
+            true,
+            MantraSiddhiDatabase.MIGRATION_6_7
+        )
+
+        // The existing session is now attributed to the mantra it was actually recited from.
+        migratedDb.query(
+            "SELECT mantraId, overallScore FROM recitation_sessions WHERE id = 1"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("gayatri", cursor.getString(0))
+            assertEquals(0.9, cursor.getDouble(1), 0.0001)
+        }
+
+        // The sankalpa keeps every japa already recorded, and now names its mantra.
+        migratedDb.query(
+            "SELECT mantraId, currentJapaCount, startedAtMillis FROM purashcharana WHERE id = 1"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("gayatri", cursor.getString(0))
+            assertEquals(500000L, cursor.getLong(1))
+            assertEquals(1700000000000L, cursor.getLong(2))
         }
         migratedDb.close()
     }

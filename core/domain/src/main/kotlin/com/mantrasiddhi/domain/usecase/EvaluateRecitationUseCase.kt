@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -17,6 +17,8 @@ import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAssessment
 import com.mantrasiddhi.domain.evaluation.diagnostics.DiagnosticEvent
 import com.mantrasiddhi.domain.evaluation.diagnostics.EvaluationDiagnostics
 import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
+import com.mantrasiddhi.domain.mantra.ActiveMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
@@ -26,8 +28,8 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /**
- * Use case to evaluate a Gayatri Mantra recitation, save the session,
- * and increment active target count if correct and in normal mode.
+ * Evaluates a recitation of the active mantra, saves the session, and advances the
+ * active target when the recitation is correct and in normal mode.
  *
  * The same verified-japa branch is the only thing that advances an active
  * Purashcharana, so that long sankalpa can only ever be filled with japa the app
@@ -42,7 +44,8 @@ class EvaluateRecitationUseCase @Inject constructor(
     private val evaluationDiagnostics: EvaluationDiagnostics,
     private val swaraAnalyzer: SwaraAnalyzer,
     private val progressSyncRepository: ProgressSyncRepository,
-    private val incrementPurashcharanaUseCase: IncrementPurashcharanaUseCase
+    private val incrementPurashcharanaUseCase: IncrementPurashcharanaUseCase,
+    @ActiveMantra private val mantra: Mantra
 ) {
 
     /**
@@ -82,7 +85,7 @@ class EvaluateRecitationUseCase @Inject constructor(
         val config = resolveConfig(userId)
         val hypotheses = alternatives.ifEmpty { listOf(transcription to confidence) }
         val acoustic = analyzeAudio(audio, hypotheses, config)
-        val assessment = MantraEvaluator.assessBest(hypotheses, recitationTimeMs, config, acoustic)
+        val assessment = MantraEvaluator.assessBest(mantra, hypotheses, recitationTimeMs, config, acoustic)
         val swara = analyzeSwara(audio, config)
         val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
         saveSession(userId, mode, transcription, recitationTimeMs, assessment)
@@ -135,6 +138,7 @@ class EvaluateRecitationUseCase @Inject constructor(
         val wordScores = assessment.wordResults.associate { it.referenceWord to it.score.toDouble() }
         val session = RecitationSession(
             userId = userId,
+            mantraId = mantra.id,
             mode = mode,
             overallScore = assessment.overall.score.toDouble(),
             wordScores = wordScores,
@@ -159,7 +163,7 @@ class EvaluateRecitationUseCase @Inject constructor(
     ): AcousticAssessment? {
         if (audio == null || audio.isEmpty) return null
         val confidence = hypotheses.firstOrNull()?.second ?: 1.0f
-        return acousticAnalyzer.analyze(audio, confidence, config)
+        return acousticAnalyzer.analyze(mantra, audio, confidence, config)
     }
 
     /**
@@ -170,7 +174,7 @@ class EvaluateRecitationUseCase @Inject constructor(
     private suspend fun analyzeSwara(audio: RecordedAudio?, config: EvaluationConfig): SwaraAssessment? {
         if (audio == null || audio.isEmpty) return null
         if (!appPreferencesRepository.advancedVedicMode.first()) return null
-        return swaraAnalyzer.analyze(audio, config)
+        return swaraAnalyzer.analyze(mantra, audio, config)
     }
 
     /**

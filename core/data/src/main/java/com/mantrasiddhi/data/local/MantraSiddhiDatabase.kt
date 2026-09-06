@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -35,7 +35,7 @@ import javax.inject.Provider
         SandhyaLogEntity::class,
         PurashcharanaEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -48,6 +48,9 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
+
+        /** Mantra recorded for rows that predate the multi-mantra catalog (v7). */
+        private const val LEGACY_MANTRA_ID = RecitationSessionEntity.LEGACY_MANTRA_ID
 
         /**
          * v1 → v2: adds the `savings` table (introduced in v2). DDL matches Room's
@@ -185,6 +188,33 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v6 -> v7: records WHICH mantra a recitation and a sankalpa belong to.
+         *
+         * Purely additive: one `mantraId TEXT NOT NULL DEFAULT 'gayatri'` column on each
+         * of `recitation_sessions` and `purashcharana`. Existing rows are backfilled by
+         * the column default, which is correct because every row written before this
+         * version was the Gayatri — the only mantra the app carried. The entities declare
+         * the same `@ColumnInfo(defaultValue = ...)`, so the DDL a fresh install creates
+         * and the DDL this migration produces agree and Room's identity-hash check passes.
+         *
+         * The literal is spelled out rather than read from the catalog on purpose: it is a
+         * statement about rows already on disk, and must not change if the catalog's
+         * default mantra ever does.
+         */
+        val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `recitation_sessions` " +
+                        "ADD COLUMN `mantraId` TEXT NOT NULL DEFAULT '$LEGACY_MANTRA_ID'"
+                )
+                db.execSQL(
+                    "ALTER TABLE `purashcharana` " +
+                        "ADD COLUMN `mantraId` TEXT NOT NULL DEFAULT '$LEGACY_MANTRA_ID'"
+                )
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -194,11 +224,18 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1→v6 migration chain. No destructive fallback: a missing or
+            // Contiguous v1→v7 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7
+            )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)

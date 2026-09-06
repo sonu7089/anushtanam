@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -13,7 +13,7 @@ import com.mantrasiddhi.domain.evaluation.acoustic.AcousticPronunciationScorer
 import com.mantrasiddhi.domain.evaluation.acoustic.AudioQualityGate
 import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
 import com.mantrasiddhi.domain.evaluation.acoustic.WordSegmenter
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -35,18 +35,22 @@ class AcousticAnalyzerImpl @Inject constructor(
 ) : AcousticAnalyzer {
 
     override suspend fun analyze(
+        mantra: Mantra,
         audio: RecordedAudio,
         sttConfidence: Float,
         config: EvaluationConfig
     ): AcousticAssessment {
-        if (audio.isEmpty) return AcousticAssessment.notAssessed()
+        // Without per-word windows in a reference recording there is nothing to compare
+        // the learner's audio against, so the text-only path stands.
+        if (audio.isEmpty || !mantra.hasBenchmarkTimings) return AcousticAssessment.notAssessed()
         return withContext(Dispatchers.Default) {
-            runCatching { analyzeInternal(audio, sttConfidence, config) }
+            runCatching { analyzeInternal(mantra, audio, sttConfidence, config) }
                 .getOrElse { AcousticAssessment.notAssessed() }
         }
     }
 
     private fun analyzeInternal(
+        mantra: Mantra,
         audio: RecordedAudio,
         sttConfidence: Float,
         config: EvaluationConfig
@@ -64,20 +68,16 @@ class AcousticAnalyzerImpl @Inject constructor(
         )
         if (!assessable) return AcousticAssessment.notAssessed(snrDb)
 
-        val benchmark = benchmarkFeatureCache.featuresPerWord()
-        val durations = GayatriMantra.words.map {
-            (it.benchmarkEndMs - it.benchmarkStartMs).toDouble()
-        }
         val segments = WordSegmenter.segment(
             energies = learner.energies,
-            benchmarkWordDurationsMs = durations,
+            benchmarkWordDurationsMs = mantra.benchmarkWordDurationsMs,
             energyThresholdRatio = config.acousticEnergyThresholdRatio,
             minVoicedFrames = config.acousticMinVoicedFrames
         )
         return AcousticPronunciationScorer.score(
             learner = learner,
             segments = segments,
-            benchmark = benchmark,
+            benchmark = benchmarkFeatureCache.featuresPerWord(mantra),
             distanceScale = config.acousticDistanceScale.toDouble(),
             assessed = true,
             snrDb = snrDb

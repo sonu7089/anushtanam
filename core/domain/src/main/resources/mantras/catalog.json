@@ -1,0 +1,7 @@
+{
+  "_readme": "Index of every bundled mantra. See docs/adding-a-mantra.md before editing.",
+  "defaultMantraId": "gayatri",
+  "mantras": [
+    "gayatri.json"
+  ]
+}

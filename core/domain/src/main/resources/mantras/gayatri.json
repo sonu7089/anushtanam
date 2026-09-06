@@ -1,0 +1,134 @@
+{
+  "_readme": "Gayatri Mantra. Format and field-by-field guide: docs/adding-a-mantra.md",
+  "id": "gayatri",
+  "name": "Gayatri Mantra",
+  "padaCount": 4,
+  "_aksharaCount": "24 = the three padas of the Savitri gayatri proper. The pranava and the vyahritis are recited with it but are not counted, which is why the verse is a gayatri at all: three padas of eight aksharas. A Purashcharana is reckoned against this number (24 x 1,00,000 japa), so it must not drift with the word list.",
+  "aksharaCount": 24,
+  "benchmark": {
+    "audioResourceName": "gayatri_mantra_benchmark",
+    "timestampsAsset": "benchmark_timestamps.json",
+    "timestampsUnit": "centiseconds"
+  },
+  "textRules": {
+    "compoundReplacements": [
+      { "from": "tat savitur", "to": "tatsavitur" },
+      { "from": "tatsaviturvarenyam", "to": "tatsavitur varenyam" },
+      { "from": "tatsaviturvarenyan", "to": "tatsavitur varenyam" },
+      { "from": "tatsaviturvanyan", "to": "tatsavitur varenyam" },
+      { "from": "yonah", "to": "yo nah" },
+      { "from": "yona", "to": "yo nah" }
+    ],
+    "spellingOverrides": {
+      "bhuva": "bhuvah",
+      "bharago": "bhargo",
+      "saviture": "savitur"
+    }
+  },
+  "words": [
+    {
+      "devanagari": "ॐ",
+      "transliteration": "om",
+      "syllables": ["om"],
+      "pada": 1,
+      "benchmarkStartMs": 0,
+      "benchmarkEndMs": 3340
+    },
+    {
+      "devanagari": "भूर्",
+      "transliteration": "bhur",
+      "syllables": ["bhur"],
+      "pada": 1,
+      "benchmarkStartMs": 3390,
+      "benchmarkEndMs": 4280
+    },
+    {
+      "devanagari": "भुवः",
+      "transliteration": "bhuvah",
+      "syllables": ["bhu", "vah"],
+      "pada": 1,
+      "benchmarkStartMs": 4290,
+      "benchmarkEndMs": 4720
+    },
+    {
+      "devanagari": "स्वः",
+      "transliteration": "svah",
+      "syllables": ["svah"],
+      "pada": 1,
+      "benchmarkStartMs": 4840,
+      "benchmarkEndMs": 5690
+    },
+    {
+      "devanagari": "तत्सवितुर्",
+      "transliteration": "tatsavitur",
+      "syllables": ["tat", "sa", "vi", "tur"],
+      "pada": 2,
+      "benchmarkStartMs": 6420,
+      "benchmarkEndMs": 7220
+    },
+    {
+      "devanagari": "वरेण्यं",
+      "transliteration": "varenyam",
+      "syllables": ["va", "re", "nyam"],
+      "pada": 2,
+      "benchmarkStartMs": 7230,
+      "benchmarkEndMs": 9050
+    },
+    {
+      "devanagari": "भर्गो",
+      "transliteration": "bhargo",
+      "syllables": ["bhar", "go"],
+      "pada": 3,
+      "benchmarkStartMs": 9400,
+      "benchmarkEndMs": 10080
+    },
+    {
+      "devanagari": "देवस्य",
+      "transliteration": "devasya",
+      "syllables": ["de", "va", "sya"],
+      "pada": 3,
+      "benchmarkStartMs": 10090,
+      "benchmarkEndMs": 10900
+    },
+    {
+      "devanagari": "धीमहि",
+      "transliteration": "dhimahi",
+      "syllables": ["dhi", "ma", "hi"],
+      "pada": 3,
+      "benchmarkStartMs": 10910,
+      "benchmarkEndMs": 11920
+    },
+    {
+      "devanagari": "धियो",
+      "transliteration": "dhiyo",
+      "syllables": ["dhi", "yo"],
+      "pada": 4,
+      "benchmarkStartMs": 12060,
+      "benchmarkEndMs": 12830
+    },
+    {
+      "devanagari": "यो",
+      "transliteration": "yo",
+      "syllables": ["yo"],
+      "pada": 4,
+      "benchmarkStartMs": 12840,
+      "benchmarkEndMs": 13050
+    },
+    {
+      "devanagari": "नः",
+      "transliteration": "nah",
+      "syllables": ["nah"],
+      "pada": 4,
+      "benchmarkStartMs": 13200,
+      "benchmarkEndMs": 13400
+    },
+    {
+      "devanagari": "प्रचोदयात्",
+      "transliteration": "prachodayat",
+      "syllables": ["pra", "cho", "da", "yat"],
+      "pada": 4,
+      "benchmarkStartMs": 13570,
+      "benchmarkEndMs": 16010
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.evaluation.phonetics.PhoneticDistance
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -49,7 +49,7 @@ class PhoneticMapTest {
 
     @Test
     fun `should_passThroughCanonicalWords_unchanged`() {
-        GayatriMantra.transliterations.forEach { word ->
+        gayatri.transliterations.forEach { word ->
             assertEquals(word, PhoneticMap.getCanonical(word), "canonical '$word' must be stable")
         }
     }

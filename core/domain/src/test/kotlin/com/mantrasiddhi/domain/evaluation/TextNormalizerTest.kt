@@ -1,73 +1,107 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.MantraTextRules
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
+/**
+ * Normalization has two halves and they are tested separately on purpose: what is true of
+ * Sanskrit in Latin letters must hold for **every** mantra with no rules supplied, and only
+ * the residue should need a mantra's own definition.
+ */
 class TextNormalizerTest {
 
     @Test
-    fun `should_normalizeTextCorrectly_when_variousInputsProvided`() {
-        val testCases = listOf(
-            // 1-5: Basic Latin casing and spacing
+    fun `should_normalizeScriptAndPhonetics_when_noMantraRulesSupplied`() {
+        val cases = listOf(
+            // Casing and spacing
             "OM" to "om",
             "  om  " to "om",
             "bhur bhuvah" to "bhur bhuvah",
             "BHUR   BHUVAH" to "bhur bhuvah",
             "svah" to "svah",
-            
-            // 6-10: Punctuation and special characters
+
+            // Punctuation and special characters
             "om," to "om",
             "bhur.bhuvah" to "bhur bhuvah",
             "svah!" to "svah",
-            "tat-savitur" to "tatsavitur",
             "varenyam?" to "varenyam",
-            
-            // 11-15: Phonetic map corrections
+
+            // General phonetic folds: long vowels, w/v, the visarga echo, pranava variants
             "bhoor" to "bhur",
-            "bhuva" to "bhuvah",
             "swaha" to "svah",
             "swah" to "svah",
             "savitoor" to "savitur",
-            
-            // 16-20: Phonetic map corrections continued
-            "bharago" to "bhargo",
             "dhee" to "dhi",
             "dheemahi" to "dhimahi",
             "prachodayaat" to "prachodayat",
             "aum" to "om",
-            
-            // 21-25: Devanagari direct word mappings
+
+            // Devanagari transliteration
             "ॐ" to "om",
             "ओम" to "om",
             "भूर्भुवः" to "bhur bhuvah",
             "भूर्" to "bhur",
             "भुवः" to "bhuvah",
-            
-            // 26-30: Devanagari direct word mappings continued
             "स्वः" to "svah",
             "तत्" to "tat",
             "सवितुः" to "savitur",
             "वरेण्यं" to "varenyam",
             "भर्गो देवस्य धीमहि" to "bhargo devasya dhimahi",
-            
-            // 31-35: Devanagari rules fallback
             "धियो यो नः प्रचोदयात्" to "dhiyo yo nah prachodayat",
             "स्वहा" to "svah",
             "देवस्य" to "devasya",
-            "धीमहि" to "dhimahi",
-            "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्" to "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+            "धीमहि" to "dhimahi"
         )
 
-        testCases.forEachIndexed { index, (input, expected) ->
-            val result = TextNormalizer.normalize(input)
-            assertEquals(expected, result, "Test case ${index + 1} failed for input: '$input'")
+        cases.forEachIndexed { index, (input, expected) ->
+            assertEquals(
+                expected,
+                TextNormalizer.normalize(input),
+                "Case ${index + 1} failed for input: '$input'"
+            )
         }
+    }
+
+    @Test
+    fun `should_applyMantraOwnRules_when_definitionSuppliesThem`() {
+        val cases = listOf(
+            // Compounds a dictation engine runs together or splits wrongly.
+            "tat-savitur" to "tatsavitur",
+            "tatsaviturvarenyam" to "tatsavitur varenyam",
+            "yonah" to "yo nah",
+            "yona" to "yo nah",
+
+            // Irregular outputs no general rule derives.
+            "bhuva" to "bhuvah",
+            "bharago" to "bhargo",
+            "saviture" to "savitur",
+
+            // The whole mantra in Devanagari, compounds and all.
+            "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्" to
+                "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
+        )
+
+        cases.forEachIndexed { index, (input, expected) ->
+            assertEquals(
+                expected,
+                TextNormalizer.normalize(input, gayatri.textRules),
+                "Case ${index + 1} failed for input: '$input'"
+            )
+        }
+    }
+
+    @Test
+    fun `should_leaveTextUntouched_when_rulesAreEmpty`() {
+        // The mantra-specific joins must not leak into a mantra that did not ask for them.
+        assertEquals("tat savitur", TextNormalizer.normalize("tat savitur", MantraTextRules.NONE))
     }
 
     @Test

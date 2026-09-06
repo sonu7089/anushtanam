@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -32,7 +32,7 @@ object LevenshteinAligner {
         if (s1 == s2) return 0
         if (s1.isEmpty()) return s2.length
         if (s2.isEmpty()) return s1.length
-        
+
         val dp = IntArray(s2.length + 1) { it }
         for (i in 1..s1.length) {
             var prev = dp[0]

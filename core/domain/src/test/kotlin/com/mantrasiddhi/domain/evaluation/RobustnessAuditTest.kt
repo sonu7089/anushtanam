@@ -1,16 +1,16 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAssessment
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticWordScore
 import com.mantrasiddhi.domain.evaluation.acoustic.AudioQualityGate
 import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -37,12 +37,12 @@ class RobustnessAuditTest {
                 assertFalse(it.isNaN(), "axis score must not be NaN")
                 assertTrue(it in 0f..1f, "axis score $it out of range")
             }
-        assertEquals(GayatriMantra.wordCount, a.wordResults.size, "one result per reference word")
+        assertEquals(gayatri.wordCount, a.wordResults.size, "one result per reference word")
     }
 
     @Test
     fun `should_returnValidEmptyAssessment_when_transcriptionBlank`() {
-        val a = MantraEvaluator.assess("", recitationTimeMs = 0L)
+        val a = MantraEvaluator.assess(gayatri, "", recitationTimeMs = 0L)
         assertValid(a)
         assertFalse(a.isPass)
         assertEquals(0f, a.completeness.score, "nothing recited -> zero completeness")
@@ -50,7 +50,7 @@ class RobustnessAuditTest {
 
     @Test
     fun `should_returnLowConfidenceFlag_when_noUsableHypothesis`() {
-        val a = MantraEvaluator.assessBest(emptyList(), recitationTimeMs = 0L)
+        val a = MantraEvaluator.assessBest(gayatri, emptyList(), recitationTimeMs = 0L)
         assertValid(a)
         assertTrue(a.lowConfidence, "no hypothesis -> low confidence")
         assertFalse(a.acousticAssessed)
@@ -60,7 +60,7 @@ class RobustnessAuditTest {
     fun `should_notReportFalseLowPronunciation_when_confidenceLow`() {
         // A correct recitation heard with low STT confidence must be flagged for retry,
         // not punished with a low pronunciation score.
-        val a = MantraEvaluator.assess(perfect, recitationTimeMs = 0L, confidence = 0.02f)
+        val a = MantraEvaluator.assess(gayatri, perfect, recitationTimeMs = 0L, confidence = 0.02f)
         assertValid(a)
         assertTrue(a.lowConfidence)
         assertTrue(a.pronunciation.score > 0.8f, "pronunciation should not be falsely low")
@@ -68,7 +68,7 @@ class RobustnessAuditTest {
 
     @Test
     fun `should_degradeToTextPronunciation_when_audioMissing`() {
-        val a = MantraEvaluator.assess(perfect, recitationTimeMs = 0L, acoustic = null)
+        val a = MantraEvaluator.assess(gayatri, perfect, recitationTimeMs = 0L, acoustic = null)
         assertValid(a)
         assertFalse(a.acousticAssessed, "no audio -> text-only pronunciation")
     }
@@ -76,7 +76,7 @@ class RobustnessAuditTest {
     @Test
     fun `should_degradeToTextPronunciation_when_audioTooNoisy`() {
         // Audio captured but gated out as too noisy -> fall back to text, do not zero it.
-        val a = MantraEvaluator.assess(
+        val a = MantraEvaluator.assess(gayatri,
             perfect,
             recitationTimeMs = 0L,
             acoustic = AcousticAssessment.notAssessed(snrDb = 2.0f)
@@ -89,25 +89,25 @@ class RobustnessAuditTest {
     @Test
     fun `should_handlePartialAcoustic_when_someWordsUnassessed`() {
         // Acoustic assessed overall, but a couple of words could not be located.
-        val wordScores = GayatriMantra.words.map { w ->
+        val wordScores = gayatri.words.map { w ->
             AcousticWordScore(w.index, score = if (w.index % 4 == 0) null else 0.9f, pacingRatio = 1.0f)
         }
         val acoustic = AcousticAssessment(wordScores = wordScores, assessed = true, snrDb = 20f)
-        val a = MantraEvaluator.assess(perfect, recitationTimeMs = 0L, acoustic = acoustic)
+        val a = MantraEvaluator.assess(gayatri, perfect, recitationTimeMs = 0L, acoustic = acoustic)
         assertValid(a)
         assertTrue(a.acousticAssessed)
     }
 
     @Test
     fun `should_notCrashAndScoreLowCompleteness_when_recitationExtremelyShort`() {
-        val a = MantraEvaluator.assess("om", recitationTimeMs = 0L)
+        val a = MantraEvaluator.assess(gayatri, "om", recitationTimeMs = 0L)
         assertValid(a)
         assertTrue(a.completeness.score < 0.2f)
     }
 
     @Test
     fun `should_notCrash_when_recitationExtremelyLong`() {
-        val a = MantraEvaluator.assess(
+        val a = MantraEvaluator.assess(gayatri,
             (perfect + " ").repeat(20).trim(),
             recitationTimeMs = 600_000L
         )
@@ -117,7 +117,7 @@ class RobustnessAuditTest {
 
     @Test
     fun `should_treatGibberishAsLowAcrossAxes_when_unrelatedSpeech`() {
-        val a = MantraEvaluator.assess("completely unrelated text spoken here", recitationTimeMs = 0L)
+        val a = MantraEvaluator.assess(gayatri, "completely unrelated text spoken here", recitationTimeMs = 0L)
         assertValid(a)
         assertFalse(a.isPass)
     }

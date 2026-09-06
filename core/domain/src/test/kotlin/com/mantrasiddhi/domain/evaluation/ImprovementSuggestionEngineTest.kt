@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.evaluation.feedback.FeedbackFeature
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -21,7 +22,7 @@ class ImprovementSuggestionEngineTest {
             WordResult(referenceWord = "om", spokenWord = "om", score = 1.0f, feedback = null),
             WordResult(referenceWord = "bhargo", spokenWord = "bhargo", score = 1.0f, feedback = null)
         )
-        assertTrue(ImprovementSuggestionEngine.topTips(results).isEmpty())
+        assertTrue(ImprovementSuggestionEngine.topTips(gayatri, results).isEmpty())
     }
 
     @Test
@@ -32,7 +33,7 @@ class ImprovementSuggestionEngineTest {
             WordResult(referenceWord = "dhimahi", spokenWord = "dimahi", score = 0.4f, feedback = WordFeedback.PRONUNCIATION)
         )
 
-        val tips = ImprovementSuggestionEngine.topTips(results)
+        val tips = ImprovementSuggestionEngine.topTips(gayatri, results)
 
         assertEquals(2, tips.size)
         // Worst (lowest score) first.

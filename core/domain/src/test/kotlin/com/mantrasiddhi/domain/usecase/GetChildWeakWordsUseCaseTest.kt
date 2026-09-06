@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.RecitationRepository
@@ -27,7 +28,7 @@ class GetChildWeakWordsUseCaseTest {
     @BeforeEach
     fun setUp() {
         recitationRepository = mockk()
-        getChildWeakWordsUseCase = GetChildWeakWordsUseCase(recitationRepository)
+        getChildWeakWordsUseCase = GetChildWeakWordsUseCase(recitationRepository, gayatri)
     }
 
     @Test
@@ -48,6 +49,7 @@ class GetChildWeakWordsUseCaseTest {
         val session1 = RecitationSession(
             id = 1,
             userId = 2L,
+            mantraId = gayatri.id,
             mode = RecitationMode.NORMAL,
             overallScore = 0.9,
             transcription = "om bhur bhuvah",
@@ -73,6 +75,7 @@ class GetChildWeakWordsUseCaseTest {
         val session2 = RecitationSession(
             id = 2,
             userId = 2L,
+            mantraId = gayatri.id,
             mode = RecitationMode.NORMAL,
             overallScore = 0.9,
             transcription = "om bhur bhuvah",

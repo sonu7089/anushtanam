@@ -1,12 +1,13 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.ActiveMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.Flow
@@ -42,43 +43,46 @@ data class PadaMastery(
 )
 
 /**
- * UseCase to compute per-word (and per-pada) average scores across a user's sessions.
+ * Computes per-word (and per-pada) average scores across a user's sessions.
+ *
+ * Only sessions of the active mantra count. Word scores are keyed by transliteration,
+ * which means nothing outside the mantra it came from, so mixing mantras would drag every
+ * average towards zero as soon as the app carried a second one.
  */
 class GetWordMasteryUseCase @Inject constructor(
-    private val recitationRepository: RecitationRepository
+    private val recitationRepository: RecitationRepository,
+    @ActiveMantra private val mantra: Mantra
 ) {
     /** Per-word mastery across all of the user's sessions, in mantra order. */
-    operator fun invoke(userId: Long): Flow<List<WordMastery>> {
-        return recitationRepository.getSessionsForUser(userId).map { sessions ->
-            wordMastery(sessions)
-        }
-    }
+    operator fun invoke(userId: Long): Flow<List<WordMastery>> =
+        sessions(userId).map(::wordMastery)
 
     /** Per-pada mastery, aggregating the per-word scores of each line. */
-    fun padaMastery(userId: Long): Flow<List<PadaMastery>> {
-        return recitationRepository.getSessionsForUser(userId).map { sessions ->
-            val byWord = wordMastery(sessions)
-            (1..GayatriMantra.PADA_COUNT).map { pada ->
-                val padaWords = byWord.filter { it.pada == pada }
-                val attempts = padaWords.sumOf { it.totalAttempts }
-                val average = if (padaWords.isEmpty()) 0.0
-                    else padaWords.sumOf { it.averageScore } / padaWords.size
-                PadaMastery(pada = pada, averageScore = average, totalAttempts = attempts)
-            }
-        }
-    }
-
-    private fun wordMastery(sessions: List<RecitationSession>): List<WordMastery> {
-        return GayatriMantra.words.map { word ->
-            val transliteration = word.transliteration
-            val sum = sessions.sumOf { it.wordScores[transliteration] ?: 0.0 }
-            val count = sessions.size
-            WordMastery(
-                word = transliteration,
-                averageScore = if (count > 0) sum / count else 0.0,
-                totalAttempts = count,
-                pada = word.pada
+    fun padaMastery(userId: Long): Flow<List<PadaMastery>> = sessions(userId).map { sessions ->
+        val byWord = wordMastery(sessions)
+        (1..mantra.padaCount).map { pada ->
+            val padaWords = byWord.filter { it.pada == pada }
+            PadaMastery(
+                pada = pada,
+                averageScore = if (padaWords.isEmpty()) 0.0 else padaWords.sumOf { it.averageScore } / padaWords.size,
+                totalAttempts = padaWords.sumOf { it.totalAttempts }
             )
         }
     }
+
+    private fun sessions(userId: Long): Flow<List<RecitationSession>> =
+        recitationRepository.getSessionsForUser(userId)
+            .map { sessions -> sessions.filter { it.mantraId == mantra.id } }
+
+    private fun wordMastery(sessions: List<RecitationSession>): List<WordMastery> =
+        mantra.words.map { word ->
+            val transliteration = word.transliteration
+            val sum = sessions.sumOf { it.wordScores[transliteration] ?: 0.0 }
+            WordMastery(
+                word = transliteration,
+                averageScore = if (sessions.isEmpty()) 0.0 else sum / sessions.size,
+                totalAttempts = sessions.size,
+                pada = word.pada
+            )
+        }
 }

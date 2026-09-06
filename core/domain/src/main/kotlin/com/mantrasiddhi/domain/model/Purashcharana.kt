@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -63,7 +63,7 @@ enum class PurashcharanaStage {
 }
 
 /**
- * A sadhak's Purashcharana: the vow to recite the mantra one lakh (1,00,000) times for
+ * A sadhak's Purashcharana: the vow to recite one mantra one lakh (1,00,000) times for
  * every akshara in it. For the Gayatri (24 aksharas) that is 24,00,000 japa, which is a
  * multi-year sadhana — every field here is sized and phrased for that horizon.
  *
@@ -78,6 +78,12 @@ enum class PurashcharanaStage {
 data class Purashcharana(
     val id: Long = 0L,
     val userId: Long,
+    /**
+     * Id of the mantra under sankalpa. Two vows for different mantras are different vows
+     * even when they happen to be the same length, so the cloud reconcile compares this
+     * before it merges anything.
+     */
+    val mantraId: String,
     /** Aksharas in the mantra under sankalpa (24 for the Gayatri). */
     val mantraAksharaCount: Int,
     val targetJapaCount: Long,

@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -35,10 +35,12 @@ class PurashcharanaSyncReconcileTest {
         startedAtMillis: Long = later,
         completedAtMillis: Long? = null,
         aksharas: Int = 24,
-        target: Long = gayatriTarget
+        target: Long = gayatriTarget,
+        mantraId: String = "gayatri"
     ) = Purashcharana(
         id = 5L,
         userId = 7L,
+        mantraId = mantraId,
         mantraAksharaCount = aksharas,
         targetJapaCount = target,
         currentJapaCount = current,
@@ -54,10 +56,12 @@ class PurashcharanaSyncReconcileTest {
         completedAtMillis: Long? = null,
         aksharas: Int = 24,
         target: Long = gayatriTarget,
-        isActive: Boolean = true
+        isActive: Boolean = true,
+        mantraId: String = "gayatri"
     ) = Purashcharana(
         id = 0L,
         userId = 0L,
+        mantraId = mantraId,
         mantraAksharaCount = aksharas,
         targetJapaCount = target,
         currentJapaCount = current,
@@ -278,6 +282,27 @@ class PurashcharanaSyncReconcileTest {
                 local(current = 1_000L),
                 remote(current = 900_000L, aksharas = 8, target = PurashcharanaPath.targetFor(8))
             )
+        )
+    }
+
+    @Test
+    fun `a remote for a different mantra is not merged in even at the same length`() {
+        // Two mantras can share an akshara count and therefore a target, so the akshara
+        // check alone would let one vow's japa be poured into another's.
+        assertEquals(
+            PurashcharanaReconcileAction.None,
+            resolve(
+                local(current = 1_000L, mantraId = "gayatri"),
+                remote(current = 900_000L, mantraId = "mahamrityunjaya")
+            )
+        )
+    }
+
+    @Test
+    fun `a remote with no mantra recorded is ignored rather than guessed at`() {
+        assertEquals(
+            PurashcharanaReconcileAction.None,
+            resolve(local(current = 1_000L), remote(current = 900_000L, mantraId = "  "))
         )
     }
 

@@ -1,12 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,6 +23,7 @@ class GetPracticePlanUseCaseTest {
         createdAt: Long
     ): RecitationSession = RecitationSession(
         userId = 1L,
+        mantraId = gayatri.id,
         mode = RecitationMode.PRACTICE,
         overallScore = wordScores.values.average(),
         wordScores = wordScores,
@@ -34,7 +35,7 @@ class GetPracticePlanUseCaseTest {
 
     /** Every reference word scored [mastered], overriding the given weak words. */
     private fun scores(weak: Map<String, Double>, mastered: Double = 0.95): Map<String, Double> =
-        GayatriMantra.transliterations.associateWith { weak[it] ?: mastered }
+        gayatri.transliterations.associateWith { weak[it] ?: mastered }
 
     @Test
     fun should_surfaceWeakestWordsFirst() {
@@ -43,7 +44,7 @@ class GetPracticePlanUseCaseTest {
             session(scores(mapOf("varenyam" to 0.45, "dhimahi" to 0.60)), now)
         )
 
-        val plan = GetPracticePlanUseCase.plan(sessions, now, limit = 3)
+        val plan = GetPracticePlanUseCase.plan(gayatri, sessions, now, limit = 3)
 
         assertTrue(plan.items.isNotEmpty())
         assertEquals("varenyam", plan.items.first().word)
@@ -57,14 +58,14 @@ class GetPracticePlanUseCaseTest {
         // All words mastered, but last practised long ago -> spaced repetition resurfaces them.
         val sessions = listOf(session(scores(emptyMap()), now - 30 * dayMs))
 
-        val plan = GetPracticePlanUseCase.plan(sessions, now, limit = 3)
+        val plan = GetPracticePlanUseCase.plan(gayatri, sessions, now, limit = 3)
 
         assertTrue(plan.items.isNotEmpty(), "overdue mastered words should resurface")
     }
 
     @Test
     fun should_recommendNewWords_when_noSessions() {
-        val plan = GetPracticePlanUseCase.plan(emptyList(), now)
+        val plan = GetPracticePlanUseCase.plan(gayatri, emptyList(), now)
         assertTrue(plan.items.isNotEmpty())
         assertTrue(plan.items.all { it.reason == PracticeReason.NEW })
     }

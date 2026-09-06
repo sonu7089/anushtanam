@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import org.json.JSONArray
 import kotlin.math.sqrt
 
@@ -67,7 +68,7 @@ object CalibrationCorpus {
         val disagreements = mutableListOf<Disagreement>()
 
         corpus.forEach { case ->
-            val a = MantraEvaluator.assess(case.transcription, recitationTimeMs = 0L, config = config)
+            val a = MantraEvaluator.assess(gayatri, case.transcription, recitationTimeMs = 0L, config = config)
             eCor += a.correctness.score; hCor += case.humanCorrectness
             eCom += a.completeness.score; hCom += case.humanCompleteness
             if (!case.pronunciationNeedsAudio) {

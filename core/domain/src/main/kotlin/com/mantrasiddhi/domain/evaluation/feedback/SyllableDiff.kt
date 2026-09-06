@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -8,7 +8,7 @@ package com.mantrasiddhi.domain.evaluation.feedback
 
 import com.mantrasiddhi.domain.evaluation.phonetics.PhonemeTokenizer
 import com.mantrasiddhi.domain.evaluation.phonetics.PhoneticFeatures
-import com.mantrasiddhi.domain.evaluation.reference.MantraWord
+import com.mantrasiddhi.domain.mantra.MantraWord
 
 /**
  * Produces a **syllable-level diff** between a reference word and what the learner

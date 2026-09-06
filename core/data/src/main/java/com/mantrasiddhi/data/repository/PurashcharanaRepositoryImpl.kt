@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -36,15 +36,17 @@ class PurashcharanaRepositoryImpl @Inject constructor(
         purashcharanaDao.getActiveForUser(userId)?.toDomain()
     }
 
-    override suspend fun enroll(userId: Long, aksharaCount: Int): Result<Purashcharana> =
+    override suspend fun enroll(userId: Long, mantraId: String, aksharaCount: Int): Result<Purashcharana> =
         withContext(ioDispatcher) {
             runCatching {
+                require(mantraId.isNotBlank()) { "A sankalpa must name the mantra it is for" }
                 require(aksharaCount > 0) { "A mantra must have at least one akshara" }
                 check(purashcharanaDao.getActiveForUser(userId) == null) {
                     "A Purashcharana is already active for this sadhak"
                 }
                 val entity = PurashcharanaEntity(
                     userId = userId,
+                    mantraId = mantraId,
                     mantraAksharaCount = aksharaCount,
                     targetJapaCount = PurashcharanaPath.targetFor(aksharaCount),
                     currentJapaCount = 0L,

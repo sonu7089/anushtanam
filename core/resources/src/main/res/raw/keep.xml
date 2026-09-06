@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Benchmark recitations are resolved by name (see MantraBenchmarkResources), so nothing
+  in code references them and the release resource shrinker would otherwise strip them.
+  Any file named `*_benchmark` is kept, which is the convention a new mantra follows.
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/*_benchmark" />

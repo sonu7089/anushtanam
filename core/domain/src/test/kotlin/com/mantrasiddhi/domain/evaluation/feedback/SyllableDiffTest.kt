@@ -1,12 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation.feedback
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 
 class SyllableDiffTest {
 
-    private fun word(transliteration: String) = GayatriMantra.wordFor(transliteration)!!
+    private fun word(transliteration: String) = gayatri.wordFor(transliteration)!!
 
     @Test
     fun should_reportNoMismatch_when_wordSpokenCorrectly() {

@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -29,6 +29,7 @@ class PurashcharanaTest {
     ) = Purashcharana(
         id = 1L,
         userId = 7L,
+        mantraId = "gayatri",
         mantraAksharaCount = aksharas,
         targetJapaCount = target,
         currentJapaCount = current,

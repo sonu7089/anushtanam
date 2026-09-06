@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -62,6 +62,7 @@ object FirebaseContract {
     // purashcharana/{uid} — the sankalpa mirror. The count is written ABSOLUTE (never as
     // an increment), so these keys always describe the whole record; isCompleted and
     // updatedAt above are reused rather than duplicated.
+    const val FIELD_MANTRA_ID = "mantraId"
     const val FIELD_AKSHARA_COUNT = "mantraAksharaCount"
     const val FIELD_TARGET_JAPA_COUNT = "targetJapaCount"
     const val FIELD_CURRENT_JAPA_COUNT = "currentJapaCount"

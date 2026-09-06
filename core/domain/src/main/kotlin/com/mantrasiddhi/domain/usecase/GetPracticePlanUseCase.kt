@@ -1,12 +1,13 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.ActiveMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import com.mantrasiddhi.domain.model.RecitationSession
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.Flow
@@ -55,12 +56,16 @@ data class PracticePlan(val items: List<PracticePlanItem>) {
 }
 
 /**
- * Builds a focused practice plan using simple spaced repetition (§4.4): it resurfaces
- * the words that are weakest, never attempted, or mastered-but-overdue, so practice
- * targets exactly what needs the most attention right now.
+ * Builds a focused practice plan using simple spaced repetition (§4.4): it resurfaces the
+ * words that are weakest, never attempted, or mastered-but-overdue, so practice targets
+ * exactly what needs the most attention right now.
+ *
+ * Only sessions of the active mantra count towards a word's history — a word is only
+ * meaningful inside the mantra it belongs to.
  */
 class GetPracticePlanUseCase @Inject constructor(
-    private val recitationRepository: RecitationRepository
+    private val recitationRepository: RecitationRepository,
+    @ActiveMantra private val mantra: Mantra
 ) {
 
     /**
@@ -68,7 +73,9 @@ class GetPracticePlanUseCase @Inject constructor(
      * @param limit Maximum number of words to surface.
      */
     operator fun invoke(userId: Long, limit: Int = DEFAULT_LIMIT): Flow<PracticePlan> =
-        recitationRepository.getSessionsForUser(userId).map { plan(it, System.currentTimeMillis(), limit) }
+        recitationRepository.getSessionsForUser(userId).map { sessions ->
+            plan(mantra, sessions.filter { it.mantraId == mantra.id }, System.currentTimeMillis(), limit)
+        }
 
     companion object {
         private const val DEFAULT_LIMIT = 3
@@ -86,16 +93,25 @@ class GetPracticePlanUseCase @Inject constructor(
         /**
          * Pure plan computation, testable without a clock or repository.
          *
-         * @param sessions The learner's sessions (any order).
+         * @param mantra The mantra whose words are being scheduled.
+         * @param sessions The learner's sessions of that mantra (any order).
          * @param now Current time in millis, used for overdue calculations.
          * @param limit Maximum number of words to return.
          */
-        fun plan(sessions: List<RecitationSession>, now: Long, limit: Int = DEFAULT_LIMIT): PracticePlan {
-            val scored = GayatriMantra.words.mapNotNull { word ->
+        fun plan(
+            mantra: Mantra,
+            sessions: List<RecitationSession>,
+            now: Long,
+            limit: Int = DEFAULT_LIMIT
+        ): PracticePlan {
+            val scored = mantra.words.mapNotNull { word ->
                 val attemptsForWord = sessions.filter { it.wordScores.containsKey(word.transliteration) }
                 val attempts = attemptsForWord.size
-                val mastery = if (attempts == 0) 0.0
-                    else attemptsForWord.sumOf { it.wordScores.getValue(word.transliteration) } / attempts
+                val mastery = if (attempts == 0) {
+                    0.0
+                } else {
+                    attemptsForWord.sumOf { it.wordScores.getValue(word.transliteration) } / attempts
+                }
                 val lastPracticed = attemptsForWord.maxOfOrNull { it.createdAt }
                 val priority = priorityFor(attempts, mastery, lastPracticed, now) ?: return@mapNotNull null
                 val item = PracticePlanItem(
@@ -108,8 +124,7 @@ class GetPracticePlanUseCase @Inject constructor(
                 )
                 item to priority
             }
-            val items = scored.sortedByDescending { it.second }.take(limit).map { it.first }
-            return PracticePlan(items)
+            return PracticePlan(scored.sortedByDescending { it.second }.take(limit).map { it.first })
         }
 
         /** Returns a ranking priority for a due word, or `null` when it is not due. */

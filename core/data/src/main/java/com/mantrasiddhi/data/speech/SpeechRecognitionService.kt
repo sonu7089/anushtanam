@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -52,9 +52,9 @@ class SpeechRecognitionService @Inject constructor(
                 return
             }
             val intent = voiceModelManager.recognitionIntent()
-            
+
             recognizer = rec
-            
+
             rec.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {}
                 override fun onBeginningOfSpeech() {}
@@ -86,7 +86,7 @@ class SpeechRecognitionService @Inject constructor(
 
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
-            
+
             try {
                 rec.startListening(intent)
             } catch (_: Exception) {

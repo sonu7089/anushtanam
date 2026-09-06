@@ -1,12 +1,13 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.ActiveMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import com.mantrasiddhi.domain.model.Purashcharana
 import com.mantrasiddhi.domain.model.PurashcharanaPath
 import com.mantrasiddhi.domain.repository.PurashcharanaRepository
@@ -23,10 +24,10 @@ class GetActivePurashcharanaUseCase @Inject constructor(
 }
 
 /**
- * Takes the Purashcharana sankalpa for the Gayatri.
+ * Takes the Purashcharana sankalpa for the mantra the app is currently teaching.
  *
- * The akshara count is not a parameter: the app carries one mantra, and the length of
- * that mantra is what the vow is reckoned against. Fails when a sankalpa is already
+ * The mantra is not a parameter: a sankalpa is taken for the mantra being recited, and
+ * its length is what the vow is reckoned against. Fails when a sankalpa is already
  * active.
  *
  * The new sankalpa is mirrored to the cloud at once (not throttled): the day the vow was
@@ -35,10 +36,11 @@ class GetActivePurashcharanaUseCase @Inject constructor(
  */
 class EnrollPurashcharanaUseCase @Inject constructor(
     private val purashcharanaRepository: PurashcharanaRepository,
-    private val purashcharanaSyncRepository: PurashcharanaSyncRepository
+    private val purashcharanaSyncRepository: PurashcharanaSyncRepository,
+    @ActiveMantra private val mantra: Mantra
 ) {
     suspend operator fun invoke(userId: Long): Result<Purashcharana> {
-        val result = purashcharanaRepository.enroll(userId, GayatriMantra.AKSHARA_COUNT)
+        val result = purashcharanaRepository.enroll(userId, mantra.id, mantra.aksharaCount)
         val fresh = result.getOrNull() ?: return result
         runCatching {
             // Enrolling is the ONE moment that produces a local count of zero, so it is the
@@ -190,17 +192,22 @@ object PurashcharanaReconciler {
         // mirrored immediately, so this is how a sankalpa set aside on one device stays
         // set aside after a reinstall.
         if (!remote.isActive) return PurashcharanaReconcileAction.None
-        if (remote.targetJapaCount <= 0L || remote.mantraAksharaCount <= 0) {
+        if (remote.targetJapaCount <= 0L ||
+            remote.mantraAksharaCount <= 0 ||
+            remote.mantraId.isBlank()
+        ) {
             return PurashcharanaReconcileAction.None
         }
 
         if (local == null) return PurashcharanaReconcileAction.Restore(remote)
 
-        // A different mantra length or target is a DIFFERENT vow, not a stale copy of this
-        // one; merging the two counts would fabricate japa. The local sankalpa — the one
-        // the sadhak is actually reciting on this device — wins, and the next mirror
-        // overwrites the cloud with it.
-        if (remote.mantraAksharaCount != local.mantraAksharaCount ||
+        // A different mantra, length or target is a DIFFERENT vow, not a stale copy of
+        // this one; merging the two counts would fabricate japa. The mantra id is checked
+        // first because two mantras can share an akshara count and would otherwise look
+        // like the same sankalpa. The local one — the vow the sadhak is actually reciting
+        // on this device — wins, and the next mirror overwrites the cloud with it.
+        if (remote.mantraId != local.mantraId ||
+            remote.mantraAksharaCount != local.mantraAksharaCount ||
             remote.targetJapaCount != local.targetJapaCount
         ) {
             return PurashcharanaReconcileAction.None

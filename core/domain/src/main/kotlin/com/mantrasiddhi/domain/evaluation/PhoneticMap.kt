@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -9,42 +9,33 @@ package com.mantrasiddhi.domain.evaluation
 /**
  * Canonicalizes a transliterated word toward its reference spelling.
  *
- * Phase 2 replaces most of the old hand-listed STT-misrecognition table with
- * **rules** derived from how Sanskrit is commonly mis-spelled by a dictation
- * engine:
- * - long↔short vowel folding (`oo→u`, `ee→i`, `aa→a`, doubled vowels)
- * - `w↔v` confusion
- * - visarga echo (`…aha → …ah`, e.g. `svaha → svah`)
- * - `om` spelling variants (`aum`, `oom`, …)
+ * Everything here is a property of **Sanskrit written in Latin letters**, not of any one
+ * mantra, so it applies to every mantra the app carries:
+ * - long/short vowel folding (`oo→u`, `ee→i`, `aa→a`, doubled vowels)
+ * - `w`/`v` confusion
+ * - visarga echo (`aha` at the end of a word becomes `ah`, e.g. `svaha → svah`)
+ * - spelling variants of the pranava `ॐ` (`aum`, `oom`, …)
  *
- * Only genuinely irregular outputs that no rule can derive remain in the small,
- * clearly-labelled [overrides] table. Because the phoneme feature-weighted distance
- * (Phase 2.2) tolerates the residual difference, removing any single override does
- * **not** collapse a whole-word match — the rules (and the distance) still align it.
+ * Genuinely irregular dictation output that no rule can derive is mantra-specific and is
+ * therefore supplied by the caller as `overrides`, read from that mantra's definition
+ * (`MantraTextRules.spellingOverrides`). Because the phoneme feature-weighted distance
+ * tolerates the residual difference, removing any single override does **not** collapse a
+ * whole-word match: the rules and the distance still align it.
  */
 object PhoneticMap {
 
-    /** Spelling variants of the praṇava `ॐ`, resolved before any vowel folding. */
+    /** Spelling variants of the pranava `ॐ`, resolved before any vowel folding. */
     private val omVariants = setOf("om", "aum", "oom", "aom", "oum", "ohm")
-
-    /**
-     * Minimal residual overrides for irregular STT outputs the rules cannot derive
-     * (epenthetic vowels, dropped visarga, stray terminal vowels). Kept intentionally
-     * tiny; each is non-critical thanks to the tolerant phonetic distance.
-     */
-    private val overrides = mapOf(
-        "bhuva" to "bhuvah",   // dropped visarga that visarga-echo rule can't restore
-        "bharago" to "bhargo", // epenthetic 'a' between r and g
-        "saviture" to "savitur" // stray terminal 'e'
-    )
 
     /**
      * Normalizes a single transliterated word to its canonical reference form.
      *
-     * @param word A single lowercased-or-not transliterated word.
-     * @return The canonical form, or the rule-folded form when no override applies.
+     * @param word A single transliterated word, in any case.
+     * @param overrides Mantra-specific irregular spellings, keyed by either the raw or
+     *   the rule-folded form of what was heard.
+     * @return The override when one applies, otherwise the rule-folded form.
      */
-    fun getCanonical(word: String): String {
+    fun getCanonical(word: String, overrides: Map<String, String> = emptyMap()): String {
         val trimmed = word.lowercase().trim()
         if (trimmed.isEmpty()) return trimmed
         if (trimmed in omVariants) return "om"
@@ -56,7 +47,7 @@ object PhoneticMap {
      * Applies the rule-based phonetic folds. Exposed for direct rule testing.
      *
      * @param word A lowercased transliterated word.
-     * @return The word after vowel/`w`/visarga folding.
+     * @return The word after vowel, `w` and visarga folding.
      */
     fun applyPhoneticRules(word: String): String {
         var result = word.replace('w', 'v')

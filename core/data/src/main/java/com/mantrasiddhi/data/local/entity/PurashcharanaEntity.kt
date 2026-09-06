@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -24,6 +25,10 @@ import com.mantrasiddhi.domain.model.Purashcharana
 data class PurashcharanaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,
+    // The mantra under sankalpa. Vows taken before the app carried a catalog predate the
+    // column, so the v6 -> v7 migration backfills them with the mantra it shipped with;
+    // the default is declared here too so the schema and the migration agree exactly.
+    @ColumnInfo(defaultValue = LEGACY_MANTRA_ID) val mantraId: String,
     val mantraAksharaCount: Int,
     val targetJapaCount: Long,
     val currentJapaCount: Long,
@@ -35,6 +40,7 @@ data class PurashcharanaEntity(
         return Purashcharana(
             id = id,
             userId = userId,
+            mantraId = mantraId,
             mantraAksharaCount = mantraAksharaCount,
             targetJapaCount = targetJapaCount,
             currentJapaCount = currentJapaCount,
@@ -45,10 +51,18 @@ data class PurashcharanaEntity(
     }
 
     companion object {
+        /**
+         * Mantra assumed for sankalpas taken before the app carried a mantra catalog. Kept
+         * as a literal rather than read from the catalog: it records what those vows
+         * actually were, and must not follow a later change of default mantra.
+         */
+        const val LEGACY_MANTRA_ID = "gayatri"
+
         fun fromDomain(domain: Purashcharana): PurashcharanaEntity {
             return PurashcharanaEntity(
                 id = domain.id,
                 userId = domain.userId,
+                mantraId = domain.mantraId,
                 mantraAksharaCount = domain.mantraAksharaCount,
                 targetJapaCount = domain.targetJapaCount,
                 currentJapaCount = domain.currentJapaCount,

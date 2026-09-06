@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -28,8 +28,8 @@ object PhonemeTokenizer {
     /**
      * Tokenizes a word into per-syllable phoneme groups.
      *
-     * When [syllables] is provided (e.g. from the reference [com.mantrasiddhi
-     * .domain.evaluation.reference.MantraWord]) each syllable is tokenized
+     * When [syllables] is provided (e.g. from a
+     * [com.mantrasiddhi.domain.mantra.MantraWord]) each syllable is tokenized
      * independently so feedback can localise to a syllable. When it is null the
      * whole word is returned as a single group.
      *

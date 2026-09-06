@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -55,13 +56,13 @@ class CalibrationHarnessTest {
     fun `should_keepTextPathWithinLatencyBudget_when_assessing`() {
         val corpus = CalibrationCorpus.load()
         // Warm up the JIT so the measurement reflects steady-state, not class-load cost.
-        repeat(WARMUP_ITERATIONS) { corpus.forEach { MantraEvaluator.assess(it.transcription, 0L) } }
+        repeat(WARMUP_ITERATIONS) { corpus.forEach { MantraEvaluator.assess(gayatri, it.transcription, 0L) } }
 
         var maxNanos = 0L
         repeat(TIMED_ITERATIONS) {
             corpus.forEach { case ->
                 val start = System.nanoTime()
-                MantraEvaluator.assess(case.transcription, 0L)
+                MantraEvaluator.assess(gayatri, case.transcription, 0L)
                 maxNanos = maxOf(maxNanos, System.nanoTime() - start)
             }
         }

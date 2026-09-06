@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -8,8 +8,10 @@ package com.mantrasiddhi.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.mantrasiddhi.data.local.entity.PurashcharanaEntity
 import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
 import com.mantrasiddhi.domain.model.Purashcharana
 import com.mantrasiddhi.domain.repository.PurashcharanaSyncRepository
@@ -133,6 +135,9 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
                 val snapshot = transaction.get(document)
                 val storedIsSameSankalpa = snapshot.exists() &&
                     snapshot.getBoolean(FirebaseContract.FIELD_IS_ACTIVE) != false &&
+                    // Docs written before the app carried a catalog have no mantra id; they
+                    // can only be the Gayatri, which is what the local row says too.
+                    storedMantraId(snapshot) == sankalpa.mantraId &&
                     (snapshot.getLong(FirebaseContract.FIELD_AKSHARA_COUNT) ?: 0L).toInt() ==
                         sankalpa.mantraAksharaCount &&
                     (snapshot.getLong(FirebaseContract.FIELD_TARGET_JAPA_COUNT) ?: 0L) ==
@@ -170,6 +175,7 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
                 transaction.set(
                     document,
                     mapOf(
+                        FirebaseContract.FIELD_MANTRA_ID to sankalpa.mantraId,
                         FirebaseContract.FIELD_AKSHARA_COUNT to sankalpa.mantraAksharaCount.toLong(),
                         FirebaseContract.FIELD_TARGET_JAPA_COUNT to sankalpa.targetJapaCount,
                         FirebaseContract.FIELD_CURRENT_JAPA_COUNT to mergedCount,
@@ -221,6 +227,7 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
         Purashcharana(
             id = 0L,
             userId = 0L,
+            mantraId = storedMantraId(snap),
             mantraAksharaCount = aksharaCount,
             targetJapaCount = targetJapaCount,
             currentJapaCount = (snap.getLong(FirebaseContract.FIELD_CURRENT_JAPA_COUNT) ?: 0L)
@@ -235,6 +242,17 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
     override suspend fun discardPending() {
         pending = null
     }
+
+    /**
+     * The mantra a mirrored sankalpa is for.
+     *
+     * Docs written before the catalog existed carry no `mantraId`; those vows were
+     * necessarily the Gayatri, the only mantra the app then had, and reading them as such
+     * is what lets an existing sadhak's sankalpa still reconcile after this upgrade.
+     */
+    private fun storedMantraId(snapshot: DocumentSnapshot): String =
+        snapshot.getString(FirebaseContract.FIELD_MANTRA_ID)?.takeIf { it.isNotBlank() }
+            ?: PurashcharanaEntity.LEGACY_MANTRA_ID
 
     private companion object {
         /** Shortest gap between two ordinary (non-milestone) mirrors. */

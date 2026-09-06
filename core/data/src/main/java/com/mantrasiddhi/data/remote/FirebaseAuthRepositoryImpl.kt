@@ -1,13 +1,15 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.data.remote
 
+import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -69,8 +71,9 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         displayName: String
     ): Result<AuthAccount> = runCatching {
         val result = auth.createUserWithEmailAndPassword(email.trim(), password).awaitResult()
-        val uid = result.user!!.uid
-        result.user!!.updateProfile(
+        val user = result.signedInUser()
+        val uid = user.uid
+        user.updateProfile(
             UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
         ).awaitResult()
 
@@ -89,10 +92,9 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
 
     override suspend fun signInParent(email: String, password: String): Result<AuthAccount> =
         runCatching {
-            val result = auth.signInWithEmailAndPassword(email.trim(), password).awaitResult()
-            val uid = result.user!!.uid
-            persistTokenBestEffort(uid)
-            loadAccount(uid, result.user!!.email, result.user!!.displayName)
+            val user = auth.signInWithEmailAndPassword(email.trim(), password).awaitResult().signedInUser()
+            persistTokenBestEffort(user.uid)
+            loadAccount(user.uid, user.email, user.displayName)
         }
 
     override suspend fun signUpChild(displayName: String, pin: String): Result<AuthAccount> =
@@ -112,7 +114,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
                     val result = auth
                         .createUserWithEmailAndPassword(FirebaseContract.childEmail(code), pin)
                         .awaitResult()
-                    uid = result.user!!.uid
+                    uid = result.signedInUser().uid
                 } catch (_: FirebaseAuthUserCollisionException) {
                     // Code already in use (email collision) — retry with a fresh code.
                     if (attempts >= MAX_CODE_ATTEMPTS) {
@@ -161,9 +163,9 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             val result = auth
                 .signInWithEmailAndPassword(FirebaseContract.childEmail(trimmed), pin)
                 .awaitResult()
-            val uid = result.user!!.uid
-            persistTokenBestEffort(uid)
-            loadAccount(uid, result.user!!.email, result.user!!.displayName)
+            val user = result.signedInUser()
+            persistTokenBestEffort(user.uid)
+            loadAccount(user.uid, user.email, user.displayName)
         }
 
     override suspend fun signOut() {
@@ -181,6 +183,17 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     }
 
     // --- helpers ---
+
+    /**
+     * The account an auth call just established.
+     *
+     * Firebase types `AuthResult.user` as nullable even though a successful sign-in or
+     * sign-up always carries one. Failing with a sentence rather than a bare
+     * `NullPointerException` matters because every caller wraps this in `runCatching` and
+     * the message is what the sadhak is shown.
+     */
+    private fun AuthResult.signedInUser(): FirebaseUser =
+        user ?: error("Firebase reported a successful sign-in with no account attached")
 
     private suspend fun loadAccount(uid: String, email: String?, displayName: String?): AuthAccount {
         return runCatching {

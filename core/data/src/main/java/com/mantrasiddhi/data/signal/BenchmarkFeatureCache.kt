@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -10,107 +10,92 @@ import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import com.mantrasiddhi.resources.R
+import com.mantrasiddhi.data.mantra.MantraBenchmarkResources
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticFeatures
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Decodes the bundled benchmark recitation once and caches its **per-word** MFCC
- * features (keyed to the [GayatriMantra] word timestamps) for reuse by every
- * pronunciation comparison.
+ * Decodes a mantra's benchmark recitation once and caches its **per-word** MFCC features
+ * for reuse by every pronunciation comparison.
  *
- * Decoding (MP3 → 16 kHz mono PCM) is Android-specific so it lives in the data
- * layer; the cached result is the Android-free [AcousticFeatures] the domain scorer
- * consumes. All work is lazy and computed at most once; any failure yields empty
- * features so the engine degrades to the text-only path.
+ * Decoding (compressed audio to 16 kHz mono PCM) is Android-specific so it lives in the
+ * data layer; what it caches is the Android-free [AcousticFeatures] the domain scorer
+ * consumes. Results are memoised per mantra id, so an app carrying several mantras decodes
+ * each recording at most once and never confuses one mantra's windows with another's.
+ *
+ * Any failure yields empty features so the engine degrades to the text-only path.
  */
 @Singleton
 class BenchmarkFeatureCache @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val mfccExtractor: MfccExtractor
+    private val mfccExtractor: MfccExtractor,
+    private val benchmarkResources: MantraBenchmarkResources
 ) {
 
-    @Volatile
-    private var cached: List<AcousticFeatures>? = null
-
-    @Volatile
-    private var cachedPcm: List<FloatArray>? = null
-    private val lock = Any()
+    private val featuresByMantra = ConcurrentHashMap<String, List<AcousticFeatures>>()
+    private val pcmByMantra = ConcurrentHashMap<String, List<FloatArray>>()
 
     /** Sample rate of the per-word PCM returned by [pcmPerWord]. */
     fun sampleRate(): Int = TARGET_SAMPLE_RATE
 
     /**
-     * Returns one [AcousticFeatures] per reference word, in word order.
+     * Returns one [AcousticFeatures] per word of [mantra], in word order.
      *
-     * Computed lazily on first call and cached thereafter. On any decode/extract
-     * failure every entry is [AcousticFeatures.EMPTY].
+     * Computed on first call and cached thereafter. On any decode or extract failure every
+     * entry is [AcousticFeatures.EMPTY].
      */
-    fun featuresPerWord(): List<AcousticFeatures> {
-        cached?.let { return it }
-        synchronized(lock) {
-            cached?.let { return it }
-            val computed = runCatching { computeFeatures() }
-                .getOrElse { GayatriMantra.words.map { AcousticFeatures.EMPTY } }
-            cached = computed
-            return computed
-        }
-    }
-
-    /**
-     * Returns the decoded benchmark PCM (16 kHz mono, `-1.0..1.0`) sliced per reference
-     * word, in word order. Reused by the optional swara/pitch layer so the benchmark
-     * audio is decoded at most once. On any failure each entry is an empty array.
-     */
-    fun pcmPerWord(): List<FloatArray> {
-        cachedPcm?.let { return it }
-        synchronized(lock) {
-            cachedPcm?.let { return it }
-            val computed = runCatching { computeWordPcm() }
-                .getOrElse { GayatriMantra.words.map { FloatArray(0) } }
-            cachedPcm = computed
-            return computed
-        }
-    }
-
-    private fun computeFeatures(): List<AcousticFeatures> {
-        val pcm = decodeToMonoPcm() ?: return GayatriMantra.words.map { AcousticFeatures.EMPTY }
-        return GayatriMantra.words.map { word ->
-            val startSample = msToSample(word.benchmarkStartMs)
-            val endSample = msToSample(word.benchmarkEndMs).coerceAtMost(pcm.size)
-            if (endSample <= startSample) {
-                AcousticFeatures.EMPTY
-            } else {
-                mfccExtractor.extract(pcm.copyOfRange(startSample, endSample), TARGET_SAMPLE_RATE)
+    fun featuresPerWord(mantra: Mantra): List<AcousticFeatures> =
+        // computeIfAbsent, not getOrPut: decoding a recording is expensive enough that two
+        // recitations settling at once must not both do it.
+        featuresByMantra.computeIfAbsent(mantra.id) {
+            sliceBenchmark(mantra, empty = AcousticFeatures.EMPTY) { pcm ->
+                mfccExtractor.extract(pcm, TARGET_SAMPLE_RATE)
             }
         }
-    }
 
-    private fun computeWordPcm(): List<FloatArray> {
-        val pcm = decodeToMonoPcm() ?: return GayatriMantra.words.map { FloatArray(0) }
-        return GayatriMantra.words.map { word ->
+    /**
+     * Returns the decoded benchmark PCM (16 kHz mono, `-1.0..1.0`) sliced per word of
+     * [mantra], in word order. Reused by the optional swara/pitch layer so a recording is
+     * never decoded twice. On any failure each entry is an empty array.
+     */
+    fun pcmPerWord(mantra: Mantra): List<FloatArray> =
+        pcmByMantra.computeIfAbsent(mantra.id) {
+            sliceBenchmark(mantra, empty = FloatArray(0)) { pcm -> pcm }
+        }
+
+    /**
+     * Decodes [mantra]'s benchmark and maps each word's window through [transform],
+     * substituting [empty] wherever a window is missing, out of range, or the whole
+     * recording could not be decoded.
+     */
+    private fun <T> sliceBenchmark(mantra: Mantra, empty: T, transform: (FloatArray) -> T): List<T> {
+        val pcm = runCatching { decodeToMonoPcm(mantra) }.getOrNull()
+            ?: return mantra.words.map { empty }
+        return mantra.words.map { word ->
             val startSample = msToSample(word.benchmarkStartMs)
             val endSample = msToSample(word.benchmarkEndMs).coerceAtMost(pcm.size)
-            if (endSample <= startSample) FloatArray(0) else pcm.copyOfRange(startSample, endSample)
+            if (endSample <= startSample) empty else transform(pcm.copyOfRange(startSample, endSample))
         }
     }
 
     private fun msToSample(ms: Long): Int = (ms * TARGET_SAMPLE_RATE / MILLIS_PER_SECOND).toInt()
 
     /**
-     * Decodes the benchmark resource to normalised mono PCM at [TARGET_SAMPLE_RATE].
-     * Returns null on any failure.
+     * Decodes [mantra]'s benchmark resource to normalised mono PCM at [TARGET_SAMPLE_RATE].
+     * Returns `null` when the mantra has no recording or decoding fails.
      */
-    private fun decodeToMonoPcm(): FloatArray? {
+    private fun decodeToMonoPcm(mantra: Mantra): FloatArray? {
+        val resourceId = benchmarkResources.audioResourceId(mantra) ?: return null
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         try {
-            context.resources.openRawResourceFd(R.raw.gayatri_mantra_benchmark).use { afd ->
+            context.resources.openRawResourceFd(resourceId).use { afd ->
                 extractor.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
             }
             val trackIndex = selectAudioTrack(extractor) ?: return null
@@ -125,8 +110,7 @@ class BenchmarkFeatureCache @Inject constructor(
                 start()
             }
             codec = decoder
-            val mono = decodeStream(extractor, decoder, channels)
-            return resampleTo16k(mono, sourceRate)
+            return resampleTo16k(decodeStream(extractor, decoder, channels), sourceRate)
         } catch (e: Exception) {
             return null
         } finally {

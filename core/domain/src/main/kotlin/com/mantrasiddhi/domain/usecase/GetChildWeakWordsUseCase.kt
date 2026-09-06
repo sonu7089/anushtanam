@@ -1,50 +1,47 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.ActiveMantra
+import com.mantrasiddhi.domain.mantra.Mantra
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
- * UseCase to analyze a child's recitation sessions and find the top 3 words
- * with the lowest average score (i.e., where they struggle the most).
+ * Finds the words a child struggles with most: the lowest mean per-word score across
+ * their sessions of the active mantra.
+ *
+ * A word the child has never been scored on counts as `0.0`, which is deliberate — an
+ * untouched word is exactly what a parent should see surfaced first.
  */
 class GetChildWeakWordsUseCase @Inject constructor(
-    private val recitationRepository: RecitationRepository
+    private val recitationRepository: RecitationRepository,
+    @ActiveMantra private val mantra: Mantra
 ) {
-    operator fun invoke(childId: Long): Flow<List<String>> {
-        return recitationRepository.getSessionsForUser(childId).map { sessions ->
+    /**
+     * @param childId The learner whose sessions are analysed.
+     * @param limit How many words to surface, weakest first.
+     */
+    operator fun invoke(childId: Long, limit: Int = DEFAULT_LIMIT): Flow<List<String>> =
+        recitationRepository.getSessionsForUser(childId).map { allSessions ->
+            val sessions = allSessions.filter { it.mantraId == mantra.id }
             if (sessions.isEmpty()) {
                 return@map emptyList()
             }
-            
-            val wordSum = mutableMapOf<String, Double>()
-            val wordCount = mutableMapOf<String, Int>()
-            
-            for (session in sessions) {
-                for (word in GayatriMantra.transliterations) {
-                    val score = session.wordScores[word] ?: 0.0
-                    wordSum[word] = (wordSum[word] ?: 0.0) + score
-                    wordCount[word] = (wordCount[word] ?: 0) + 1
-                }
-            }
-            
-            GayatriMantra.transliterations
-                .map { word ->
-                    val sum = wordSum[word] ?: 0.0
-                    val count = wordCount[word] ?: 1
-                    word to (sum / count)
-                }
-                .sortedBy { it.second }
-                .take(3)
-                .map { it.first }
+            mantra.transliterations
+                .map { word -> word to sessions.sumOf { it.wordScores[word] ?: 0.0 } / sessions.size }
+                .sortedBy { (_, meanScore) -> meanScore }
+                .take(limit)
+                .map { (word, _) -> word }
         }
+
+    private companion object {
+        const val DEFAULT_LIMIT = 3
     }
 }

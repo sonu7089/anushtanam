@@ -1,22 +1,23 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.data.signal
 
-import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
+import com.mantrasiddhi.domain.mantra.Mantra
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Lazily extracts and caches the benchmark recitation's **per-word f0 contour** for
- * the optional swara/pitch layer (§5.5), reusing the PCM already decoded by
- * [BenchmarkFeatureCache] so the benchmark audio is never decoded twice.
+ * Lazily extracts and caches a mantra's benchmark **per-word f0 contour** for the optional
+ * swara/pitch layer (§5.5), reusing the PCM already decoded by [BenchmarkFeatureCache] so
+ * the benchmark audio is never decoded twice.
  *
- * Computed at most once; any failure yields empty contours so the swara layer simply
- * reports "not assessed".
+ * Memoised per mantra id and computed at most once; any failure yields empty contours so
+ * the swara layer simply reports "not assessed".
  */
 @Singleton
 class BenchmarkPitchCache @Inject constructor(
@@ -24,21 +25,14 @@ class BenchmarkPitchCache @Inject constructor(
     private val pitchExtractor: PitchExtractor
 ) {
 
-    @Volatile
-    private var cached: List<FloatArray>? = null
-    private val lock = Any()
+    private val contoursByMantra = ConcurrentHashMap<String, List<FloatArray>>()
 
-    /** One f0 contour (Hz; `0` = unvoiced) per reference word, in word order. */
-    fun contoursPerWord(): List<FloatArray> {
-        cached?.let { return it }
-        synchronized(lock) {
-            cached?.let { return it }
+    /** One f0 contour (Hz; `0` means unvoiced) per word of [mantra], in word order. */
+    fun contoursPerWord(mantra: Mantra): List<FloatArray> =
+        contoursByMantra.computeIfAbsent(mantra.id) {
             val sampleRate = benchmarkFeatureCache.sampleRate()
-            val computed = runCatching {
-                benchmarkFeatureCache.pcmPerWord().map { pitchExtractor.extract(it, sampleRate) }
-            }.getOrElse { GayatriMantra.words.map { FloatArray(0) } }
-            cached = computed
-            return computed
+            runCatching {
+                benchmarkFeatureCache.pcmPerWord(mantra).map { pitchExtractor.extract(it, sampleRate) }
+            }.getOrElse { mantra.words.map { FloatArray(0) } }
         }
-    }
 }

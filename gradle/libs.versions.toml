@@ -28,6 +28,9 @@ activityCompose = "1.9.0"
 # Do NOT bump to 1.2.0 — it regressed 16 KB ELF alignment (flutter/flutter#182898).
 datastore = "1.1.7"
 json = "20231013"
+# JSON DOM only (Json.parseToJsonElement); no @Serializable codegen, so the
+# kotlinx-serialization compiler plugin is deliberately NOT applied.
+kotlinxSerialization = "1.6.3"
 googleServices = "4.4.2"
 firebaseBom = "33.5.1"
 
@@ -86,6 +89,9 @@ junit5-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", ve
 junit5-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version = "1.10.2" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 json = { group = "org.json", name = "json", version.ref = "json" }
+
+# Mantra catalog parsing (core:domain)
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }

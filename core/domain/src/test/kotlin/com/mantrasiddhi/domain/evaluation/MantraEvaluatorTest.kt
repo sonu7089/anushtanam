@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.evaluation.model.ScoreBand
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -18,13 +19,13 @@ class MantraEvaluatorTest {
     @Test
     fun `should_scorePerfectRecitation_when_exactMantraSpoken`() {
         val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val evaluation = MantraEvaluator.evaluate(input, 5000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
 
         assertEquals(1.0f, evaluation.overallScore, 0.001f)
         assertTrue(evaluation.isCorrect)
         assertTrue(evaluation.missingWords.isEmpty())
         assertTrue(evaluation.extraWords.isEmpty())
-        
+
         evaluation.wordResults.forEach { result ->
             assertEquals(1.0f, result.score, 0.001f)
             assertNull(result.feedback)
@@ -34,7 +35,7 @@ class MantraEvaluatorTest {
     @Test
     fun `should_scorePerfectRecitation_when_exactDevanagariSpoken`() {
         val input = "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्"
-        val evaluation = MantraEvaluator.evaluate(input, 5000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
 
         assertEquals(1.0f, evaluation.overallScore, 0.001f)
         assertTrue(evaluation.isCorrect)
@@ -45,12 +46,12 @@ class MantraEvaluatorTest {
     fun `should_detectMissingWords_when_wordsSkipped`() {
         // Skipping "bhuvah" and "devasya"
         val input = "om bhur svah tatsavitur varenyam bhargo dhimahi dhiyo yo nah prachodayat"
-        val evaluation = MantraEvaluator.evaluate(input, 4000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 4000L)
 
         assertTrue(evaluation.missingWords.contains("bhuvah"))
         assertTrue(evaluation.missingWords.contains("devasya"))
         assertEquals(2, evaluation.missingWords.size)
-        
+
         val bhuvahResult = evaluation.wordResults.first { it.referenceWord == "bhuvah" }
         assertEquals(0.0f, bhuvahResult.score)
         assertEquals(WordFeedback.MISSING, bhuvahResult.feedback)
@@ -59,7 +60,7 @@ class MantraEvaluatorTest {
     @Test
     fun `should_detectExtraWords_when_unrelatedWordsAdded`() {
         val input = "om bhur bhuvah svah extra tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat random"
-        val evaluation = MantraEvaluator.evaluate(input, 6000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 6000L)
 
         assertEquals(2, evaluation.extraWords.size)
         assertTrue(evaluation.extraWords.contains("extra"))
@@ -71,7 +72,7 @@ class MantraEvaluatorTest {
     fun `should_flagSwappedWords_when_wordOrderIncorrect`() {
         // Swapping "bhur" and "bhuvah"
         val input = "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val evaluation = MantraEvaluator.evaluate(input, 5000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
 
         val bhurResult = evaluation.wordResults.first { it.referenceWord == "bhur" }
         val bhuvahResult = evaluation.wordResults.first { it.referenceWord == "bhuvah" }
@@ -86,7 +87,7 @@ class MantraEvaluatorTest {
     fun `should_generatePronunciationFeedback_when_wordMispronounced`() {
         // "bhargo" replaced with "xyz" (completely different)
         val input = "om bhur bhuvah svah tatsavitur varenyam xyz devasya dhimahi dhiyo yo nah prachodayat"
-        val evaluation = MantraEvaluator.evaluate(input, 5000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
 
         val bhargoResult = evaluation.wordResults.first { it.referenceWord == "bhargo" }
         assertEquals(WordFeedback.PRONUNCIATION, bhargoResult.feedback)
@@ -97,7 +98,7 @@ class MantraEvaluatorTest {
     fun `should_generatePartialFeedback_when_wordClose`() {
         // "tatsavitur" replaced with "tatsav" (close match)
         val input = "om bhur bhuvah svah tatsav varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val evaluation = MantraEvaluator.evaluate(input, 5000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
 
         val saviturResult = evaluation.wordResults.first { it.referenceWord == "tatsavitur" }
         assertEquals(WordFeedback.PARTIAL, saviturResult.feedback)
@@ -163,7 +164,7 @@ class MantraEvaluatorTest {
         )
 
         evaluationTestCases.forEachIndexed { index, (input, expectedIsCorrect) ->
-            val evaluation = MantraEvaluator.evaluate(input, 5000L)
+            val evaluation = MantraEvaluator.evaluate(gayatri, input, 5000L)
             assertEquals(
                 expectedIsCorrect,
                 evaluation.isCorrect,
@@ -176,7 +177,7 @@ class MantraEvaluatorTest {
     fun testBenchmarkAudioTranscription() {
         val hindiInput = "ओम भूर भुवा स्वाहा तत्सवितुर्वरेंयं भर्गो देवस्य धीमहि धियो योना प्रचोदयात"
         val normalized = TextNormalizer.normalize(hindiInput)
-        val evaluation = MantraEvaluator.evaluate(hindiInput, 14000L)
+        val evaluation = MantraEvaluator.evaluate(gayatri, hindiInput, 14000L)
         println("=== BENCHMARK TRANSCRIPTION EVALUATION ===")
         println("Raw Hindi: $hindiInput")
         println("Normalized/Transliterated: $normalized")
@@ -210,7 +211,7 @@ class MantraEvaluatorTest {
             "" to false
         )
         cases.forEach { (input, expected) ->
-            val assessment = MantraEvaluator.assess(input, 5000L)
+            val assessment = MantraEvaluator.assess(gayatri, input, 5000L)
             assertEquals(expected, assessment.isPass, "pass rule for '$input'")
         }
     }
@@ -221,7 +222,7 @@ class MantraEvaluatorTest {
         // correctness gate must block the pass. This is impossible to express with a
         // single mean score.
         val input = "om bhuvah bhur svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val assessment = MantraEvaluator.assess(input, 5000L)
+        val assessment = MantraEvaluator.assess(gayatri, input, 5000L)
 
         assertEquals(1.0f, assessment.completeness.score, 1e-4f)
         assertTrue(assessment.correctness.score < 0.85f, "swaps must lower correctness")
@@ -233,7 +234,7 @@ class MantraEvaluatorTest {
         // Every reference word is recited (high completeness) but each is mildly
         // mispronounced (lower pronunciation) — the two axes must diverge.
         val input = "on bhor bhuvar svar tatsavitar varanyam bhorgo devesya dhamahi dhayo ya noh prachodayot"
-        val assessment = MantraEvaluator.assess(input, 5000L)
+        val assessment = MantraEvaluator.assess(gayatri, input, 5000L)
 
         assertTrue(assessment.wordResults.all { it.spokenWord != null }, "all words should align")
         assertEquals(1.0f, assessment.completeness.score, 1e-4f)
@@ -246,12 +247,12 @@ class MantraEvaluatorTest {
     fun `should_movePassBoundary_when_passThresholdChanged`() {
         // Sensitivity (passThreshold) measurably shifts the overall pass gate.
         val input = "om bhur bhuvah svah tatsavitur varenyam devasya dhimahi dhiyo yo nah prachodayat"
-        val overall = MantraEvaluator.assess(input, 5000L).overall.score
+        val overall = MantraEvaluator.assess(gayatri, input, 5000L).overall.score
 
         val lenient = EvaluationConfig.DEFAULT.copy(passThreshold = overall - 0.05f)
         val strict = EvaluationConfig.DEFAULT.copy(passThreshold = overall + 0.05f)
-        assertTrue(MantraEvaluator.assess(input, 5000L, lenient).isPass, "should pass below the gate")
-        assertFalse(MantraEvaluator.assess(input, 5000L, strict).isPass, "should fail above the gate")
+        assertTrue(MantraEvaluator.assess(gayatri, input, 5000L, lenient).isPass, "should pass below the gate")
+        assertFalse(MantraEvaluator.assess(gayatri, input, 5000L, strict).isPass, "should fail above the gate")
     }
 
     @Test
@@ -261,23 +262,23 @@ class MantraEvaluatorTest {
         val correct = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
         val alternatives = listOf(wrong to 0.9f, correct to 0.6f)
 
-        val assessment = MantraEvaluator.assessBest(alternatives, 5000L)
+        val assessment = MantraEvaluator.assessBest(gayatri, alternatives, 5000L)
         assertEquals(correct.split(" ").size, assessment.wordResults.size)
         assertTrue(assessment.isPass, "n-best selection should recover the correct recitation")
-        assertTrue(assessment.overall.score > MantraEvaluator.assess(wrong, 5000L).overall.score)
+        assertTrue(assessment.overall.score > MantraEvaluator.assess(gayatri, wrong, 5000L).overall.score)
     }
 
     @Test
     fun `should_flagLowConfidence_when_sttConfidenceBelowThreshold`() {
         val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val assessment = MantraEvaluator.assess(input, 5000L, confidence = 0.02f)
+        val assessment = MantraEvaluator.assess(gayatri, input, 5000L, confidence = 0.02f)
         assertTrue(assessment.lowConfidence, "very low confidence should be flagged")
     }
 
     @Test
     fun `should_populatePadaResults_forAllFourLines`() {
         val input = "om bhur bhuvah svah tatsavitur varenyam bhargo devasya dhimahi dhiyo yo nah prachodayat"
-        val assessment = MantraEvaluator.assess(input, 5000L)
+        val assessment = MantraEvaluator.assess(gayatri, input, 5000L)
 
         assertEquals(4, assessment.padaResults.size)
         assertEquals(listOf(1, 2, 3, 4), assessment.padaResults.map { it.pada })
@@ -291,7 +292,7 @@ class MantraEvaluatorTest {
     fun `should_dropPadaCoverage_when_wholeLineMissing`() {
         // Drop the entire third pada (bhargo devasya dhimahi).
         val input = "om bhur bhuvah svah tatsavitur varenyam dhiyo yo nah prachodayat"
-        val assessment = MantraEvaluator.assess(input, 5000L)
+        val assessment = MantraEvaluator.assess(gayatri, input, 5000L)
 
         val pada3 = assessment.padaResults.first { it.pada == 3 }
         assertEquals(0.0f, pada3.coverage, 1e-4f)

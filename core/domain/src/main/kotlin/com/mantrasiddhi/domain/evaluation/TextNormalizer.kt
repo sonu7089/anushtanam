@@ -1,64 +1,70 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation
 
+import com.mantrasiddhi.domain.mantra.MantraTextRules
+import java.text.Normalizer
+
 /**
- * Normalization pipeline for speech-to-text outputs and reference mantra texts.
+ * Turns raw speech-to-text output into the whitespace-separated, canonically spelled
+ * Latin text the evaluator compares against a mantra's reference words.
+ *
+ * The pipeline is split in two on purpose. Steps 1-5 and the per-word canonicalization are
+ * true of Sanskrit in general; only [MantraTextRules] is specific to one mantra, and it
+ * arrives as a parameter rather than a hardcoded table, so a new mantra brings its own
+ * dictation quirks with it in its definition file.
  */
 object TextNormalizer {
 
+    /** Punctuation (Latin and Devanagari) that carries no phonetic weight. */
+    private val PUNCTUATION = Regex("""[.,/#!$%^&*;:{}=\-_`~()?'"।॥]""")
+
+    private val WHITESPACE = Regex("""\s+""")
+
     /**
-     * Normalizes the input text by:
-     * 1. Normalizing Unicode characters (NFC).
-     * 2. Transliterating Devanagari characters to Latin script.
-     * 3. Lowercasing all characters.
-     * 4. Replacing punctuation and special characters with spaces.
-     * 5. Collapsing multiple spaces and trimming whitespace.
-     * 6. Applying phonetic equivalence mapping to map common STT errors to canonical words.
+     * Normalizes [text] for word-level comparison by:
+     * 1. normalizing Unicode to NFC,
+     * 2. transliterating Devanagari to Latin,
+     * 3. lowercasing,
+     * 4. replacing punctuation with spaces and collapsing whitespace,
+     * 5. applying the mantra's compound splits/joins, then
+     * 6. canonicalizing each word with [PhoneticMap].
      *
      * @param text The raw transcription or reference text.
-     * @return The fully normalized text ready for word-level comparison.
+     * @param rules The mantra's own normalization rules; defaults to the general rules
+     *   alone, which is what script-level tests and mantra-agnostic callers want.
+     * @return Normalized text, or the empty string when nothing survives normalization.
      */
-    fun normalize(text: String): String {
+    fun normalize(text: String, rules: MantraTextRules = MantraTextRules.NONE): String {
         if (text.isBlank()) return ""
-        
-        // 1. Normalize Unicode (NFC)
-        val nfcNormalized = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFC)
 
-        // 2. Transliterate Devanagari script to Latin script
-        val transliterated = DevanagariTransliterator.transliterate(nfcNormalized)
+        val transliterated = DevanagariTransliterator.transliterate(
+            Normalizer.normalize(text, Normalizer.Form.NFC)
+        )
+        val cleaned = transliterated
+            .lowercase()
+            .replace(PUNCTUATION, " ")
+            .replace(WHITESPACE, " ")
+            .trim()
+        if (cleaned.isEmpty()) return ""
 
-        // 3. Lowercase
-        val lowercased = transliterated.lowercase()
-
-        // 4. Remove punctuation & special characters (replace with spaces)
-        val cleanPunctuation = lowercased.replace(Regex("[.,\\/#!$%\\^&\\*;:{}=\\-_`~()?'\"।॥]"), " ")
-
-        // 5. Normalize whitespace
-        val cleanWhitespace = cleanPunctuation.replace(Regex("\\s+"), " ").trim()
-
-        if (cleanWhitespace.isEmpty()) return ""
-
-        // 6. Handle common joined/compound words in English/Latin script transliteration
-        val preprocessed = cleanWhitespace
-            .replace("tat savitur", "tatsavitur")
-            .replace("tatsaviturvarenyam", "tatsavitur varenyam")
-            .replace("tatsaviturvarenyan", "tatsavitur varenyam")
-            .replace("tatsaviturvareंyam", "tatsavitur varenyam")
-            .replace("tatsaviturvanyan", "tatsavitur varenyam")
-            .replace("yona", "yo nah")
-            .replace("yonah", "yo nah")
-
-        // 7. Apply phonetic equivalence mapping word-by-word
-        val words = preprocessed.split(" ")
-        val normalizedWords = words.map { word ->
-            PhoneticMap.getCanonical(word)
-        }
-
-        return normalizedWords.joinToString(" ")
+        val split = applyCompoundReplacements(cleaned, rules)
+        return split.split(" ")
+            .joinToString(" ") { PhoneticMap.getCanonical(it, rules.spellingOverrides) }
     }
+
+    /**
+     * Applies the mantra's compound replacements in order.
+     *
+     * Order is part of the data: an earlier replacement may produce exactly the text a
+     * later one matches, and a longer compound must be listed before any prefix of it.
+     */
+    private fun applyCompoundReplacements(text: String, rules: MantraTextRules): String =
+        rules.compoundReplacements.fold(text) { acc, replacement ->
+            acc.replace(replacement.from, replacement.to)
+        }
 }

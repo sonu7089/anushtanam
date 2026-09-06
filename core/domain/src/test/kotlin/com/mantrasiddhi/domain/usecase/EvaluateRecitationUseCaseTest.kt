@@ -1,5 +1,5 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
@@ -10,6 +10,7 @@ import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAnalyzer
 import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
 import com.mantrasiddhi.domain.evaluation.acoustic.SwaraAnalyzer
 import com.mantrasiddhi.domain.evaluation.diagnostics.EvaluationDiagnostics
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.model.LearnerLevel
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.repository.AppPreferencesRepository
@@ -70,7 +71,8 @@ class EvaluateRecitationUseCaseTest {
             evaluationDiagnostics,
             swaraAnalyzer,
             progressSyncRepository,
-            incrementPurashcharanaUseCase
+            incrementPurashcharanaUseCase,
+            gayatri
         )
     }
 
@@ -83,7 +85,8 @@ class EvaluateRecitationUseCaseTest {
         evaluationDiagnostics,
         swaraAnalyzer,
         progressSyncRepository,
-        incrementPurashcharanaUseCase
+        incrementPurashcharanaUseCase,
+        gayatri
     )
 
     @Test

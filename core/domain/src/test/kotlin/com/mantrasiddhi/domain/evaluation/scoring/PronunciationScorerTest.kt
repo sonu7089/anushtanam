@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.evaluation.scoring
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.evaluation.EvaluationConfig
 import com.mantrasiddhi.domain.evaluation.WordFeedback
 import com.mantrasiddhi.domain.evaluation.WordResult
@@ -28,13 +29,13 @@ class PronunciationScorerTest {
             WordResult("om", "om", 1.0f, null),
             WordResult("bhargo", "bhargo", 1.0f, null)
         )
-        assertEquals(1.0f, PronunciationScorer.score(words), 1e-4f)
+        assertEquals(1.0f, PronunciationScorer.score(gayatri, words), 1e-4f)
     }
 
     @Test
     fun `should_scoreZero_when_nothingAligned`() {
         val words = listOf(WordResult("om", null, 0.0f, WordFeedback.MISSING))
-        assertEquals(0.0f, PronunciationScorer.score(words), 1e-4f)
+        assertEquals(0.0f, PronunciationScorer.score(gayatri, words), 1e-4f)
     }
 
     @Test
@@ -44,7 +45,7 @@ class PronunciationScorerTest {
             WordResult("om", "om", 1.0f, null),
             WordResult("bhur", null, 0.0f, WordFeedback.MISSING)
         )
-        assertEquals(1.0f, PronunciationScorer.score(words), 1e-4f)
+        assertEquals(1.0f, PronunciationScorer.score(gayatri, words), 1e-4f)
     }
 
     @Test
@@ -59,7 +60,7 @@ class PronunciationScorerTest {
             WordResult("yo", "x", 0.0f, WordFeedback.PRONUNCIATION),
             WordResult("prachodayat", "prachodayat", 1.0f, null)
         )
-        assertTrue(PronunciationScorer.score(poorLong) < PronunciationScorer.score(poorShort))
+        assertTrue(PronunciationScorer.score(gayatri, poorLong) < PronunciationScorer.score(gayatri, poorShort))
     }
 
     // ---- Phase 3: acoustic fusion ----
@@ -75,8 +76,8 @@ class PronunciationScorerTest {
     fun `should_useTextOnly_when_acousticNull`() {
         val words = listOf(WordResult("om", "om", 0.8f, null))
         assertEquals(
-            PronunciationScorer.score(words),
-            PronunciationScorer.score(words, acoustic = null, config = EvaluationConfig.DEFAULT),
+            PronunciationScorer.score(gayatri, words),
+            PronunciationScorer.score(gayatri, words, acoustic = null, config = EvaluationConfig.DEFAULT),
             1e-4f
         )
     }
@@ -86,8 +87,8 @@ class PronunciationScorerTest {
         // om's index in the reference is 0. Text scored it a perfect 1.0 (STT printed
         // the right word) but the audio did not match the benchmark (acoustic 0.2).
         val words = listOf(WordResult("om", "om", 1.0f, null))
-        val fused = PronunciationScorer.score(words, acoustic(0 to 0.2f), EvaluationConfig.DEFAULT)
-        val textOnly = PronunciationScorer.score(words)
+        val fused = PronunciationScorer.score(gayatri, words, acoustic(0 to 0.2f), EvaluationConfig.DEFAULT)
+        val textOnly = PronunciationScorer.score(gayatri, words)
 
         assertTrue(fused < textOnly, "acoustic must pull down a text-perfect but mispronounced word")
         // With default acousticWeight 0.7: 0.7*0.2 + 0.3*1.0 = 0.44.
@@ -99,8 +100,8 @@ class PronunciationScorerTest {
         val words = listOf(WordResult("om", "om", 0.9f, null))
         val notAssessed = AcousticAssessment.notAssessed(snrDb = 1f)
         assertEquals(
-            PronunciationScorer.score(words),
-            PronunciationScorer.score(words, notAssessed, EvaluationConfig.DEFAULT),
+            PronunciationScorer.score(gayatri, words),
+            PronunciationScorer.score(gayatri, words, notAssessed, EvaluationConfig.DEFAULT),
             1e-4f
         )
     }
@@ -109,7 +110,7 @@ class PronunciationScorerTest {
     fun `should_fallBackToText_perWord_when_acousticMissingForThatWord`() {
         // Acoustic assessed overall, but no score for om -> use its text score.
         val words = listOf(WordResult("om", "om", 0.6f, null))
-        val fused = PronunciationScorer.score(words, acoustic(0 to null), EvaluationConfig.DEFAULT)
+        val fused = PronunciationScorer.score(gayatri, words, acoustic(0 to null), EvaluationConfig.DEFAULT)
         assertEquals(0.6f, fused, 1e-4f)
     }
 }

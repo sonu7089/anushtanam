@@ -1,11 +1,12 @@
 /*
- * Anushtanam - Gayatri Mantra Recitation App
+ * Anushtanam - Vedic mantra recitation app
  * Copyright (c) 2026. All rights reserved.
  *
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.domain.usecase
 
+import com.mantrasiddhi.domain.mantra.TestMantras.gayatri
 import com.mantrasiddhi.domain.model.Purashcharana
 import com.mantrasiddhi.domain.model.PurashcharanaPath
 import com.mantrasiddhi.domain.repository.PurashcharanaRepository
@@ -34,12 +35,13 @@ class EnrollPurashcharanaUseCaseTest {
 
     private val repository: PurashcharanaRepository = mockk(relaxed = true)
     private val syncRepository: PurashcharanaSyncRepository = mockk(relaxed = true)
-    private val useCase = EnrollPurashcharanaUseCase(repository, syncRepository)
+    private val useCase = EnrollPurashcharanaUseCase(repository, syncRepository, gayatri)
 
     /** The row `enroll` inserts: always zero japa, always started now. */
     private fun freshlyEnrolled(startedAtMillis: Long = 1_700_000_000_000L) = Purashcharana(
         id = 3L,
         userId = userId,
+        mantraId = gayatri.id,
         mantraAksharaCount = 24,
         targetJapaCount = gayatriTarget,
         currentJapaCount = 0L,
@@ -51,6 +53,7 @@ class EnrollPurashcharanaUseCaseTest {
     private fun mirrored(current: Long, startedAtMillis: Long) = Purashcharana(
         id = 0L,
         userId = 0L,
+        mantraId = gayatri.id,
         mantraAksharaCount = 24,
         targetJapaCount = gayatriTarget,
         currentJapaCount = current,
@@ -64,7 +67,7 @@ class EnrollPurashcharanaUseCaseTest {
         runTest {
             val enrolledAt = 1_700_000_000_000L
             val trueStart = enrolledAt - 400L * 24L * 60L * 60L * 1000L
-            coEvery { repository.enroll(userId, 24) } returns
+            coEvery { repository.enroll(userId, gayatri.id, 24) } returns
                 Result.success(freshlyEnrolled(enrolledAt))
             coEvery { syncRepository.fetchMirrored() } returns mirrored(500_000L, trueStart)
 
@@ -80,7 +83,7 @@ class EnrollPurashcharanaUseCaseTest {
     @Test
     fun `enrolling over a mirror that holds japa never writes the zero back to the cloud`() =
         runTest {
-            coEvery { repository.enroll(userId, 24) } returns Result.success(freshlyEnrolled())
+            coEvery { repository.enroll(userId, gayatri.id, 24) } returns Result.success(freshlyEnrolled())
             coEvery { syncRepository.fetchMirrored() } returns
                 mirrored(500_000L, 1_600_000_000_000L)
 
@@ -93,7 +96,7 @@ class EnrollPurashcharanaUseCaseTest {
     fun `a genuinely new sankalpa is mirrored at once so the day it was taken is not lost`() =
         runTest {
             val fresh = freshlyEnrolled()
-            coEvery { repository.enroll(userId, 24) } returns Result.success(fresh)
+            coEvery { repository.enroll(userId, gayatri.id, 24) } returns Result.success(fresh)
             coEvery { syncRepository.fetchMirrored() } returns null
 
             useCase(userId)
@@ -106,7 +109,7 @@ class EnrollPurashcharanaUseCaseTest {
     fun `a withdrawn mirror is not adopted — setting a sankalpa aside means starting over`() =
         runTest {
             val fresh = freshlyEnrolled()
-            coEvery { repository.enroll(userId, 24) } returns Result.success(fresh)
+            coEvery { repository.enroll(userId, gayatri.id, 24) } returns Result.success(fresh)
             coEvery { syncRepository.fetchMirrored() } returns
                 mirrored(500_000L, 1_600_000_000_000L).copy(isActive = false)
 
@@ -119,7 +122,7 @@ class EnrollPurashcharanaUseCaseTest {
     @Test
     fun `an unreachable mirror still enrols locally`() = runTest {
         val fresh = freshlyEnrolled()
-        coEvery { repository.enroll(userId, 24) } returns Result.success(fresh)
+        coEvery { repository.enroll(userId, gayatri.id, 24) } returns Result.success(fresh)
         coEvery { syncRepository.fetchMirrored() } throws IllegalStateException("offline")
 
         val result = useCase(userId)
@@ -129,7 +132,7 @@ class EnrollPurashcharanaUseCaseTest {
 
     @Test
     fun `a failed local enrol touches neither the mirror nor Room`() = runTest {
-        coEvery { repository.enroll(userId, 24) } returns
+        coEvery { repository.enroll(userId, gayatri.id, 24) } returns
             Result.failure(IllegalStateException("a sankalpa is already running"))
 
         val result = useCase(userId)
