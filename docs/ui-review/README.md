@@ -2,7 +2,21 @@
 
 Captured from the Android debug build on an API 37 emulator. These are production Compose components with local sample profiles, counts, and targets. No account was created and no cloud data was seeded for the gallery. Practice and recitation show representative component states; the recording screenshot does not represent a live microphone session.
 
-## Latest refinement, 6 September 2026
+## Navigation, mala, and reflection polish, 6 September 2026
+
+| Screen | Light | Dark |
+| --- | --- | --- |
+| Home and Material Symbols navigation | [Open](home-light-polished.png) | [Open](home-dark-polished.png) |
+| Purashcharana with photographic mala | [Open](purashcharana-light-polished.png) | [Open](purashcharana-dark-polished.png) |
+| Reflection reading section | [Open](reflection-light-polished.png) | [Open](reflection-dark-polished.png) |
+
+[Home after scrolling](home-detail-light-polished.png) shows the photographic mala within its existing entry card.
+
+At 320dp and 150% text: [Home](home-light-polished-compact.png), [Purashcharana](purashcharana-light-polished-compact.png), [reflection](reflection-light-polished-compact.png), and [expanded reflection](reflection-light-polished-compact-expanded.png).
+
+Speech: [unknown-support example](voice-check-light-polished.png) and [actual emulator service result](voice-live-light-polished.png). The latter uses the real gate and detects a missing Hindi pack; it does not record audio. See [verification and physical-device limits](../ui-polish-and-speech.md).
+
+## Previous refinement, 6 September 2026
 
 These captures include the new imagery, floating custom navigation, plain-English copy, and completed Sandhya charts. The gallery below them records the previous design pass.
 
