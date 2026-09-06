@@ -36,7 +36,7 @@
          Written as what the tradition says and what sadhaks report, never as fact. -->
     <string name="home_wisdom_title">A moment to reflect</string>
     <string name="home_wisdom_subtitle">A little help with your daily practice.</string>
-    <string name="home_wisdom_next">Read another note</string>
+    <string name="home_wisdom_next">Next note</string>
 
     <string name="wisdom_nadi_shuddhi_title">Give yourself time</string>
     <string name="wisdom_nadi_shuddhi_body">Some days it is easy to settle into japa. On other days, your mind wanders. That is part of practice. There is no need to judge the session or look for a special experience.</string>
@@ -659,4 +659,6 @@
     <string name="lotus_sandhya_intro">A few moments for prayer.</string>
     <string name="lotus_purashcharana_intro">A commitment to come back to.</string>
     <string name="sandhya_trend_day_description">%1$s: %2$d prayers completed, %3$d scheduled</string>
+    <string name="reflection_read_more">Read more</string>
+    <string name="reflection_read_less">Show less</string>
 </resources>

@@ -156,4 +156,18 @@ class LotusUiTest {
         for (index in 1..3) compose.onAllNodes(completed)[index].performScrollTo().assertWidthIsAtLeast(220.dp)
         compose.onAllNodesWithText("7 / 7 (100%)").assertCountEquals(3)
     }
+
+    @Test fun reflectionStillCyclesThroughEveryNote() {
+        compose.setContent { AnushtanamTheme(false) {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
+            }
+        } }
+        val notes = com.mantrasiddhi.presentation.content.SadhanaWisdom
+        val first = notes.indexForDay(java.time.LocalDate.now().dayOfYear)
+        repeat(notes.count + 1) { step ->
+            compose.onNodeWithText(text(notes.teachingAt(first + step).titleRes)).assertExists()
+            compose.onNodeWithText(text(R.string.home_wisdom_next)).performScrollTo().performClick()
+        }
+    }
 }

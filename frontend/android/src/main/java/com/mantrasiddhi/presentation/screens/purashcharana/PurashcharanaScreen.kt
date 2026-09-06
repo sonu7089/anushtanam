@@ -63,7 +63,7 @@ import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.model.Purashcharana
 import com.mantrasiddhi.domain.model.PurashcharanaPath
-import com.mantrasiddhi.presentation.screens.purashcharana.components.AksharaMandala
+import com.mantrasiddhi.presentation.screens.purashcharana.components.PurashcharanaMala
 import com.mantrasiddhi.presentation.screens.purashcharana.components.MilestonePathVisual
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import kotlin.math.roundToInt
@@ -197,8 +197,7 @@ internal fun PurashcharanaContent(
         Spacer(Modifier.height(20.dp))
         HeroSection(
             aksharaCount = aksharaCount,
-            targetCount = targetCount,
-            progress = purashcharana?.progress ?: 0f
+            targetCount = targetCount
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -321,23 +320,18 @@ internal fun PurashcharanaContent(
 }
 
 /**
- * The mandala and the arithmetic the whole vow rests on: aksharas x one lakh.
+ * The mala and the arithmetic the whole vow rests on: aksharas x one lakh.
  */
 @Composable
 private fun HeroSection(
     aksharaCount: Int,
-    targetCount: Long,
-    progress: Float
+    targetCount: Long
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AksharaMandala(
-            modifier = Modifier.size(148.dp),
-            aksharaCount = aksharaCount,
-            progress = progress
-        )
+        PurashcharanaMala(modifier = Modifier.size(208.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = stringResource(

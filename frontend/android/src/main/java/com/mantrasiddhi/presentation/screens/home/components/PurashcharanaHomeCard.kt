@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.evaluation.reference.GayatriMantra
 import com.mantrasiddhi.domain.model.Purashcharana
-import com.mantrasiddhi.presentation.screens.purashcharana.components.AksharaMandala
+import com.mantrasiddhi.presentation.screens.purashcharana.components.PurashcharanaMala
 import com.mantrasiddhi.presentation.screens.purashcharana.formatIndianCount
 import com.mantrasiddhi.presentation.screens.purashcharana.formatPurashcharanaPercent
 import com.mantrasiddhi.presentation.screens.purashcharana.milestoneTitleRes
@@ -61,11 +61,7 @@ fun PurashcharanaHomeCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AksharaMandala(
-                modifier = Modifier.size(64.dp),
-                aksharaCount = purashcharana?.mantraAksharaCount ?: GayatriMantra.AKSHARA_COUNT,
-                progress = purashcharana?.progress ?: 0f
-            )
+            PurashcharanaMala(modifier = Modifier.size(76.dp))
 
             Spacer(modifier = Modifier.width(16.dp))
 

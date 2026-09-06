@@ -1,6 +1,6 @@
 # Artwork and font provenance
 
-All seven bitmap assets were generated with the built-in image-generation tool for this redesign. They are bundled locally and require no runtime image service. Originals were copied into the project without altering the image content or alpha channel.
+All eight bitmap assets were generated with the built-in image-generation tool for this redesign. They are bundled locally and require no runtime image service. Originals were copied into the project without altering the image content or alpha channel.
 
 | File in `frontend/android/src/main/res/drawable-nodpi` | Use |
 | --- | --- |
@@ -8,7 +8,7 @@ All seven bitmap assets were generated with the built-in image-generation tool f
 | `ritual_still_life.png` | Progress, goals, and Purashcharana |
 | `lotus_emblem.png` | Raster brand emblem, launch icon, empty states, and milestones |
 
-The launcher wraps the transparent emblem in an Android inset drawable to keep it inside the adaptive-icon safe area. Navigation uses custom SVG sources compiled into Android VectorDrawables. Other Material controls and functional charts remain native UI; decorative logos use bitmap assets.
+The launcher wraps the transparent emblem in an Android inset drawable to keep it inside the adaptive-icon safe area. Navigation uses Google's Material Symbols Rounded, compiled from the upstream SVG sources into Android VectorDrawables. Source details are in [the icon README](../frontend/android/design/icons/README.md); the Apache 2.0 license is in `docs/licenses`. Other Material controls and functional charts remain native UI; decorative logos use bitmap assets.
 
 ## Generation prompts
 
@@ -54,6 +54,14 @@ Use case: photorealistic-natural. Asset type: genuinely transparent botanical ph
 #### family_hands.png
 
 Use case: photorealistic-natural. Asset type: immersive editorial photograph for a family prayer app. A close, candid scene of an Indian parent and a school-age child sitting side by side on a plain cotton mat near an open sunlit window. Only their relaxed hands and laps are framed, no faces. The parent's gently open hand holds a few simple wooden mala beads while the child's hands rest calmly nearby, natural anatomy and credible fingers, no elaborate pose. Simple ivory cotton sleeves, everyday home, warm sense of time shared quietly. Portrait 1024x1536. Main human detail is on the right half; left half and bottom soften into bright ivory linen and natural defocus, suitable for a white page backdrop. Soft natural light, cream, wood and sage tones. No text, no logos, no sacred writing, no dramatic lighting, no graphic borders.
+
+## Photographic mala
+
+`purashcharana_mala.png` replaces the drawn bead ring on Home and Purashcharana. Its transparent center holds the existing lotus emblem, with the complete tassel visible below. The original is a 1254 x 1254 RGBA PNG. Actual counts and progress remain in the adjoining text and progress controls.
+
+### Generation prompt
+
+Use case: product-mockup. Asset type: transparent photographic mala ring for the Purashcharana screen of a white and charcoal Indian prayer app. Primary request: a real sandalwood japa mala laid flat in a near-circular loop, photographed exactly from above. Only the mala, no other objects. Many small round natural pale sandalwood beads on a fine cream thread, natural subtle wood grain, one slightly larger guru bead at six o'clock and a short soft dusty mauve cotton tassel pointing downward. The loop is centered, circular rather than oval, taking up about 84 percent of a square canvas, with a large completely empty round center for a separate lotus emblem. Whole tassel visible with margin. Gentle neutral studio lighting, believable delicate contact shadows immediately beside beads, tactile real photography, elegant and modest. PNG with a real transparent alpha background everywhere outside the beads and tassel AND inside the ring. Do not render a checkerboard or any backdrop. No logo, lotus, text, markings, frame, gold, mandala ornament, illustration, vector or UI. 1024 by 1024.
 
 ## Fonts
 
