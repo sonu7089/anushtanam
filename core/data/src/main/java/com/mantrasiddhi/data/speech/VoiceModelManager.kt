@@ -6,182 +6,208 @@
  */
 package com.mantrasiddhi.data.speech
 
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.speech.ModelDownloadListener
 import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
-import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import com.mantrasiddhi.domain.model.VoiceModelDownload
 import com.mantrasiddhi.domain.model.VoiceModelState
 import com.mantrasiddhi.domain.model.VoiceModelStatus
 import com.mantrasiddhi.domain.model.VoiceModelSupport
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
-/**
- * Inspects and manages the Android **on-device** speech-recognition model for the
- * required language ([VoiceModelSupport.REQUIRED_LANGUAGE]).
- *
- * The recitation features depend on this model being installed; this manager lets
- * the UI detect its state and trigger a system download/update. All
- * [SpeechRecognizer] interaction happens on the main thread, as the platform
- * requires, and every recognizer instance is destroyed once it is finished with.
- */
+/** Resolves offline Hindi support on the same service that will handle the recording. */
 @Singleton
 class VoiceModelManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val factory: SpeechRecognizerFactory
 ) {
+    private data class Selection(val backend: RecognitionBackend, val status: VoiceModelStatus, val language: String)
+    private var selection: Selection? = null
+    private var approvedTrial: RecognitionBackend? = null
+    private val checkMutex = Mutex()
 
-    /**
-     * Queries the platform for the current availability of the required voice model.
-     *
-     * Falls back to [VoiceModelState.NOT_INSTALLED] (the most actionable state, since
-     * the user can still attempt a download) when the support check errors or times out.
-     */
+    /** Uncertain metadata is not evidence that the pack is missing. */
     suspend fun checkStatus(): VoiceModelStatus = withContext(Dispatchers.Main) {
-        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            return@withContext VoiceModelStatus(VoiceModelState.RECOGNIZER_UNAVAILABLE)
+        checkMutex.withLock {
+            val candidates = mutableListOf<Selection>()
+            for (backend in factory.availableBackends()) {
+                val status = querySupport(backend)
+                val language = status.installedLanguages.firstOrNull(VoiceModelSupport::matchesRequired)
+                    ?.replace('_', '-') ?: VoiceModelSupport.REQUIRED_LANGUAGE
+                val previous = selection
+                val candidate = if (status.state == VoiceModelState.CHECK_UNAVAILABLE &&
+                    previous?.backend == backend && previous.status.state == VoiceModelState.READY) {
+                    previous // A transient metadata error does not revoke confirmed readiness.
+                } else Selection(backend, status, language)
+                candidates += candidate
+                if (candidate.status.state == VoiceModelState.READY) break
+            }
+            // Prefer a confirmed installed pack, then a known downloadable one. A service
+            // with unknown metadata is more useful than one explicitly rejecting Hindi.
+            val preferred = candidates.minByOrNull { priority(it.status.state) }
+            selection = preferred
+            if (preferred?.status?.state != VoiceModelState.CHECK_UNAVAILABLE ||
+                preferred.backend != approvedTrial) approvedTrial = null
+            preferred?.status ?: VoiceModelStatus(VoiceModelState.RECOGNIZER_UNAVAILABLE)
         }
-        withTimeoutOrNull(CHECK_TIMEOUT_MS) { querySupport() }
-            ?: VoiceModelStatus(VoiceModelState.NOT_INSTALLED)
     }
 
-    /** Suspends until [checkRecognitionSupport][SpeechRecognizer] reports back. */
-    private suspend fun querySupport(): VoiceModelStatus =
-        suspendCancellableCoroutine { continuation ->
-            val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-            continuation.invokeOnCancellation { destroyOnMain(recognizer) }
+    val trialAllowed: Boolean
+        get() = selection?.let { it.status.state == VoiceModelState.CHECK_UNAVAILABLE && it.backend == approvedTrial } == true
 
-            recognizer.checkRecognitionSupport(
-                recognitionIntent(),
-                ContextCompat.getMainExecutor(context),
-                object : RecognitionSupportCallback {
-                    override fun onSupportResult(support: RecognitionSupport) {
-                        destroyOnMain(recognizer)
-                        if (!continuation.isActive) return
-                        continuation.resume(
-                            VoiceModelStatus(
-                                state = VoiceModelSupport.resolveState(
-                                    installed = support.installedOnDeviceLanguages,
-                                    pending = support.pendingOnDeviceLanguages,
-                                    supported = support.supportedOnDeviceLanguages
-                                ),
-                                installedLanguages = support.installedOnDeviceLanguages,
-                                pendingLanguages = support.pendingOnDeviceLanguages,
-                                supportedLanguages = support.supportedOnDeviceLanguages
-                            )
-                        )
-                    }
+    /** Only a deliberate action on the unknown-support screen enables a trial. */
+    fun allowUnverifiedTrial(): Boolean {
+        val current = selection ?: return false
+        if (current.status.state != VoiceModelState.CHECK_UNAVAILABLE) return false
+        approvedTrial = current.backend
+        return true
+    }
 
-                    override fun onError(error: Int) {
-                        destroyOnMain(recognizer)
-                        if (!continuation.isActive) return
-                        continuation.resume(VoiceModelStatus(VoiceModelState.NOT_INSTALLED))
-                    }
+    /** Called on Main only. Never quietly switches services during a recording. */
+    fun createForListening(): SpeechRecognizer? {
+        val current = selection ?: return null
+        if (current.status.state != VoiceModelState.READY && !trialAllowed) return null
+        return factory.create(current.backend)
+    }
+
+    /** The support query and microphone use the same language and request options. */
+    fun recognitionIntent(language: String = selection?.language ?: VoiceModelSupport.REQUIRED_LANGUAGE): Intent =
+        factory.intent(language)
+
+    private suspend fun querySupport(backend: RecognitionBackend): VoiceModelStatus {
+        var recognizer: SpeechRecognizer? = null
+        return try {
+            val rec = factory.create(backend)
+            recognizer = rec
+            withTimeoutOrNull(CHECK_TIMEOUT_MS) {
+                suspendCancellableCoroutine { continuation ->
+                    rec.checkRecognitionSupport(recognitionIntent(VoiceModelSupport.REQUIRED_LANGUAGE),
+                        factory.mainExecutor, object : RecognitionSupportCallback {
+                            override fun onSupportResult(support: RecognitionSupport) {
+                                if (!continuation.isActive) return
+                                // Online languages, keyboard languages, and TTS voices are
+                                // intentionally not evidence of an installed offline pack.
+                                val hasMetadata = support.installedOnDeviceLanguages.isNotEmpty() ||
+                                    support.pendingOnDeviceLanguages.isNotEmpty() ||
+                                    support.supportedOnDeviceLanguages.isNotEmpty() || support.onlineLanguages.isNotEmpty()
+                                val status = VoiceModelStatus(
+                                    if (!hasMetadata) VoiceModelState.CHECK_UNAVAILABLE else
+                                        VoiceModelSupport.resolveState(support.installedOnDeviceLanguages,
+                                            support.pendingOnDeviceLanguages, support.supportedOnDeviceLanguages),
+                                    support.installedOnDeviceLanguages, support.pendingOnDeviceLanguages,
+                                    support.supportedOnDeviceLanguages)
+                                continuation.resume(status)
+                            }
+                            override fun onError(error: Int) {
+                                if (continuation.isActive) continuation.resume(VoiceModelStatus(when (error) {
+                                    SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> VoiceModelState.NOT_INSTALLED
+                                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> VoiceModelState.UNSUPPORTED
+                                    else -> VoiceModelState.CHECK_UNAVAILABLE
+                                }))
+                            }
+                        })
                 }
-            )
+            } ?: VoiceModelStatus(VoiceModelState.CHECK_UNAVAILABLE)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            VoiceModelStatus(VoiceModelState.CHECK_UNAVAILABLE)
+        } finally {
+            recognizer?.let(::destroyOnMain)
         }
+    }
 
-    /**
-     * Asks the system to download (or update to the latest) on-device model for the
-     * required language and emits [VoiceModelDownload] progress events. On API 34+ the
-     * stream reflects real download progress; on API 33 the request is fire-and-forget
-     * and the caller should re-check [checkStatus] afterwards.
-     */
     fun triggerDownload(): Flow<VoiceModelDownload> = callbackFlow {
-        if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            trySend(VoiceModelDownload.Failed(ERROR_RECOGNIZER_UNAVAILABLE))
-            close()
-            return@callbackFlow
-        }
-
-        val recognizer = withContext(Dispatchers.Main) {
-            val rec = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-            val intent = recognitionIntent()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                triggerWithListener(rec, intent, emit = { trySend(it) }, finish = { close() })
-            } else {
-                @Suppress("DEPRECATION")
-                rec.triggerModelDownload(intent)
-                trySend(VoiceModelDownload.Scheduled)
-                close()
+        var recognizer: SpeechRecognizer? = null
+        val job = launch(Dispatchers.Main.immediate) {
+            val backend = selection?.backend ?: factory.availableBackends().firstOrNull()
+            if (backend == null) {
+                trySend(VoiceModelDownload.Failed(-1)); close(); return@launch
             }
-            rec
-        }
-
-        awaitClose { destroyOnMain(recognizer) }
-    }
-
-    /** Registers an API 34+ [ModelDownloadListener] that forwards progress to [emit]. */
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun triggerWithListener(
-        recognizer: SpeechRecognizer,
-        intent: Intent,
-        emit: (VoiceModelDownload) -> Unit,
-        finish: () -> Unit
-    ) {
-        recognizer.triggerModelDownload(
-            intent,
-            ContextCompat.getMainExecutor(context),
-            object : ModelDownloadListener {
-                override fun onProgress(completedPercent: Int) {
-                    emit(VoiceModelDownload.Progress(completedPercent))
-                }
-
-                override fun onScheduled() {
-                    emit(VoiceModelDownload.Scheduled)
-                }
-
-                override fun onSuccess() {
-                    emit(VoiceModelDownload.Completed)
-                    finish()
-                }
-
-                override fun onError(error: Int) {
-                    emit(VoiceModelDownload.Failed(error))
-                    finish()
-                }
-            }
-        )
-    }
-
-    /** Builds the recognition intent describing the required language. */
-    private fun recognitionIntent(): Intent =
-        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, VoiceModelSupport.REQUIRED_LANGUAGE)
-        }
-
-    /** Destroys [recognizer] on the main thread, swallowing teardown errors. */
-    private fun destroyOnMain(recognizer: SpeechRecognizer) {
-        ContextCompat.getMainExecutor(context).execute {
             try {
-                recognizer.destroy()
-            } catch (e: Exception) {
-                // ignore – best-effort teardown
+                val rec = factory.create(backend)
+                recognizer = rec
+                if (Build.VERSION.SDK_INT >= 34) {
+                    rec.triggerModelDownload(recognitionIntent(), factory.mainExecutor,
+                        object : ModelDownloadListener {
+                            override fun onProgress(completedPercent: Int) {
+                                trySend(VoiceModelDownload.Progress(completedPercent.coerceIn(0, 100)))
+                            }
+                            override fun onScheduled() {
+                                trySend(VoiceModelDownload.Scheduled); close()
+                            }
+                            override fun onSuccess() {
+                                trySend(VoiceModelDownload.Completed); close()
+                            }
+                            override fun onError(error: Int) {
+                                if (error == SpeechRecognizer.ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS) {
+                                    // Some services support downloading without progress callbacks.
+                                    try {
+                                        rec.triggerModelDownload(recognitionIntent())
+                                        trySend(VoiceModelDownload.Scheduled)
+                                    } catch (_: Exception) { trySend(VoiceModelDownload.Failed(error)) }
+                                } else trySend(VoiceModelDownload.Failed(error))
+                                close()
+                            }
+                        })
+                } else {
+                    rec.triggerModelDownload(recognitionIntent())
+                    trySend(VoiceModelDownload.Scheduled); close()
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                trySend(VoiceModelDownload.Failed(SpeechRecognizer.ERROR_CLIENT)); close()
             }
+        }
+        awaitClose { job.cancel(); recognizer?.let(::destroyOnMain) }
+    }
+
+    internal fun reportRecognitionError(error: Int) {
+        val state = when (error) {
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> VoiceModelState.NOT_INSTALLED
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> VoiceModelState.UNSUPPORTED
+            else -> return
+        }
+        selection = selection?.let { it.copy(status = it.status.copy(state = state)) }
+        approvedTrial = null
+    }
+
+    internal fun releaseAfterListening(recognizer: SpeechRecognizer) {
+        factory.mainExecutor.execute {
+            runCatching { recognizer.stopListening() }
+            runCatching { recognizer.cancel() }
+            runCatching { recognizer.destroy() }
         }
     }
 
-    private companion object {
-        /** Upper bound on how long to wait for the platform support callback. */
-        const val CHECK_TIMEOUT_MS = 5_000L
-
-        /** Sentinel error reported when no on-device recognizer exists to download into. */
-        const val ERROR_RECOGNIZER_UNAVAILABLE = -1
+    private fun destroyOnMain(recognizer: SpeechRecognizer) {
+        factory.mainExecutor.execute { runCatching { recognizer.destroy() } }
     }
+
+    private fun priority(state: VoiceModelState) = when (state) {
+        VoiceModelState.READY -> 0
+        VoiceModelState.DOWNLOADING -> 1
+        VoiceModelState.NOT_INSTALLED -> 2
+        VoiceModelState.CHECK_UNAVAILABLE -> 3
+        VoiceModelState.UNSUPPORTED -> 4
+        VoiceModelState.RECOGNIZER_UNAVAILABLE -> 5
+    }
+
+    private companion object { const val CHECK_TIMEOUT_MS = 5_000L }
 }

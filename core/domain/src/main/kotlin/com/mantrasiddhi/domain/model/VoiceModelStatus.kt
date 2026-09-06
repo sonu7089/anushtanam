@@ -23,6 +23,9 @@ enum class VoiceModelState {
     /** The on-device recognizer exists but does not offer the required language. */
     UNSUPPORTED,
 
+    /** A service exists, but it cannot report whether its offline pack is installed. */
+    CHECK_UNAVAILABLE,
+
     /** No on-device recognition service is available on this device at all. */
     RECOGNIZER_UNAVAILABLE
 }

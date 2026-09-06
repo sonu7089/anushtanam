@@ -45,10 +45,9 @@ import com.mantrasiddhi.domain.model.VoiceModelState
 import com.mantrasiddhi.presentation.components.LotusIllustration
 
 /**
- * Full-screen blocker shown when the on-device Hindi voice model is missing. It
- * explains why the model is required and offers a one-tap download/update plus
- * exact manual steps, so the recitation features never fall back to a flaky
- * network recognizer.
+ * Explains the current Hindi speech support state and offers the relevant
+ * download, settings, or explicit trial action. Unknown support is shown
+ * separately from a confirmed missing pack.
  *
  * @param state the resolved availability of the voice model.
  * @param download the current in-app download sub-state.
@@ -61,7 +60,8 @@ fun VoiceModelScreen(
     download: DownloadUiState,
     onDownloadClick: () -> Unit,
     onRetryClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTryClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -95,6 +95,12 @@ fun VoiceModelScreen(
         )
 
         Spacer(modifier = Modifier.height(28.dp))
+
+        if (state == VoiceModelState.CHECK_UNAVAILABLE) {
+            Button(onClick = onTryClick, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                Text(stringResource(R.string.voice_model_try_listening))
+            }
+        }
 
         DownloadActionSection(
             state = state,
@@ -160,7 +166,7 @@ private fun DownloadActionSection(
             )
         }
 
-        state == VoiceModelState.RECOGNIZER_UNAVAILABLE -> {
+        state == VoiceModelState.RECOGNIZER_UNAVAILABLE || state == VoiceModelState.CHECK_UNAVAILABLE -> {
             // No on-device recognizer exists; downloading cannot help. The manual
             // steps below guide installing the speech service itself.
         }
@@ -243,6 +249,7 @@ private fun ManualStepsSection() {
 /** Resolves the headline string for the given [state]. */
 @StringRes
 private fun titleRes(state: VoiceModelState): Int = when (state) {
+    VoiceModelState.CHECK_UNAVAILABLE -> R.string.voice_model_title_check_unavailable
     VoiceModelState.UNSUPPORTED -> R.string.voice_model_title_unsupported
     VoiceModelState.RECOGNIZER_UNAVAILABLE -> R.string.voice_model_title_unavailable
     else -> R.string.voice_model_title_required
@@ -251,6 +258,7 @@ private fun titleRes(state: VoiceModelState): Int = when (state) {
 /** Resolves the explanatory body string for the given [state]. */
 @StringRes
 private fun bodyRes(state: VoiceModelState): Int = when (state) {
+    VoiceModelState.CHECK_UNAVAILABLE -> R.string.voice_model_body_check_unavailable
     VoiceModelState.DOWNLOADING -> R.string.voice_model_body_downloading
     VoiceModelState.UNSUPPORTED -> R.string.voice_model_body_unsupported
     VoiceModelState.RECOGNIZER_UNAVAILABLE -> R.string.voice_model_body_unavailable

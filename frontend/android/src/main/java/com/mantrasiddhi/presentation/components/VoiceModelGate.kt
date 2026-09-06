@@ -25,10 +25,9 @@ import com.mantrasiddhi.presentation.screens.voicemodel.VoiceModelUiState
 import com.mantrasiddhi.presentation.screens.voicemodel.VoiceModelViewModel
 
 /**
- * Gates [content] behind the on-device Hindi voice model. While availability is
- * being checked a loader is shown; if the model is missing the [VoiceModelScreen]
- * blocker replaces the content until the model is installed. Wrap the recitation
- * features (Practice, Recitation) with this so they never run without the model.
+ * Checks Hindi speech support before showing [content]. A missing pack opens the
+ * download screen. If the provider cannot report support, [VoiceModelScreen]
+ * offers an explicit listening trial using an offline-preferred request.
  *
  * Availability is re-checked on every resume, so returning from the system
  * settings/download flow automatically unblocks the content once the model lands.
@@ -58,7 +57,8 @@ fun VoiceModelGate(
             state = state.state,
             download = state.download,
             onDownloadClick = viewModel::startDownload,
-            onRetryClick = viewModel::refresh
+            onRetryClick = viewModel::refresh,
+            onTryClick = viewModel::tryListening
         )
     }
 }

@@ -115,6 +115,10 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         "reflection" -> ReviewPage(R.string.title_home) {
                             com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
                         }
+                        "voice-check" -> VoiceModelScreen(VoiceModelState.CHECK_UNAVAILABLE, DownloadUiState.Idle, {}, {}, Modifier.safeDrawingPadding())
+                        "voice-live" -> Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                            VoiceModelGate { Text("Speech service ready", Modifier.padding(24.dp)) }
+                        }
                         "voice" -> VoiceModelScreen(VoiceModelState.NOT_INSTALLED, DownloadUiState.Idle, {}, {}, Modifier.safeDrawingPadding())
                         "empty" -> ReviewPage(R.string.title_progress) {
                             EmptyState(stringResource(R.string.progress_empty_title), stringResource(R.string.progress_empty_description))

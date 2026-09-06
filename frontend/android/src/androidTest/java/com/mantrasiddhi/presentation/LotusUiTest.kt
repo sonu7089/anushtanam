@@ -157,6 +157,19 @@ class LotusUiTest {
         compose.onAllNodesWithText("7 / 7 (100%)").assertCountEquals(3)
     }
 
+    @Test fun unknownVoiceSupportOffersATrialInsteadOfAnUnnecessaryDownload() {
+        var attempts = 0
+        compose.setContent { AnushtanamTheme(false) {
+            com.mantrasiddhi.presentation.screens.voicemodel.VoiceModelScreen(
+                com.mantrasiddhi.domain.model.VoiceModelState.CHECK_UNAVAILABLE,
+                com.mantrasiddhi.presentation.screens.voicemodel.DownloadUiState.Idle,
+                {}, {}, onTryClick = { attempts++ })
+        } }
+        compose.onNodeWithText(text(R.string.voice_model_try_listening)).performScrollTo().performClick()
+        compose.onNodeWithText(text(R.string.voice_model_download_button)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, attempts) }
+    }
+
     @Test fun reflectionStillCyclesThroughEveryNote() {
         compose.setContent { AnushtanamTheme(false) {
             Column(Modifier.verticalScroll(rememberScrollState())) {

@@ -6,15 +6,11 @@
  */
 package com.mantrasiddhi.data.speech
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.annotation.StringRes
 import com.mantrasiddhi.resources.R
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
@@ -30,7 +26,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class SpeechRecognitionService @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val voiceModelManager: VoiceModelManager
 ) {
 
     /**
@@ -43,30 +39,19 @@ class SpeechRecognitionService @Inject constructor(
         var recognizer: SpeechRecognizer? = null
 
         fun initRecognizer() {
-            // Strict on-device only: the recitation features are gated behind the
-            // VoiceModelGate so the Hindi model is expected to be installed. We never
-            // fall back to the network recognizer — that silent fallback produced the
-            // transient, inconsistent results we want to eliminate.
-            if (!SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+            val rec = try {
+                voiceModelManager.createForListening()
+            } catch (_: Exception) {
+                trySend(SpeechResult.Error(SpeechRecognizer.ERROR_CLIENT, R.string.speech_error_client))
+                close()
+                return
+            }
+            if (rec == null) {
                 trySend(SpeechResult.Error(ERROR_MODEL_UNAVAILABLE, R.string.speech_error_model_missing))
                 close()
                 return
             }
-
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
-                putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "hi-IN")
-                putExtra(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES, arrayListOf("hi-IN", "en-IN"))
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                // Request n-best hypotheses so the evaluator can recover the correct
-                // words when they sit in a lower-ranked alternative.
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, MAX_RESULTS)
-                putExtra("android.speech.extra.PREFER_OFFLINE", true)
-            }
-
-            val rec = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            val intent = voiceModelManager.recognitionIntent()
             
             recognizer = rec
             
@@ -78,15 +63,8 @@ class SpeechRecognitionService @Inject constructor(
                 override fun onEndOfSpeech() {}
 
                 override fun onError(error: Int) {
-                    // 13 = ERROR_LANGUAGE_UNAVAILABLE, 14 = ERROR_LANGUAGE_NOT_SUPPORTED,
-                    // 5 = ERROR_CLIENT. On the on-device recognizer these indicate the
-                    // Hindi model is missing or broken; surface a clear error so the gate
-                    // can route the user back to the download screen — no network fallback.
-                    val messageResId = if (error == 13 || error == 14 || error == 5) {
-                        R.string.speech_error_model_missing
-                    } else {
-                        errorMessageResId(error)
-                    }
+                    voiceModelManager.reportRecognitionError(error)
+                    val messageResId = errorMessageResId(error)
                     trySend(SpeechResult.Error(error, messageResId))
                     close()
                 }
@@ -109,7 +87,12 @@ class SpeechRecognitionService @Inject constructor(
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
             
-            rec.startListening(intent)
+            try {
+                rec.startListening(intent)
+            } catch (_: Exception) {
+                trySend(SpeechResult.Error(SpeechRecognizer.ERROR_CLIENT, R.string.speech_error_client))
+                close()
+            }
         }
 
         launch(mainDispatcher) {
@@ -117,26 +100,11 @@ class SpeechRecognitionService @Inject constructor(
         }
 
         awaitClose {
-            // CRITICAL: do NOT launch this cleanup on the producer scope. When the
-            // collector is CANCELLED (stop button, target completed, navigating away),
-            // this scope's job is already cancelled and a launched child never runs —
-            // which leaked a live SpeechRecognizer: the mic stayed hot after stopping,
-            // and the next session found the recognizer busy and recorded nothing.
-            // A main-looper Handler post always runs, independent of the dying scope,
-            // and SpeechRecognizer requires the main thread anyway.
+            // The main executor outlives this cancelled producer scope, so teardown
+            // still runs when the user stops recording or changes tabs.
             val toRelease = recognizer
             recognizer = null
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                toRelease?.apply {
-                    try {
-                        stopListening()
-                        cancel()
-                        destroy()
-                    } catch (e: Exception) {
-                        // ignore
-                    }
-                }
-            }
+            toRelease?.let(voiceModelManager::releaseAfterListening)
         }
     }
 
@@ -160,7 +128,7 @@ class SpeechRecognitionService @Inject constructor(
      * the Abhyas screen renders this verbatim, so it has to come from `strings.xml`.
      */
     @StringRes
-    private fun errorMessageResId(errorCode: Int): Int {
+    internal fun errorMessageResId(errorCode: Int): Int {
         return when (errorCode) {
             SpeechRecognizer.ERROR_AUDIO -> R.string.speech_error_audio
             SpeechRecognizer.ERROR_CLIENT -> R.string.speech_error_client
@@ -171,20 +139,17 @@ class SpeechRecognitionService @Inject constructor(
             SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> R.string.speech_error_busy
             SpeechRecognizer.ERROR_SERVER -> R.string.speech_error_server
             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> R.string.speech_error_speech_timeout
-            13 -> R.string.speech_error_model_missing // ERROR_LANGUAGE_UNAVAILABLE
-            14 -> R.string.speech_error_language_not_supported // ERROR_LANGUAGE_NOT_SUPPORTED
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> R.string.speech_error_model_missing // ERROR_LANGUAGE_UNAVAILABLE
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> R.string.speech_error_language_not_supported // ERROR_LANGUAGE_NOT_SUPPORTED
             else -> R.string.speech_error_unknown
         }
     }
 
     private companion object {
-        /** Number of n-best hypotheses requested from the recognizer. */
-        const val MAX_RESULTS = 5
-
         /** Confidence assumed when the recognizer does not report a score. */
         const val DEFAULT_CONFIDENCE = 1.0f
 
         /** Error code surfaced when the on-device Hindi model is unavailable at capture time. */
-        const val ERROR_MODEL_UNAVAILABLE = 13
+        const val ERROR_MODEL_UNAVAILABLE = SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
     }
 }

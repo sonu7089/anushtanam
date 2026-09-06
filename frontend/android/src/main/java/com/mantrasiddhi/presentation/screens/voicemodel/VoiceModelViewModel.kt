@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 /** UI state for the voice-model gate / download screen. */
@@ -23,10 +24,10 @@ sealed interface VoiceModelUiState {
     /** Availability is being queried. */
     data object Checking : VoiceModelUiState
 
-    /** The required model is installed; gated content may be shown. */
+    /** A pack is confirmed, or the user has chosen to try an unverified service. */
     data object Ready : VoiceModelUiState
 
-    /** The model is missing/unavailable; the download screen must be shown. */
+    /** Show the relevant download, settings, or trial action. */
     data class NeedsModel(
         val state: VoiceModelState,
         val download: DownloadUiState
@@ -46,8 +47,8 @@ sealed interface DownloadUiState {
 }
 
 /**
- * Drives the voice-model enforcement gate: checks whether the on-device Hindi model
- * is installed and orchestrates a system download when it is not.
+ * Checks Hindi speech support and offers a download or a deliberate listening
+ * trial when the service cannot report its installed packs.
  */
 @HiltViewModel
 class VoiceModelViewModel @Inject constructor(
@@ -63,6 +64,8 @@ class VoiceModelViewModel @Inject constructor(
     )
     val uiState: StateFlow<VoiceModelUiState> = _uiState.asStateFlow()
 
+    private var refreshJob: Job? = null
+
     init {
         refresh()
     }
@@ -74,20 +77,29 @@ class VoiceModelViewModel @Inject constructor(
      * if the model has actually gone missing.
      */
     fun refresh() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             val activeDownload = currentDownload() as? DownloadUiState.InProgress
             if (activeDownload == null && _uiState.value !is VoiceModelUiState.Ready) {
                 _uiState.value = VoiceModelUiState.Checking
             }
             val status = voiceModelManager.checkStatus()
-            lastKnownReady = status.state == VoiceModelState.READY
+            lastKnownReady = status.state == VoiceModelState.READY ||
+                (status.state == VoiceModelState.CHECK_UNAVAILABLE && voiceModelManager.trialAllowed)
             _uiState.value = when {
-                status.state == VoiceModelState.READY -> VoiceModelUiState.Ready
+                lastKnownReady -> VoiceModelUiState.Ready
                 else -> VoiceModelUiState.NeedsModel(
                     state = status.state,
                     download = activeDownload ?: DownloadUiState.Idle
                 )
             }
+        }
+    }
+
+    fun tryListening() {
+        if (voiceModelManager.allowUnverifiedTrial()) {
+            lastKnownReady = true
+            _uiState.value = VoiceModelUiState.Ready
         }
     }
 

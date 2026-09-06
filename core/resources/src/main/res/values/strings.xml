@@ -659,6 +659,9 @@
     <string name="lotus_sandhya_intro">A few moments for prayer.</string>
     <string name="lotus_purashcharana_intro">A commitment to come back to.</string>
     <string name="sandhya_trend_day_description">%1$s: %2$d prayers completed, %3$d scheduled</string>
+    <string name="voice_model_title_check_unavailable">Let’s try listening</string>
+    <string name="voice_model_body_check_unavailable">Your phone could not confirm whether its Hindi speech pack is ready. You can try listening or check your voice input settings. The app will request offline recognition; your phone’s speech service handles the request.</string>
+    <string name="voice_model_try_listening">Try listening</string>
     <string name="reflection_read_more">Read more</string>
     <string name="reflection_read_less">Show less</string>
 </resources>
