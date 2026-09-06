@@ -1,5 +1,9 @@
 # Redesign verification
 
+The [deferred cloud sync update](deferred-cloud-sync.md) adds persistent offline queues, one-minute foreground checks, batched uploads, and duplicate-safe retries, with 464 passing tests.
+
+The subsequent [recitation responsiveness pass](recitation-performance.md) documents the latency fixes, silent ripple, navigation motion, 445 passing tests, and the evaluation proposal left for review.
+
 The latest navigation, mala, reflection, and speech updates are documented in [ui-polish-and-speech.md](ui-polish-and-speech.md), with 428 passing tests and physical-device limits. The preceding refinement is documented in [ui-refinement.md](ui-refinement.md). Both were tested against the owner's current backend edits on 6 September 2026. The results below describe the original design pass.
 
 Verified on branch `codex/lotus-ui-overhaul`, 5 September 2026.

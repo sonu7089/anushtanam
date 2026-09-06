@@ -12,7 +12,6 @@ import android.speech.SpeechRecognizer
 import androidx.annotation.StringRes
 import com.mantrasiddhi.resources.R
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -60,7 +59,7 @@ class SpeechRecognitionService @Inject constructor(
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
+                override fun onEndOfSpeech() { trySend(SpeechResult.EndOfSpeech) }
 
                 override fun onError(error: Int) {
                     voiceModelManager.reportRecognitionError(error)

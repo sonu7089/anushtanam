@@ -25,6 +25,8 @@ import com.mantrasiddhi.domain.repository.AppPreferencesRepository
 import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -85,7 +87,9 @@ class EvaluateRecitationUseCase @Inject constructor(
         val config = resolveConfig(userId)
         val hypotheses = alternatives.ifEmpty { listOf(transcription to confidence) }
         val acoustic = analyzeAudio(audio, hypotheses, config)
-        val assessment = MantraEvaluator.assessBest(mantra, hypotheses, recitationTimeMs, config, acoustic)
+        val assessment = withContext(Dispatchers.Default) {
+            MantraEvaluator.assessBest(mantra, hypotheses, recitationTimeMs, config, acoustic)
+        }
         val swara = analyzeSwara(audio, config)
         val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
         saveSession(userId, mode, transcription, recitationTimeMs, assessment)

@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.data.remote
 
+import com.mantrasiddhi.data.sync.CloudSyncOutbox
+import com.mantrasiddhi.data.sync.SyncKind
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -27,7 +29,8 @@ import javax.inject.Singleton
 @Singleton
 class FirestoreGoalRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val outbox: CloudSyncOutbox
 ) : GoalRepository {
 
     private val goals get() = firestore.collection(FirebaseContract.COLLECTION_GOALS)
@@ -75,28 +78,9 @@ class FirestoreGoalRepositoryImpl @Inject constructor(
 
     override suspend fun incrementActiveGoalProgress(): Result<Boolean> = runCatching {
         val childUid = auth.currentUser?.uid ?: error("Not signed in")
-        // Oldest non-completed goal is the "active" one.
-        val snap = goals
-            .whereEqualTo(FirebaseContract.FIELD_CHILD_UID, childUid)
-            .whereEqualTo(FirebaseContract.FIELD_IS_COMPLETED, false)
-            .get()
-            .awaitResult()
-        val active = snap.documents
-            .mapNotNull { it.toGoal() }
-            .minByOrNull { it.createdAt ?: Long.MAX_VALUE }
-            ?: return@runCatching false // no active goal — nothing to do
-
-        val newCount = active.currentRecitationCount + 1
-        val completed = newCount >= active.targetRecitationCount
-        goals.document(active.id).update(
-            mapOf(
-                FirebaseContract.FIELD_CURRENT_COUNT to newCount,
-                FirebaseContract.FIELD_IS_COMPLETED to completed
-            )
-        ).awaitResult()
-        // The active goal was non-completed by query filter, so `completed` here means
-        // this increment is the one that just completed it.
-        completed
+        outbox.enqueue(childUid, SyncKind.CHILD_GOAL, emptyMap())
+        // Completion arrives through goalsForChild after synchronization.
+        false
     }
 
     private fun DocumentSnapshot.toGoal(): CloudGoal? {

@@ -20,4 +20,7 @@ class GetSessionsForUserUseCase @Inject constructor(
     operator fun invoke(userId: Long): Flow<List<RecitationSession>> {
         return recitationRepository.getSessionsForUser(userId)
     }
+
+    fun recent(userId: Long, limit: Int): Flow<List<RecitationSession>> =
+        recitationRepository.getRecentSessionsForUser(userId, limit)
 }

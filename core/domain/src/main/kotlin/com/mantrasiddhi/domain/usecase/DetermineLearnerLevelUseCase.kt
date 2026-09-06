@@ -30,13 +30,13 @@ class DetermineLearnerLevelUseCase @Inject constructor(
      * Computes the current [LearnerLevel] for [userId] from their stored sessions.
      */
     suspend operator fun invoke(userId: Long): LearnerLevel =
-        levelFor(recitationRepository.getSessionsForUser(userId).first())
+        levelFor(recitationRepository.getRecentSessionsForUser(userId, RECENT_WINDOW).first())
 
     /**
      * Observes the [LearnerLevel] for [userId] as their history changes.
      */
     fun observe(userId: Long): Flow<LearnerLevel> =
-        recitationRepository.getSessionsForUser(userId).map { levelFor(it) }
+        recitationRepository.getRecentSessionsForUser(userId, RECENT_WINDOW).map { levelFor(it) }
 
     companion object {
         /** Below this many sessions the learner is always treated as a beginner. */

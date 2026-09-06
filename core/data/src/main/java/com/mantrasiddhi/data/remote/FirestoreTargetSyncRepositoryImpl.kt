@@ -6,8 +6,10 @@
  */
 package com.mantrasiddhi.data.remote
 
+import com.mantrasiddhi.data.sync.CloudSyncOutbox
+import com.mantrasiddhi.data.sync.SyncKind
+import com.mantrasiddhi.data.local.dao.CloudSyncDao
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
 import com.mantrasiddhi.domain.model.RewardType
@@ -30,7 +32,9 @@ import javax.inject.Singleton
 class FirestoreTargetSyncRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val outbox: CloudSyncOutbox,
+    private val syncDao: CloudSyncDao
 ) : TargetSyncRepository {
 
     private val selfTargets get() = firestore.collection(FirebaseContract.COLLECTION_SELF_TARGETS)
@@ -44,40 +48,35 @@ class FirestoreTargetSyncRepositoryImpl @Inject constructor(
 
     override suspend fun mirrorCreate(localUserId: Long, target: Target): Result<Unit> = runCatching {
         val uid = uidForOwnProfile(localUserId) ?: return@runCatching
-        selfTargets.document(uid).set(
+        outbox.enqueue(uid, SyncKind.TARGET_CREATE,
             mapOf(
                 FirebaseContract.FIELD_TARGET_COUNT to target.targetRecitationCount.toLong(),
                 FirebaseContract.FIELD_CURRENT_COUNT to target.currentRecitationCount.toLong(),
                 FirebaseContract.FIELD_REWARD_TYPE to target.rewardType.name,
                 FirebaseContract.FIELD_REWARD_DESCRIPTION to target.rewardDescription,
-                FirebaseContract.FIELD_IS_COMPLETED to target.isCompleted,
-                FirebaseContract.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+                FirebaseContract.FIELD_IS_COMPLETED to target.isCompleted
             )
-        ).awaitResult()
+        )
         Unit
     }
 
     override suspend fun mirrorIncrement(localUserId: Long, isCompleted: Boolean): Result<Unit> =
         runCatching {
             val uid = uidForOwnProfile(localUserId) ?: return@runCatching
-            selfTargets.document(uid).update(
-                mapOf(
-                    FirebaseContract.FIELD_CURRENT_COUNT to FieldValue.increment(1L),
-                    FirebaseContract.FIELD_IS_COMPLETED to isCompleted,
-                    FirebaseContract.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
-                )
-            ).awaitResult()
+            outbox.enqueue(uid, SyncKind.TARGET_INCREMENT, emptyMap())
             Unit
         }
 
     override suspend fun clearMirror(localUserId: Long): Result<Unit> = runCatching {
         val uid = uidForOwnProfile(localUserId) ?: return@runCatching
-        selfTargets.document(uid).delete().awaitResult()
+        outbox.enqueue(uid, SyncKind.TARGET_CLEAR, emptyMap())
         Unit
     }
 
     override suspend fun fetchActive(): Target? = runCatching {
         val uid = auth.currentUser?.uid ?: return@runCatching null
+        // Do not restore an old cloud target over a pending local completion/withdrawal.
+        if (syncDao.hasKinds(uid, listOf(SyncKind.TARGET_CREATE, SyncKind.TARGET_INCREMENT, SyncKind.TARGET_CLEAR))) return@runCatching null
         val snap = selfTargets.document(uid).get().awaitResult()
         if (!snap.exists()) return@runCatching null
         if (snap.getBoolean(FirebaseContract.FIELD_IS_COMPLETED) == true) return@runCatching null

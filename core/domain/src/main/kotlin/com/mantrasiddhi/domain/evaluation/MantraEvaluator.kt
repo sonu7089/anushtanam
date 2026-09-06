@@ -9,6 +9,7 @@ package com.mantrasiddhi.domain.evaluation
 import com.mantrasiddhi.domain.evaluation.acoustic.AcousticAssessment
 import com.mantrasiddhi.domain.evaluation.model.PadaResult
 import com.mantrasiddhi.domain.evaluation.model.RecitationAssessment
+import com.mantrasiddhi.domain.evaluation.phonetics.PhonemeTokenizer
 import com.mantrasiddhi.domain.evaluation.phonetics.PhoneticDistance
 import com.mantrasiddhi.domain.evaluation.scoring.CompletenessScorer
 import com.mantrasiddhi.domain.evaluation.scoring.PronunciationScorer
@@ -33,9 +34,6 @@ import com.mantrasiddhi.domain.mantra.Mantra
  * the [Mantra] to score against, which is what lets the app carry more than one.
  */
 object MantraEvaluator {
-
-    /** Phonetic similarity used for both word-sequence alignment and per-word scoring. */
-    private val phoneticSimilarity: (String, String) -> Double = PhoneticDistance::wordSimilarity
 
     /**
      * Produces a three-axis assessment of the [transcription].
@@ -63,9 +61,18 @@ object MantraEvaluator {
     ): RecitationAssessment {
         val reference = mantra.transliterations
         val spokenWords = splitToWords(TextNormalizer.normalize(transcription, mantra.textRules))
+        // Each word is tokenized once and each pair compared once per assessment.
+        // These caches are local so concurrent practice/japa evaluations cannot interfere.
+        val tokens = (reference + spokenWords).distinct().associateWith(PhonemeTokenizer::tokenize)
+        val similarities = mutableMapOf<Pair<String, String>, Double>()
+        val phoneticSimilarity: (String, String) -> Double = { ref, spoken ->
+            similarities.getOrPut(ref to spoken) {
+                PhoneticDistance.wordSimilarity(tokens.getValue(ref), tokens.getValue(spoken))
+            }
+        }
         val alignment = LevenshteinAligner.align(reference, spokenWords, phoneticSimilarity)
 
-        val wordResults = buildWordResults(reference, alignment, spokenWords, config, acoustic)
+        val wordResults = buildWordResults(reference, alignment, spokenWords, config, acoustic, phoneticSimilarity)
         val extraWords = extraWords(alignment, spokenWords)
         val padaResults = buildPadaResults(mantra, wordResults)
 
@@ -113,10 +120,18 @@ object MantraEvaluator {
     ): RecitationAssessment {
         // The acoustic signal is independent of which text hypothesis we pick, so
         // hypothesis selection still uses the text-only overall score.
+        val assessments = mutableMapOf<String, RecitationAssessment>()
+        fun textAssessment(text: String) = assessments.getOrPut(text) {
+            assess(mantra, text, recitationTimeMs, config)
+        }
         val chosen = HypothesisSelector.select(alternatives) { text ->
-            assess(mantra, text, recitationTimeMs, config).overall.score
+            textAssessment(text).overall.score
         } ?: return assess(mantra, "", recitationTimeMs, config, confidence = 0.0f, acoustic = acoustic)
-        return assess(mantra, chosen.first, recitationTimeMs, config, chosen.second, acoustic)
+        return if (acoustic == null) {
+            textAssessment(chosen.first).copy(lowConfidence = chosen.second < config.minConfidence)
+        } else {
+            assess(mantra, chosen.first, recitationTimeMs, config, chosen.second, acoustic)
+        }
     }
 
     /**
@@ -186,7 +201,8 @@ object MantraEvaluator {
         alignment: List<AlignmentStep>,
         spokenWords: List<String>,
         config: EvaluationConfig,
-        acoustic: AcousticAssessment?
+        acoustic: AcousticAssessment?,
+        phoneticSimilarity: (String, String) -> Double
     ): List<WordResult> {
         val stepByReferenceIndex = alignment.filter { it.refIndex != null }.associateBy { it.refIndex }
         val useAcoustic = acoustic != null && acoustic.assessed
@@ -202,7 +218,7 @@ object MantraEvaluator {
                 referenceWord = reference[index],
                 spokenWord = spokenWord,
                 score = score,
-                feedback = determineFeedback(reference, spokenWord, score, index, config),
+                feedback = determineFeedback(reference, spokenWord, score, index, config, phoneticSimilarity),
                 acousticScore = acousticWord?.score,
                 pacingRatio = acousticWord?.pacingRatio
             )
@@ -219,7 +235,8 @@ object MantraEvaluator {
         spokenWord: String,
         score: Float,
         refIndex: Int,
-        config: EvaluationConfig
+        config: EvaluationConfig,
+        phoneticSimilarity: (String, String) -> Double
     ): WordFeedback? {
         if (score >= config.feedbackThreshold) return null
 

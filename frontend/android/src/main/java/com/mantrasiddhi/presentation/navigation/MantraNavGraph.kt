@@ -25,9 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.navigation.NavBackStackEntry
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
@@ -75,11 +76,7 @@ private val NavigationRouteOrder = mapOf(
     Screen.Purashcharana.route to 9
 )
 
-/**
- * Bottom-nav tab destinations switch instantly (no animation): any transition between
- * two always-full-screen tabs reads as a flash/blink, especially on mid-range devices.
- * Only pushes to detail screens (Family, Targets, Sandhya, auth) keep a short slide.
- */
+/** Tab transitions share the selection pill's duration; detail pushes stay shorter. */
 private val BottomNavRoutes = setOf(
     Screen.Home.route,
     Screen.Practice.route,
@@ -91,6 +88,28 @@ private val BottomNavRoutes = setOf(
 
 private fun isTabSwitch(initialRoute: String?, targetRoute: String?): Boolean =
     initialRoute in BottomNavRoutes && targetRoute in BottomNavRoutes
+
+internal fun AnimatedContentTransitionScope<NavBackStackEntry>.enterScreenTransition(pop: Boolean = false): EnterTransition {
+    val tab = isTabSwitch(initialState.destination.route, targetState.destination.route)
+    val forward = (NavigationRouteOrder[targetState.destination.route] ?: 0) >
+        (NavigationRouteOrder[initialState.destination.route] ?: 0)
+    val left = if (tab) forward else !pop && forward
+    return slideIntoContainer(
+        if (left) AnimatedContentTransitionScope.SlideDirection.Left else AnimatedContentTransitionScope.SlideDirection.Right,
+        animationSpec = tween(if (tab) 320 else 220, easing = EmphasizedEasing)
+    )
+}
+
+internal fun AnimatedContentTransitionScope<NavBackStackEntry>.exitScreenTransition(pop: Boolean = false): ExitTransition {
+    val tab = isTabSwitch(initialState.destination.route, targetState.destination.route)
+    val forward = (NavigationRouteOrder[targetState.destination.route] ?: 0) >
+        (NavigationRouteOrder[initialState.destination.route] ?: 0)
+    val left = if (tab) forward else !pop && forward
+    return slideOutOfContainer(
+        if (left) AnimatedContentTransitionScope.SlideDirection.Left else AnimatedContentTransitionScope.SlideDirection.Right,
+        animationSpec = tween(if (tab) 320 else 220, easing = EmphasizedEasing)
+    )
+}
 
 @Composable
 fun MantraApp(
@@ -132,58 +151,11 @@ fun MantraApp(
             navController = navController,
             startDestination = Screen.AuthGate.route,
             modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
-            // Bottom-nav tab switches are INSTANT (EnterTransition.None): any animation
-            // between two full-screen tabs reads as a blink. Detail pushes (Family,
-            // Targets, Sandhya, auth) keep a short opaque slide — no fade, which is what
-            // previously flashed the background through the crossfade.
-            enterTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                    EnterTransition.None
-                } else {
-                    val initialOrder = NavigationRouteOrder[initialState.destination.route] ?: 0
-                    val targetOrder = NavigationRouteOrder[targetState.destination.route] ?: 0
-                    val direction = if (targetOrder > initialOrder) {
-                        AnimatedContentTransitionScope.SlideDirection.Left
-                    } else {
-                        AnimatedContentTransitionScope.SlideDirection.Right
-                    }
-                    slideIntoContainer(direction, animationSpec = tween(220, easing = EmphasizedEasing))
-                }
-            },
-            exitTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                    ExitTransition.None
-                } else {
-                    val initialOrder = NavigationRouteOrder[initialState.destination.route] ?: 0
-                    val targetOrder = NavigationRouteOrder[targetState.destination.route] ?: 0
-                    val direction = if (targetOrder > initialOrder) {
-                        AnimatedContentTransitionScope.SlideDirection.Left
-                    } else {
-                        AnimatedContentTransitionScope.SlideDirection.Right
-                    }
-                    slideOutOfContainer(direction, animationSpec = tween(220, easing = EmphasizedEasing))
-                }
-            },
-            popEnterTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                    EnterTransition.None
-                } else {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(220, easing = EmphasizedEasing)
-                    )
-                }
-            },
-            popExitTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                    ExitTransition.None
-                } else {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(220, easing = EmphasizedEasing)
-                    )
-                }
-            }
+            // Opaque horizontal motion avoids exposing the scaffold during a crossfade.
+            enterTransition = { enterScreenTransition() },
+            exitTransition = { exitScreenTransition() },
+            popEnterTransition = { enterScreenTransition(pop = true) },
+            popExitTransition = { exitScreenTransition(pop = true) }
         ) {
             // Entry gate: decides Auth vs Home from the persisted Firebase session.
             composable(Screen.AuthGate.route) {

@@ -12,6 +12,9 @@ import androidx.annotation.StringRes
  * Result states for speech recognition.
  */
 sealed interface SpeechResult {
+    /** The provider stopped capturing; a final transcript may still be on its way. */
+    data object EndOfSpeech : SpeechResult
+
     /**
      * Emitted when a partial transcription is available.
      */

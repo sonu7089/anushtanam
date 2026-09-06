@@ -34,26 +34,12 @@ class RecitationRepositoryImpl @Inject constructor(
             .flowOn(ioDispatcher)
     }
 
+    override fun getRecentSessionsForUser(userId: Long, limit: Int): Flow<List<RecitationSession>> =
+        recitationDao.getRecentSessionsForUser(userId, limit)
+            .map { list -> list.map { it.toDomain() } }
+            .flowOn(ioDispatcher)
+
     override suspend fun getStats(userId: Long): RecitationStats = withContext(ioDispatcher) {
-        val list = recitationDao.getSessionsForUserSync(userId)
-        if (list.isEmpty()) {
-            RecitationStats(
-                totalSessions = 0,
-                averageScore = 0.0,
-                correctSessions = 0,
-                totalDurationMs = 0L
-            )
-        } else {
-            val total = list.size
-            val avg = list.map { it.overallScore }.average()
-            val correct = list.count { it.isCorrect }
-            val duration = list.sumOf { it.durationMs }
-            RecitationStats(
-                totalSessions = total,
-                averageScore = avg,
-                correctSessions = correct,
-                totalDurationMs = duration
-            )
-        }
+        recitationDao.getStats(userId)
     }
 }

@@ -38,8 +38,8 @@ interface PurashcharanaSyncRepository {
      * permanently — the worst case is a crash inside the window, which costs only the
      * japa recited in it.
      *
-     * @param immediate bypasses the throttle. Pass `true` for the moments that must not
-     *   wait: enrolling, withdrawing, crossing a milestone, and the Purnahuti.
+     * @param immediate legacy urgency hint. The durable implementation saves every
+     *   mutation immediately and sends it on the shared one-minute sync cadence.
      * No-op when [localUserId] is not the signed-in account's mapped local profile.
      */
     suspend fun mirror(
@@ -47,6 +47,10 @@ interface PurashcharanaSyncRepository {
         sankalpa: Purashcharana,
         immediate: Boolean = false
     ): Result<Unit>
+
+    /** Accept a verified count for background mirroring without waiting for the server. */
+    suspend fun enqueueMirror(localUserId: Long, sankalpa: Purashcharana, immediate: Boolean): Result<Unit> =
+        mirror(localUserId, sankalpa, immediate)
 
     /**
      * Writes whatever state the throttle is still holding for [localUserId], ignoring the
@@ -56,13 +60,10 @@ interface PurashcharanaSyncRepository {
     suspend fun flush(localUserId: Long): Result<Unit>
 
     /**
-     * Drops whatever snapshot the throttle is holding.
+     * Legacy reconciliation hook. Durable unacknowledged changes must be retained.
      *
-     * Called when the login reconcile re-establishes local truth from the cloud, so a
-     * snapshot captured BEFORE that restore — potentially for a different account, or
-     * carrying a count the restore has just superseded — can never be written back
-     * afterwards. Nothing is lost by dropping it: the reconcile has just raised Room to at
-     * least the mirrored count, so the next mirror carries a value at least as high.
+     * The durable implementation isolates operations by account and merges counts
+     * monotonically at upload, so it deliberately does not discard them here.
      */
     suspend fun discardPending()
 

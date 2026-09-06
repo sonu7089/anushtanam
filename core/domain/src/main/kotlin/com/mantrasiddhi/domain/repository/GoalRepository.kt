@@ -32,8 +32,8 @@ interface GoalRepository {
      * Child action: increment the child's active (non-completed, oldest) goal by 1,
      * marking it completed once the target is reached. No-op when no active goal exists.
      *
-     * @return `true` when this increment is the one that just completed the active goal;
-     *   `false` otherwise (still in progress, or no active goal to advance).
+     * The durable implementation queues this locally and returns false. Completion
+     * arrives through goalsForChild after the deferred upload.
      */
     suspend fun incrementActiveGoalProgress(): Result<Boolean>
 }

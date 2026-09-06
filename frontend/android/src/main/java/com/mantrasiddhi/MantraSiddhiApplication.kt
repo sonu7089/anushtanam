@@ -8,6 +8,7 @@ package com.mantrasiddhi
 
 import android.app.Application
 import com.mantrasiddhi.data.notification.GoalNotifier
+import com.mantrasiddhi.data.sync.CloudSyncCoordinator
 import com.mantrasiddhi.data.sandhya.SandhyaNotifier
 import com.mantrasiddhi.data.sandhya.SandhyaScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -23,9 +24,11 @@ class MantraSiddhiApplication : Application() {
     @Inject lateinit var sandhyaNotifier: SandhyaNotifier
     @Inject lateinit var sandhyaScheduler: SandhyaScheduler
     @Inject lateinit var goalNotifier: GoalNotifier
+    @Inject lateinit var cloudSyncCoordinator: CloudSyncCoordinator
 
     override fun onCreate() {
         super.onCreate()
+        cloudSyncCoordinator.start(this)
         // Create the reminder channel up front so users can tune it in system settings.
         sandhyaNotifier.ensureChannel()
         // Create the parent-goal channel up front for the same reason.

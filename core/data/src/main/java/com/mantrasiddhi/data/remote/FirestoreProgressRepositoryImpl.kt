@@ -7,23 +7,24 @@
 package com.mantrasiddhi.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.snapshots
 import com.mantrasiddhi.domain.model.DayAggregate
 import com.mantrasiddhi.domain.model.ProgressSummary
 import com.mantrasiddhi.domain.repository.ProgressSyncRepository
 import com.mantrasiddhi.domain.repository.RecitationRepository
-import com.mantrasiddhi.domain.usecase.GetDailyRecitationCountsUseCase
-import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
+import com.mantrasiddhi.data.local.dao.RecitationDao
+import com.mantrasiddhi.data.local.dao.CloudSyncDao
+import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
+import com.mantrasiddhi.data.sync.CloudSyncOutbox
+import com.mantrasiddhi.data.sync.CloudSyncPolicy
+import com.mantrasiddhi.data.sync.SyncKind
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import java.time.Instant
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -33,16 +34,18 @@ import javax.inject.Singleton
  * [ProgressSyncRepository] over Firestore `progress/{uid}`.
  *
  * One small doc per user (~2-5 KB): headline totals plus a rolling `daily` map capped
- * at [ProgressSummary.DAILY_KEY_CAP] day keys. Firestore's default offline
- * persistence queues writes while offline; no extra persistence config is added.
+ * at [ProgressSummary.DAILY_KEY_CAP] day keys. A durable Room outbox defers writes;
+ * pending deltas are projected locally until their server checkpoint arrives.
  */
 @Singleton
 class FirestoreProgressRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
     private val recitationRepository: RecitationRepository,
-    private val getRecitationStatsUseCase: GetRecitationStatsUseCase,
-    private val getDailyRecitationCountsUseCase: GetDailyRecitationCountsUseCase
+    private val recitationDao: RecitationDao,
+    private val outbox: CloudSyncOutbox,
+    private val syncDao: CloudSyncDao,
+    private val userPreferences: UserPreferencesDataStore
 ) : ProgressSyncRepository {
 
     private val progress get() = firestore.collection(FirebaseContract.COLLECTION_PROGRESS)
@@ -51,66 +54,33 @@ class FirestoreProgressRepositoryImpl @Inject constructor(
         // Same convention as the other cloud repos: resolve the uid when the flow is
         // requested; signed out means a single null emission and completion.
         val uid = auth.currentUser?.uid ?: return flowOf(null)
-        return progress.document(uid)
-            .snapshots()
-            .map { it.toSummary() }
-            .catch { emit(null) }
+        return combine(progress.document(uid).snapshots(), syncDao.observePending(uid, SyncKind.PROGRESS)) { snap, pending ->
+            if (!snap.exists()) null else {
+                var projected: Map<String, Any?> = snap.data.orEmpty()
+                @Suppress("UNCHECKED_CAST")
+                val checkpoints = (projected[CloudSyncPolicy.CHECKPOINTS] as? Map<String, Any?>).orEmpty()
+                for (event in pending) {
+                    if (!CloudSyncPolicy.acknowledged(checkpoints, event)) {
+                        projected = CloudSyncPolicy.progress(projected, CloudSyncPolicy.decode(event.payload))
+                    }
+                }
+                projected.toSummary()
+            }
+        }.flowOn(Dispatchers.Default).catch { emit(null) }
     }
 
+    /** Persists the compact delta and its seed before returning; never contacts the server. */
     override suspend fun recordSession(
         localUserId: Long,
         overallScore: Double,
         isCorrect: Boolean
     ): Result<Unit> = runCatching {
-        val uid = auth.currentUser?.uid ?: error("Not signed in")
-        val doc = progress.document(uid)
-
-        // Server-or-cache read; also serves as the cached baseline for bestScore
-        // compare and daily-key pruning.
-        val snap = doc.get().awaitResult()
-        if (!snap.exists()) {
-            // First session ever seen for this uid on any device: seed from local
-            // history. recordSession() runs AFTER the session was saved to Room, so
-            // the local stats already include the triggering session — seeding from
-            // them and SKIPPING the increment step counts it exactly once.
-            doc.set(buildSeedData(localUserId)).awaitResult()
-            return@runCatching
-        }
-
-        val dateKey = LocalDate.now().toString()
-        val dayPath = "${FirebaseContract.FIELD_DAILY}.$dateKey"
-        val updates = mutableMapOf<String, Any>(
-            FirebaseContract.FIELD_TOTAL_SESSIONS to FieldValue.increment(1L),
-            FirebaseContract.FIELD_CORRECT_SESSIONS to FieldValue.increment(if (isCorrect) 1L else 0L),
-            FirebaseContract.FIELD_SCORE_SUM to FieldValue.increment(overallScore),
-            "$dayPath.${FirebaseContract.FIELD_DAY_SESSIONS}" to FieldValue.increment(1L),
-            "$dayPath.${FirebaseContract.FIELD_DAY_CORRECT}" to FieldValue.increment(if (isCorrect) 1L else 0L),
-            "$dayPath.${FirebaseContract.FIELD_DAY_SCORE_SUM}" to FieldValue.increment(overallScore),
-            FirebaseContract.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
-        )
-
-        // bestScore: read-compare-write against the cached value; only sent when this
-        // session beats it (a concurrent-device race can only under-report briefly —
-        // the next better session corrects it).
-        val cachedBest = snap.getDouble(FirebaseContract.FIELD_BEST_SCORE) ?: 0.0
-        if (overallScore > cachedBest) {
-            updates[FirebaseContract.FIELD_BEST_SCORE] = overallScore
-        }
-
-        // Prune: keep only the newest DAILY_KEY_CAP day keys (ISO keys sort
-        // chronologically). Today's key is always among the newest, so it is never
-        // deleted by the same update that increments it.
-        val existingKeys = (snap.get(FirebaseContract.FIELD_DAILY) as? Map<*, *>)
-            ?.keys?.filterIsInstance<String>().orEmpty()
-        val allKeys = (existingKeys + dateKey).distinct().sorted()
-        if (allKeys.size > ProgressSummary.DAILY_KEY_CAP) {
-            allKeys.dropLast(ProgressSummary.DAILY_KEY_CAP).forEach { stale ->
-                updates["${FirebaseContract.FIELD_DAILY}.$stale"] = FieldValue.delete()
-            }
-        }
-
-        doc.update(updates).awaitResult()
-        Unit
+        val uid = auth.currentUser?.uid ?: return@runCatching
+        if (userPreferences.getLocalProfileId(uid) != localUserId) return@runCatching
+        outbox.enqueue(uid, SyncKind.PROGRESS, mapOf(
+            "score" to overallScore, "correct" to isCorrect,
+            "date" to LocalDate.now().toString(), "seed" to buildSeedData(localUserId)
+        ))
     }
 
     /**
@@ -118,7 +88,7 @@ class FirestoreProgressRepositoryImpl @Inject constructor(
      * score, and per-day counts for the last [ProgressSummary.DAILY_KEY_CAP] days).
      *
      * Approximations for the seeded `daily` map, from what local aggregates expose:
-     * - `c` is exact (GetDailyRecitationCountsUseCase counts correct sessions/day).
+     * - `c` is exact (the SQL aggregate counts correct sessions/day).
      * - `n` is approximated as `c` — per-day TOTAL attempt counts are not aggregated
      *   locally, so incorrect attempts before the seed are missing from `n`.
      * - `s` is approximated as `c * averageScore` (overall average as stand-in for
@@ -127,15 +97,15 @@ class FirestoreProgressRepositoryImpl @Inject constructor(
      */
     private suspend fun buildSeedData(localUserId: Long): Map<String, Any> {
         val stats = recitationRepository.getStats(localUserId)
-        val overview = getRecitationStatsUseCase(localUserId).first()
-        val counts = getDailyRecitationCountsUseCase(localUserId, ProgressSummary.DAILY_KEY_CAP).first()
-        val zone = ZoneId.systemDefault()
+        val bestScore = recitationDao.getBestScore(localUserId)
+        val since = LocalDate.now().minusDays(ProgressSummary.DAILY_KEY_CAP.toLong() - 1)
+            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val counts = recitationDao.getCorrectDayCounts(localUserId, since)
 
         val daily = counts
             .filter { it.count > 0 }
             .associate { dayCount ->
-                val key = Instant.ofEpochMilli(dayCount.dateMillis).atZone(zone).toLocalDate().toString()
-                key to mapOf(
+                dayCount.dateKey to mapOf(
                     FirebaseContract.FIELD_DAY_SESSIONS to dayCount.count.toLong(),
                     FirebaseContract.FIELD_DAY_CORRECT to dayCount.count.toLong(),
                     FirebaseContract.FIELD_DAY_SCORE_SUM to dayCount.count * stats.averageScore
@@ -147,14 +117,12 @@ class FirestoreProgressRepositoryImpl @Inject constructor(
             FirebaseContract.FIELD_CORRECT_SESSIONS to stats.correctSessions.toLong(),
             // scoreSum reconstructed from the local average so avg survives the seed.
             FirebaseContract.FIELD_SCORE_SUM to stats.averageScore * stats.totalSessions,
-            FirebaseContract.FIELD_BEST_SCORE to overview.bestSessionScore,
-            FirebaseContract.FIELD_DAILY to daily,
-            FirebaseContract.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
+            FirebaseContract.FIELD_BEST_SCORE to bestScore,
+            FirebaseContract.FIELD_DAILY to daily
         )
     }
 
-    private fun DocumentSnapshot.toSummary(): ProgressSummary? {
-        if (!exists()) return null
+    private fun Map<String, Any?>.toSummary(): ProgressSummary {
         val dailyRaw = get(FirebaseContract.FIELD_DAILY) as? Map<*, *> ?: emptyMap<Any, Any>()
         val daily = dailyRaw.entries.mapNotNull { (key, value) ->
             val dateKey = key as? String ?: return@mapNotNull null
@@ -166,10 +134,10 @@ class FirestoreProgressRepositoryImpl @Inject constructor(
             )
         }.toMap()
         return ProgressSummary(
-            totalSessions = getLong(FirebaseContract.FIELD_TOTAL_SESSIONS) ?: 0L,
-            correctSessions = getLong(FirebaseContract.FIELD_CORRECT_SESSIONS) ?: 0L,
-            scoreSum = getDouble(FirebaseContract.FIELD_SCORE_SUM) ?: 0.0,
-            bestScore = getDouble(FirebaseContract.FIELD_BEST_SCORE) ?: 0.0,
+            totalSessions = (get(FirebaseContract.FIELD_TOTAL_SESSIONS) as? Number)?.toLong() ?: 0L,
+            correctSessions = (get(FirebaseContract.FIELD_CORRECT_SESSIONS) as? Number)?.toLong() ?: 0L,
+            scoreSum = (get(FirebaseContract.FIELD_SCORE_SUM) as? Number)?.toDouble() ?: 0.0,
+            bestScore = (get(FirebaseContract.FIELD_BEST_SCORE) as? Number)?.toDouble() ?: 0.0,
             daily = daily
         )
     }

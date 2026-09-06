@@ -89,7 +89,7 @@ class IncrementPurashcharanaUseCase @Inject constructor(
         val after = result.getOrNull()
         if (after != null && after.currentJapaCount != before?.currentJapaCount) {
             runCatching {
-                purashcharanaSyncRepository.mirror(
+                purashcharanaSyncRepository.enqueueMirror(
                     localUserId = userId,
                     sankalpa = after,
                     immediate = PurashcharanaMirrorPolicy.landsOnMilestone(after)

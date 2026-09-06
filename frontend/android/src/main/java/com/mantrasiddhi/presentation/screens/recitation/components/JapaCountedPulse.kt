@@ -9,6 +9,7 @@ package com.mantrasiddhi.presentation.screens.recitation.components
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,10 +33,10 @@ import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.presentation.theme.EmphasizedDecelerateEasing
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import kotlinx.coroutines.delay
-import kotlin.math.max
+import kotlin.math.hypot
 
 /** Total length of one confirmation. Long enough to register, short enough to stay out of the way. */
-private const val PULSE_DURATION_MS = 820
+private const val PULSE_DURATION_MS = 1100
 
 /**
  * Where each ring starts within the overall progress. Staggering them makes one japa read
@@ -44,19 +45,10 @@ private const val PULSE_DURATION_MS = 820
 private val RING_STARTS = listOf(0f, 0.12f, 0.24f)
 
 /** Opening opacity per ring; they fade to fully transparent as they expand. */
-private val RING_PEAK_ALPHAS = listOf(0.55f, 0.38f, 0.24f)
+private val RING_PEAK_ALPHAS = listOf(0.26f, 0.17f, 0.10f)
 
 /** Thinner rings trail the leading one, which keeps the ripple from looking heavy. */
-private val RING_STROKES = listOf(5.dp, 3.dp, 2.dp)
-
-/**
- * Peak opacity of the background wash. Deliberately low: the mantra text and the
- * transcript sit underneath, and a bright full-screen flash on every japa would strobe.
- */
-private const val WASH_PEAK_ALPHA = 0.18f
-
-/** The wash is gone by this point in the animation — it is a blink, not a tint. */
-private const val WASH_FADE_END = 0.35f
+private val RING_STROKES = listOf(2.dp, 1.5.dp, 1.dp)
 
 /** Rings are drawn slightly past the box corner so they leave the screen rather than stop on it. */
 private const val MAX_RADIUS_FACTOR = 1.12f
@@ -70,11 +62,8 @@ private const val STATIC_RING_HOLD_MS = 450L
 /**
  * Silent, full-screen confirmation that one japa was heard and counted.
  *
- * Until now a counted japa was acknowledged only by the bell and the progress number
- * ticking up — useless when the phone is muted, face-down on a mat, or when the sadhak
- * is mid-mantra and cannot look away long enough to read a number. This draws concentric
- * green rings expanding from the exact centre of the screen so the confirmation is
- * readable from the corner of the eye without breaking the flow of recitation.
+ * Three light rings expand from the centre without a full-screen flash or sound.
+ * Animation values are read only while drawing, keeping the rest of the screen idle.
  *
  * Two decisions worth knowing about:
  *
@@ -95,7 +84,6 @@ fun JapaCountedPulse(
 ) {
     val extendedColors = LocalExtendedColors.current
     val ringColor = extendedColors.success
-    val washColor = extendedColors.successContainer
     val announcement = stringResource(id = R.string.recitation_japa_counted)
     val context = LocalContext.current
 
@@ -134,7 +122,7 @@ fun JapaCountedPulse(
                 targetValue = 1f,
                 animationSpec = tween(
                     durationMillis = PULSE_DURATION_MS,
-                    easing = EmphasizedDecelerateEasing
+                    easing = LinearEasing
                 )
             )
         }
@@ -162,18 +150,7 @@ fun JapaCountedPulse(
             // draw phase — no recomposition of the recitation screen while the ripple runs.
             val animationProgress = progress.value
             val centre = Offset(size.width / 2f, size.height / 2f)
-            val maxRadius = max(size.width, size.height) / 2f * MAX_RADIUS_FACTOR
-
-            val washAlpha =
-                WASH_PEAK_ALPHA * (1f - (animationProgress / WASH_FADE_END)).coerceIn(0f, 1f)
-            if (washAlpha > 0f) {
-                drawCircle(
-                    color = washColor,
-                    radius = maxRadius,
-                    center = centre,
-                    alpha = washAlpha
-                )
-            }
+            val maxRadius = hypot(size.width, size.height) / 2f * MAX_RADIUS_FACTOR
 
             RING_STARTS.forEachIndexed { index, start ->
                 val ringProgress = ((animationProgress - start) / (1f - start)).coerceIn(0f, 1f)
@@ -182,7 +159,7 @@ fun JapaCountedPulse(
                 if (alpha <= 0f) return@forEachIndexed
                 drawCircle(
                     color = ringColor,
-                    radius = maxRadius * ringProgress,
+                    radius = maxRadius * EmphasizedDecelerateEasing.transform(ringProgress),
                     center = centre,
                     alpha = alpha,
                     style = Stroke(width = RING_STROKES[index].toPx())

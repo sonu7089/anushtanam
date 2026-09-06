@@ -69,12 +69,14 @@ fun MantraDisplay(
         ) {
             Text(
                 text = stringResource(R.string.gayatri_mantra),
+                modifier = Modifier.align(Alignment.CenterVertically),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
             
             Row(
+                modifier = Modifier.align(Alignment.CenterVertically),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {

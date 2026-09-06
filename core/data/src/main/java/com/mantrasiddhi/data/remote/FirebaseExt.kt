@@ -19,6 +19,7 @@ import kotlin.coroutines.resumeWithException
  */
 suspend fun <T> Task<T>.awaitResult(): T = suspendCancellableCoroutine { cont ->
     addOnCompleteListener { task ->
+        if (!cont.isActive) return@addOnCompleteListener
         val e = task.exception
         when {
             e != null -> cont.resumeWithException(e)

@@ -14,6 +14,7 @@ import com.mantrasiddhi.data.audio.AudioCaptureService
 import com.mantrasiddhi.data.audio.BenchmarkAudioPlayer
 import com.mantrasiddhi.data.audio.RecordedAudioPlayer
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
+import com.mantrasiddhi.data.speech.RecitationClock
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.evaluation.MantraEvaluation
 import com.mantrasiddhi.domain.evaluation.acoustic.RecordedAudio
@@ -25,6 +26,8 @@ import com.mantrasiddhi.domain.usecase.DetectRecitationBoundaryUseCase
 import com.mantrasiddhi.domain.usecase.EvaluateRecitationUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,6 +37,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -63,7 +68,8 @@ class PracticeModeViewModel @Inject constructor(
     private val soundEffectsPlayer: SoundEffectsPlayer,
     private val audioCaptureService: AudioCaptureService,
     private val recordedAudioPlayer: RecordedAudioPlayer,
-    private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase
+    private val detectRecitationBoundaryUseCase: DetectRecitationBoundaryUseCase,
+    private val clock: RecitationClock = RecitationClock()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Idle)
@@ -89,6 +95,8 @@ class PracticeModeViewModel @Inject constructor(
         GayatriMantra.words.map { (it.benchmarkEndMs - it.benchmarkStartMs).toDouble() }
 
     private var recordingJob: Job? = null
+    private var evaluationJob: Job? = null
+    private var speechEndedAtMs: Long? = null
     private var startTimeMs = 0L
 
     /**
@@ -169,14 +177,20 @@ class PracticeModeViewModel @Inject constructor(
      * Starts recording practice recitation.
      */
     fun startRecording() {
+        if (_uiState.value is PracticeUiState.Recording || _uiState.value is PracticeUiState.Processing) return
+        evaluationJob?.cancel()
+        recordedAudioPlayer.stop()
+        lastAudio = null
+        _hasSelfAudio.value = false
+        speechEndedAtMs = null
         soundEffectsPlayer.triggerLightHaptic()
         benchmarkAudioPlayer.stop()
         recordingJob?.cancel()
         accumulatedText = ""
         finalizing = false
-        lastSpeechTimeMs = System.currentTimeMillis()
+        lastSpeechTimeMs = clock.nowMs()
         _uiState.value = PracticeUiState.Recording("", 0)
-        startTimeMs = System.currentTimeMillis()
+        startTimeMs = clock.nowMs()
         // NOTE: We intentionally do NOT capture raw audio in parallel here. On many
         // devices a second AudioRecord session starves SpeechRecognizer of mic input,
         // so no transcript is ever produced and the attempt never finalises. The
@@ -184,7 +198,7 @@ class PracticeModeViewModel @Inject constructor(
         // evaluation runs on the transcript text. The acoustic "hear yourself" / swara
         // path is sacrificed for reliable feedback.
 
-        recordingJob = viewModelScope.launch {
+        recordingJob = viewModelScope.launch(start = CoroutineStart.LAZY) {
             val timerJob = launch {
                 var seconds = 0
                 while (isActive) {
@@ -197,24 +211,31 @@ class PracticeModeViewModel @Inject constructor(
                 }
             }
 
-            // Silence watchdog: the on-device recogniser frequently never emits a
-            // Final result while listening continuously, so we detect the end of the
-            // recitation ourselves and finalise automatically. The decision is a plain
-            // elapsed-silence timeout because the recogniser returns Devanagari
-            // (hi-IN) text, which DetectRecitationBoundaryUseCase's ASCII-only
-            // normaliser would strip to empty — that use case can only catch the
-            // Latin "prachodayat" closing word as an early trigger, never the pause.
+            // Changed text is the fallback activity signal; repeated hypotheses must
+            // not keep the microphone open forever. Give a provider's final result a
+            // short grace period after it reports end-of-speech.
             val watchdogJob = launch {
                 while (isActive) {
                     delay(200)
-                    val silence = System.currentTimeMillis() - lastSpeechTimeMs
+                    val silence = clock.nowMs() - lastSpeechTimeMs
                     val hasSpeech = accumulatedText.isNotBlank()
+                    val finalWaitExpired = speechEndedAtMs?.let { clock.nowMs() - it >= FINAL_RESULT_TIMEOUT_MS } == true
                     val recitationEnded = hasSpeech &&
-                        (silence >= SILENCE_TIMEOUT_MS ||
+                        (finalWaitExpired || silence >= SILENCE_TIMEOUT_MS ||
                             detectRecitationBoundaryUseCase(accumulatedText, silence))
                     if (recitationEnded) {
                         timerJob.cancel()
                         finalizeRecording(accumulatedText)
+                        break
+                    }
+                    if ((!hasSpeech && clock.nowMs() - startTimeMs >= NO_SPEECH_TIMEOUT_MS) ||
+                        (!hasSpeech && finalWaitExpired) ||
+                        clock.nowMs() - startTimeMs >= MAX_RECORDING_MS) {
+                        if (hasSpeech) finalizeRecording(accumulatedText)
+                        else {
+                            finalizeRecording("")
+                            _uiState.value = PracticeUiState.Error(R.string.speech_error_speech_timeout)
+                        }
                         break
                     }
                 }
@@ -225,14 +246,16 @@ class PracticeModeViewModel @Inject constructor(
                 .catch {
                     timerJob.cancel()
                     watchdogJob.cancel()
+                    finalizeRecording("")
                     _uiState.value = PracticeUiState.Error(R.string.practice_error_speech_failed)
                 }
                 .collect { result ->
                     when (result) {
+                        SpeechResult.EndOfSpeech -> if (speechEndedAtMs == null) { speechEndedAtMs = clock.nowMs() }
                         is SpeechResult.Partial -> {
-                            if (result.text.isNotBlank()) {
+                            if (result.text.isNotBlank() && result.text != accumulatedText) {
                                 accumulatedText = result.text
-                                lastSpeechTimeMs = System.currentTimeMillis()
+                                lastSpeechTimeMs = clock.nowMs()
                             }
                             val current = _uiState.value
                             if (current is PracticeUiState.Recording) {
@@ -254,12 +277,22 @@ class PracticeModeViewModel @Inject constructor(
                             if (accumulatedText.isNotBlank()) {
                                 finalizeRecording(accumulatedText)
                             } else {
+                                finalizeRecording("")
                                 _uiState.value = PracticeUiState.Error(result.messageResId)
                             }
                         }
                     }
                 }
+            if (!finalizing) {
+                if (accumulatedText.isNotBlank()) finalizeRecording(accumulatedText)
+                else {
+                    finalizeRecording("")
+                    _uiState.value = PracticeUiState.Error(R.string.speech_error_no_match)
+                }
+            }
         }
+        // Install the job before synchronous callbacks can finalize and cancel it.
+        recordingJob?.start()
     }
 
     /**
@@ -300,6 +333,8 @@ class PracticeModeViewModel @Inject constructor(
      * Resets the screen state back to idle.
      */
     fun resetPractice() {
+        evaluationJob?.cancel()
+        evaluationJob = null
         benchmarkAudioPlayer.stop()
         recordedAudioPlayer.stop()
         audioCaptureService.stop()
@@ -319,10 +354,10 @@ class PracticeModeViewModel @Inject constructor(
         audio: RecordedAudio? = null
     ) {
         _uiState.value = PracticeUiState.Processing
-        viewModelScope.launch {
+        evaluationJob = viewModelScope.launch {
             try {
                 val userId = currentUser.value?.id ?: 1L
-                val recitationTime = System.currentTimeMillis() - startTimeMs
+                val recitationTime = clock.nowMs() - startTimeMs
                 lastAudio = audio?.takeIf { !it.isEmpty }
                 _hasSelfAudio.value = lastAudio != null
                 val evaluation = evaluateRecitationUseCase(
@@ -336,7 +371,10 @@ class PracticeModeViewModel @Inject constructor(
                 )
                 // Practice mode intentionally gives no per-attempt audio feedback;
                 // learners get on-screen results instead. Button haptics remain.
+                coroutineContext.ensureActive()
                 _uiState.value = PracticeUiState.ShowingResults(evaluation)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 _uiState.value = PracticeUiState.Error(R.string.practice_error_evaluate_failed)
             }
@@ -358,5 +396,8 @@ class PracticeModeViewModel @Inject constructor(
          * natural in-mantra pauses don't cut a recitation short.
          */
         const val SILENCE_TIMEOUT_MS = 2000L
+        const val FINAL_RESULT_TIMEOUT_MS = 1500L
+        const val NO_SPEECH_TIMEOUT_MS = 15000L
+        const val MAX_RECORDING_MS = 120000L
     }
 }

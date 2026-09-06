@@ -12,6 +12,12 @@ import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import com.mantrasiddhi.domain.repository.RecitationRepository
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 
 class DetermineLearnerLevelUseCaseTest {
 
@@ -55,4 +61,14 @@ class DetermineLearnerLevelUseCaseTest {
     fun should_beBeginner_when_lowAverage() {
         assertEquals(LearnerLevel.BEGINNER, DetermineLearnerLevelUseCase.levelFor(sessions(10, 0.60)))
     }
+    @Test
+    fun should_useOnlyRecentWindow_withoutChangingLevelForLargeHistory() = runTest {
+        val history = sessions(5000, 0.95) + sessions(20, 0.80).map { it.copy(createdAt = it.createdAt + 5000) }
+        val repository = mockk<RecitationRepository>()
+        every { repository.getRecentSessionsForUser(1L, 20) } returns
+            flowOf(history.sortedByDescending { it.createdAt }.take(20))
+        assertEquals(DetermineLearnerLevelUseCase.levelFor(history), DetermineLearnerLevelUseCase(repository)(1L))
+        verify(exactly = 0) { repository.getSessionsForUser(any()) }
+    }
+
 }

@@ -2,6 +2,7 @@ package com.mantrasiddhi.presentation.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import com.mantrasiddhi.presentation.theme.EmphasizedEasing
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -54,7 +57,7 @@ fun MantraBottomBar(navController: NavHostController, isParent: Boolean) {
     })
 }
 
-/** A floating tab bar with a short local color fade and accessible native tab semantics. */
+/** A shared selection pill follows the active tab while native tab semantics stay immediate. */
 @Composable
 internal fun FloatingNavigationBar(
     destinations: List<NavigationDestination>, currentRoute: String?, onNavigate: (Screen) -> Unit,
@@ -69,7 +72,19 @@ internal fun FloatingNavigationBar(
             shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         ) {
-            Box(Modifier.padding(4.dp)) {
+            BoxWithConstraints(Modifier.padding(4.dp)) {
+                val selectedIndex = destinations.indexOfFirst { it.screen.route == currentRoute }
+                val slotWidth = maxWidth / destinations.size
+                val indicatorOffset = animateDpAsState(
+                    targetValue = slotWidth * selectedIndex.coerceAtLeast(0),
+                    animationSpec = tween(320, easing = EmphasizedEasing),
+                    label = "navigationIndicatorOffset"
+                )
+                if (selectedIndex >= 0) {
+                    Box(Modifier.offset { IntOffset(indicatorOffset.value.roundToPx(), 0) }
+                        .width(slotWidth).height(itemHeight).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer))
+                }
                 Row(Modifier.fillMaxWidth().selectableGroup()) {
                     destinations.forEach { item ->
                         val selected = item.screen.route == currentRoute
@@ -77,10 +92,7 @@ internal fun FloatingNavigationBar(
                         val ink by animateColorAsState(
                             if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             animationSpec = tween(140), label = "navigationInk")
-                        val highlight by animateColorAsState(
-                            if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                            animationSpec = tween(140), label = "navigationHighlight")
-                        Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape).background(highlight)
+                        Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape)
                             .selectable(selected, role = Role.Tab, onClick = { onNavigate(item.screen) })
                             .semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally,

@@ -8,11 +8,12 @@ package com.mantrasiddhi.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 
-@Entity(tableName = "recitation_sessions")
+@Entity(tableName = "recitation_sessions", indices = [Index(value = ["userId", "createdAt", "id"])])
 data class RecitationSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,

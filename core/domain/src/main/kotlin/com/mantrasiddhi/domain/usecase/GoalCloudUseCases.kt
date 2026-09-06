@@ -48,8 +48,8 @@ class ObserveGoalsForChildUseCase @Inject constructor(
  * when the current account is actually a CHILD. Safe to call on every correct
  * recitation; a no-op for parents or when no active goal exists.
  *
- * @return `true` when this increment just completed the child's active cloud goal;
- *   `false` otherwise (still in progress, no active goal, or not a CHILD account).
+ * Deferred implementations return false when queued. Completion arrives through
+ * the goal stream after synchronization.
  */
 class IncrementActiveCloudGoalUseCase @Inject constructor(
     private val authRepository: AuthRepository,

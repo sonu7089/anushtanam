@@ -17,6 +17,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.mantrasiddhi.presentation.navigation.enterScreenTransition
+import com.mantrasiddhi.presentation.navigation.exitScreenTransition
+import com.mantrasiddhi.presentation.screens.recitation.components.JapaCountedPulse
 import com.mantrasiddhi.presentation.navigation.Screen
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.*
@@ -101,7 +104,10 @@ private fun ReviewNavigation(initialPage: String, dark: Boolean, onDarkChange: (
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = { MantraBottomBar(controller, isParent = true) }) { padding ->
         NavHost(controller, startDestination = start.route,
-            modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+            enterTransition = { enterScreenTransition() }, exitTransition = { exitScreenTransition() },
+            popEnterTransition = { enterScreenTransition(pop = true) },
+            popExitTransition = { exitScreenTransition(pop = true) }) {
             reviewTabs.forEach { (page, screen) ->
                 composable(screen.route) { ReviewContent(page, dark, onDarkChange) }
             }
@@ -112,6 +118,17 @@ private fun ReviewNavigation(initialPage: String, dark: Boolean, onDarkChange: (
 @Composable
 private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                     when (page) {
+                        "ripple" -> {
+                            var pulse by remember { mutableLongStateOf(0L) }
+                            Box(Modifier.fillMaxSize()) {
+                                ReviewPage(R.string.title_recitation) {
+                                    TargetProgressHeader(ReviewFixtures.target.copy(currentRecitationCount = 36 + pulse.toInt()))
+                                    MantraDisplay(null)
+                                    TextButton(onClick = { pulse++ }) { Text("Simulate counted japa") }
+                                }
+                                JapaCountedPulse(pulse)
+                            }
+                        }
                         "reflection" -> ReviewPage(R.string.title_home) {
                             com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
                         }

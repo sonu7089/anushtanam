@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.data.speech.SpeechRecognitionService
+import com.mantrasiddhi.data.speech.RecitationClock
 import com.mantrasiddhi.data.speech.SpeechResult
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.RecitationMode
@@ -31,6 +32,7 @@ import com.mantrasiddhi.presentation.feedback.FeedbackStringProvider
 import com.mantrasiddhi.presentation.theme.ScoreBands
 import com.mantrasiddhi.presentation.theme.ScoreLevel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +53,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -90,7 +95,7 @@ sealed interface RecitationUiState {
  * State representing feedback for the latest recitation.
  *
  * Only emitted for attempts that need the reciter's attention (incorrect / retry);
- * a correct recitation is acknowledged by the bell sound, the progress update and the
+ * a correct recitation is acknowledged by the progress update and the
  * expanding-ring pulse ([RecitationUiState.Active.japaCountedPulseId]) — never by a card
  * the sadhak has to read or dismiss mid-japa.
  */
@@ -150,7 +155,8 @@ class RecitationViewModel @Inject constructor(
     private val soundEffectsPlayer: SoundEffectsPlayer,
     private val feedbackStringProvider: FeedbackStringProvider,
     private val incrementActiveCloudGoalUseCase: IncrementActiveCloudGoalUseCase,
-    private val flushPurashcharanaSyncUseCase: FlushPurashcharanaSyncUseCase
+    private val flushPurashcharanaSyncUseCase: FlushPurashcharanaSyncUseCase,
+    private val clock: RecitationClock = RecitationClock()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
@@ -165,6 +171,7 @@ class RecitationViewModel @Inject constructor(
 
     private var isListeningLoopActive = false
     private var listeningJob: Job? = null
+    private val cloudGoalMutex = Mutex()
 
     // --- Continuous-session segmentation state (all touched on the main dispatcher) ---
 
@@ -174,10 +181,10 @@ class RecitationViewModel @Inject constructor(
     /** How much of [sessionText] has already been dispatched for evaluation. */
     private var consumedChars = 0
 
-    /** Wall-clock start of the segment currently being recited (for duration). */
+    /** Monotonic start of the segment currently being recited (for duration). */
     private var segmentStartMs = 0L
 
-    /** Wall-clock time of the last non-blank speech result, for the silence flush. */
+    /** Monotonic time of the last changed non-blank speech result, for the silence flush. */
     private var lastSpeechTimeMs = 0L
 
     /**
@@ -213,10 +220,10 @@ class RecitationViewModel @Inject constructor(
     private fun observeUserAndData() {
         viewModelScope.launch {
             getCurrentUserUseCase().flatMapLatest { user ->
+                activeUser = user
                 if (user != null) {
-                    activeUser = user
                     activeTarget = getActiveTargetUseCase(user.id)
-                    getSessionsForUserUseCase(user.id).catch { emit(emptyList()) }
+                    getSessionsForUserUseCase.recent(user.id, 5).catch { emit(emptyList()) }
                 } else {
                     flowOf(null)
                 }
@@ -246,10 +253,10 @@ class RecitationViewModel @Inject constructor(
      */
     private fun emitActiveState(
         isListening: Boolean = isListeningLoopActive,
-        currentSpeechText: String = "",
-        lastFeedback: RecitationFeedbackState? = null,
-        showCelebration: Boolean = false,
-        celebrationTarget: Target? = null,
+        currentSpeechText: String = (_uiState.value as? RecitationUiState.Active)?.currentSpeechText.orEmpty(),
+        lastFeedback: RecitationFeedbackState? = (_uiState.value as? RecitationUiState.Active)?.lastFeedback,
+        showCelebration: Boolean = (_uiState.value as? RecitationUiState.Active)?.showCelebration ?: false,
+        celebrationTarget: Target? = (_uiState.value as? RecitationUiState.Active)?.celebrationTarget,
         japaCountedPulseId: Long = japaPulseCounter,
         refreshTarget: Boolean = false
     ) {
@@ -268,19 +275,13 @@ class RecitationViewModel @Inject constructor(
             )
             return
         }
+        emitActiveState(isListening, currentSpeechText, lastFeedback, showCelebration,
+            celebrationTarget, japaCountedPulseId)
         viewModelScope.launch {
             activeTarget = getActiveTargetUseCase(user.id)
-            _uiState.value = RecitationUiState.Active(
-                user = user,
-                activeTarget = activeTarget,
-                isListening = isListening,
-                currentSpeechText = currentSpeechText,
-                recentSessions = recentSessionsList,
-                lastFeedback = lastFeedback,
-                showCelebration = showCelebration,
-                celebrationTarget = celebrationTarget,
-                japaCountedPulseId = japaCountedPulseId
-            )
+            // Refresh only the target; speech and feedback may have advanced during I/O.
+            val current = _uiState.value as? RecitationUiState.Active ?: return@launch
+            _uiState.value = current.copy(activeTarget = activeTarget)
         }
     }
 
@@ -418,7 +419,7 @@ class RecitationViewModel @Inject constructor(
     }
 
     private fun enqueueSegment(text: String, alternatives: List<Pair<String, Float>>, confidence: Float) {
-        val now = System.currentTimeMillis()
+        val now = clock.nowMs()
         val duration = (now - segmentStartMs).coerceAtLeast(0L)
         segmentStartMs = now
         segmentQueue.trySend(SegmentJob(text, alternatives, confidence, duration))
@@ -426,14 +427,16 @@ class RecitationViewModel @Inject constructor(
 
     private fun runListeningLoop() {
         listeningJob?.cancel()
-        listeningJob = viewModelScope.launch {
+        listeningJob = viewModelScope.launch(start = CoroutineStart.LAZY) {
             while (isListeningLoopActive) {
                 sessionText = ""
                 consumedChars = 0
-                segmentStartMs = System.currentTimeMillis()
-                lastSpeechTimeMs = System.currentTimeMillis()
+                segmentStartMs = clock.nowMs()
+                lastSpeechTimeMs = clock.nowMs()
                 var finalAlternatives: List<Pair<String, Float>> = emptyList()
                 var finalConfidence = 1.0f
+                var speechEndedAtMs: Long? = null
+                val sessionStartedAtMs = clock.nowMs()
                 emitActiveState(isListening = true, currentSpeechText = "")
 
                 try {
@@ -446,10 +449,11 @@ class RecitationViewModel @Inject constructor(
                                     .flowOn(Dispatchers.Main)
                                     .collect { result ->
                                         when (result) {
+                                            SpeechResult.EndOfSpeech -> if (speechEndedAtMs == null) { speechEndedAtMs = clock.nowMs() }
                                             is SpeechResult.Partial -> {
-                                                if (result.text.isNotBlank()) {
+                                                if (result.text.isNotBlank() && result.text != sessionText) {
                                                     sessionText = result.text
-                                                    lastSpeechTimeMs = System.currentTimeMillis()
+                                                    lastSpeechTimeMs = clock.nowMs()
                                                     cutCompletedSegments()
                                                 }
                                                 emitActiveState(isListening = true, currentSpeechText = tail())
@@ -465,6 +469,12 @@ class RecitationViewModel @Inject constructor(
                                             is SpeechResult.Error -> {
                                                 if (result.code == 8 /* SpeechRecognizer.ERROR_RECOGNIZER_BUSY */) {
                                                     delay(500)
+                                                }
+                                                // Fatal/empty-input failures must be visible, not an endless restart.
+                                                if (result.code !in setOf(6, 7, 8)) {
+                                                    isListeningLoopActive = false
+                                                    _events.emit(RecitationEvent.ShowError(result.messageResId))
+                                                    emitActiveState(isListening = false)
                                                 }
                                                 // Flow closes itself after Error.
                                             }
@@ -487,7 +497,12 @@ class RecitationViewModel @Inject constructor(
                                     session.cancel()
                                     break
                                 }
-                                val silence = System.currentTimeMillis() - lastSpeechTimeMs
+                                val silence = clock.nowMs() - lastSpeechTimeMs
+                                val finalWaitExpired = speechEndedAtMs?.let { clock.nowMs() - it >= 1500L } == true
+                                if (finalWaitExpired || silence >= 15000L || clock.nowMs() - sessionStartedAtMs >= 120000L) {
+                                    session.cancel()
+                                    break
+                                }
                                 if (silence >= DetectRecitationBoundaryUseCase.SILENCE_BOUNDARY_MS && tail().isNotBlank()) {
                                     flushTail(emptyList(), 1.0f)
                                     emitActiveState(isListening = true, currentSpeechText = "")
@@ -497,6 +512,10 @@ class RecitationViewModel @Inject constructor(
                     }
                 } catch (_: CancellationException) {
                     // Session scope wound down (recognizer closed, stop pressed, or VM cleared).
+                } catch (_: Exception) {
+                    isListeningLoopActive = false
+                    _events.emit(RecitationEvent.ShowError(R.string.practice_error_speech_failed))
+                    emitActiveState(isListening = false)
                 }
 
                 // Session over: segment anything the final transcript completed, then
@@ -509,6 +528,7 @@ class RecitationViewModel @Inject constructor(
                 delay(SESSION_RESTART_DELAY_MS)
             }
         }
+        listeningJob?.start()
     }
 
     private suspend fun evaluateAndProcess(
@@ -534,17 +554,22 @@ class RecitationViewModel @Inject constructor(
                 confidence = confidence
             )
 
-            // Cloud goal (Phase B): when the signed-in account is a CHILD, a correct
-            // recitation also advances their active parent-set cloud goal. The use case
-            // is a no-op for parents / individuals and when no active cloud goal exists,
-            // so the existing local self-target behaviour is untouched. It reports back
-            // whether this increment just completed the cloud goal, so we can play the
-            // achievement sound even though a cloud goal has no local Target.
-            var cloudGoalJustCompleted = false
+            // Parent-set cloud goals synchronize independently of local feedback.
+            // Serialize increments so rapid attempts cannot race the same cloud goal.
             if (evaluation.isCorrect) {
-                cloudGoalJustCompleted = runCatching { incrementActiveCloudGoalUseCase() }
-                    .getOrNull()
-                    ?.getOrNull() == true
+                viewModelScope.launch {
+                    cloudGoalMutex.withLock {
+                        if (activeUser?.id == user.id) {
+                            try {
+                                withTimeoutOrNull(8_000L) { incrementActiveCloudGoalUseCase() }
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                // Local counting already succeeded; cloud goals are best-effort.
+                            }
+                        }
+                    }
+                }
             }
 
             // Silent visual confirmation. Bumping the id here — and only here — is what
@@ -555,7 +580,7 @@ class RecitationViewModel @Inject constructor(
                 japaPulseCounter++
             }
 
-            // Correct recitations get no overlay — the bell + progress update is the
+            // Correct recitations get no hint card — the ripple + progress update is the
             // feedback. Only an incorrect attempt surfaces a hint card.
             var feedback: RecitationFeedbackState? = null
             if (!evaluation.isCorrect) {
@@ -598,19 +623,10 @@ class RecitationViewModel @Inject constructor(
                 null
             }
 
-            // The achievement sound plays for EITHER a completed local target OR a
-            // child's parent-set cloud goal that just completed (the latter has no
-            // local Target, so it wouldn't otherwise be caught).
-            val achievementUnlocked = localTargetCompleted || cloudGoalJustCompleted
-
-            if (achievementUnlocked) {
-                soundEffectsPlayer.playAchievementSound()
-            } else if (evaluation.isCorrect) {
-                soundEffectsPlayer.playCorrectSound()
-            }
+            // All correct-japa confirmation is silent, including target completion.
 
             // Reaching the local target ends the session: stop the listening loop so the
-            // celebration overlay (and the achievement sound) aren't immediately cleared
+            // celebration overlay is not immediately cleared
             // by the loop reopening the mic. The reciter can start a fresh target after.
             if (localTargetCompleted) {
                 isListeningLoopActive = false
@@ -634,8 +650,10 @@ class RecitationViewModel @Inject constructor(
             if (!isListeningLoopActive) {
                 flushPurashcharanaMirror()
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
-            // Ignore
+            _events.emit(RecitationEvent.ShowError(R.string.practice_error_evaluate_failed))
         }
     }
 

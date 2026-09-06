@@ -17,6 +17,9 @@ import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
+import com.mantrasiddhi.data.local.dao.CloudSyncDao
+import com.mantrasiddhi.data.local.entity.CloudSyncEntity
+import com.mantrasiddhi.data.local.entity.CloudSyncScheduleEntity
 import com.mantrasiddhi.data.local.entity.PurashcharanaEntity
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
@@ -33,9 +36,11 @@ import javax.inject.Provider
         TargetEntity::class,
         RecitationSessionEntity::class,
         SandhyaLogEntity::class,
-        PurashcharanaEntity::class
+        PurashcharanaEntity::class,
+        CloudSyncEntity::class,
+        CloudSyncScheduleEntity::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -45,6 +50,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     abstract fun recitationDao(): RecitationDao
     abstract fun sandhyaLogDao(): SandhyaLogDao
     abstract fun purashcharanaDao(): PurashcharanaDao
+    abstract fun cloudSyncDao(): CloudSyncDao
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
@@ -215,6 +221,22 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_recitation_sessions_userId_createdAt_id` " +
+                    "ON `recitation_sessions` (`userId`, `createdAt`, `id`)")
+            }
+        }
+
+        val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `cloud_sync_outbox` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`uid` TEXT NOT NULL, `streamId` TEXT NOT NULL, `kind` TEXT NOT NULL, `payload` TEXT NOT NULL, `createdAtMs` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_cloud_sync_outbox_uid_id` ON `cloud_sync_outbox` (`uid`, `id`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `cloud_sync_schedule` (`uid` TEXT NOT NULL, `nextAttemptAtMs` INTEGER NOT NULL, PRIMARY KEY(`uid`))")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -224,7 +246,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1→v7 migration chain. No destructive fallback: a missing or
+            // Contiguous v1→v9 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -234,7 +256,9 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_3_4,
                 MIGRATION_4_5,
                 MIGRATION_5_6,
-                MIGRATION_6_7
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+                MIGRATION_8_9
             )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

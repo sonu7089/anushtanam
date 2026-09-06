@@ -13,6 +13,7 @@ import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
+import com.mantrasiddhi.data.local.dao.CloudSyncDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -65,4 +66,7 @@ object DatabaseModule {
     fun provideIoDispatcher(): CoroutineDispatcher {
         return Dispatchers.IO
     }
+
+    @Provides
+    fun provideCloudSyncDao(db: MantraSiddhiDatabase): CloudSyncDao = db.cloudSyncDao()
 }

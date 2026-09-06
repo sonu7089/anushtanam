@@ -341,4 +341,43 @@ class MantraSiddhiDatabaseTest {
         }
         migratedDb.close()
     }
+    @Test
+    fun migrate7To8_preservesSessionsAndIndexesRecentHistory() {
+        val name = "migration-test-7-8"
+        migrationHelper.createDatabase(name, 7).apply {
+            execSQL("INSERT INTO recitation_sessions (id, userId, mantraId, mode, overallScore, wordScoresJson, transcription, isCorrect, durationMs, createdAt, correctness, completeness, pronunciation) " +
+                "VALUES (1, 2, 'gayatri', 'NORMAL', 0.9, 'om:0.9', 'om', 1, 5000, 1700000000000, 0.9, 0.9, 0.9)")
+            close()
+        }
+        val migrated = migrationHelper.runMigrationsAndValidate(name, 8, true, MantraSiddhiDatabase.MIGRATION_7_8)
+        migrated.query("SELECT transcription, overallScore FROM recitation_sessions WHERE id = 1").use {
+            assertTrue(it.moveToFirst())
+            assertEquals("om", it.getString(0))
+            assertEquals(0.9, it.getDouble(1), 0.0001)
+        }
+        migrated.query("EXPLAIN QUERY PLAN SELECT * FROM recitation_sessions WHERE userId = 2 ORDER BY createdAt DESC, id DESC LIMIT 20").use {
+            assertTrue(it.moveToFirst())
+            assertTrue(it.getString(3).contains("index_recitation_sessions_userId_createdAt_id"))
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun recentHistory_isBoundedAndOrderedWithExactAggregateStats() = runTest {
+        for (index in 1..100) {
+            recitationDao.insert(RecitationSessionEntity(index.toLong(), 2, "gayatri", "NORMAL", 0.9,
+                "om:0.9", "om", index % 2 == 0, 5000L, index.toLong()))
+        }
+        val recent = recitationDao.getRecentSessionsForUser(2, 20).first()
+        assertEquals(20, recent.size)
+        assertEquals(100L, recent.first().id)
+        assertEquals(81L, recent.last().id)
+        val stats = recitationDao.getStats(2)
+        assertEquals(100, stats.totalSessions)
+        assertEquals(50, stats.correctSessions)
+        assertEquals(500000L, stats.totalDurationMs)
+        assertEquals(0.9, stats.averageScore, 0.0001)
+        assertEquals(0, recitationDao.getStats(3).totalSessions)
+    }
+
 }
