@@ -1,6 +1,6 @@
 # Mentor feedback: product requirements
 
-Status: proposed. Parent document: [change plan](mentor-feedback-plan.md). Engineering details: [implementation plan](mentor-feedback-implementation-plan.md).
+Status: proposed; updated 7 September 2026. Parent document: [change plan](mentor-feedback-plan.md). Engineering details: [implementation plan](mentor-feedback-implementation-plan.md). New publishing scope: [remote notifications and Home content](remote-content-and-notifications.md).
 
 The requested religious guidance comes from the mentor's supplied message. Copy marked “draft” needs editorial review before publication. Recommendations extending that message are explicitly identified.
 
@@ -8,7 +8,7 @@ The requested religious guidance comes from the mentor's supplied message. Copy 
 
 ### 1.1 Today's Sandhya cards
 
-Each period should show its name, local date, solar-event time, reminder time, observance state, Gayatri count, and minimum guidance:
+Each period should show its name, local date, solar-event time, preparation and event-time reminder settings, observance state, Gayatri count, and minimum guidance:
 
 | Period | Mentor's minimum | Example card |
 | --- | ---: | --- |
@@ -100,9 +100,16 @@ Use a large, readable numeric total with a roll-up wheel or stepper and a numeri
 
 ## 3. Teaching and session entry — MF-03, MF-04, MF-05
 
-### 3.1 Show the methods before the first japa
+### 3.1 Show the methods before japa and keep them visible in the app
 
-Use a short “Before you begin” panel before a first-time practitioner starts from Home, Sandhya, the Japa tab, a reminder, or the widget. Keep it accessible later through “How to practise.” Persist a content-version acknowledgement so users need not dismiss a long panel every day.
+Use a short “Before you begin” panel before a first-time practitioner starts from Home, Sandhya, the Japa tab, a reminder, or the widget. MF-03 also requires permanent placement after onboarding: a Home “Gayatri practice guide” card and a compact, visible teaching reminder in Japa and Sandhya. A Settings/Help link alone is insufficient. Keep the full comparison one tap away through “How to practise.”
+
+- [ ] The permanent Home guide shows a short message such as “Gayatri japa: repeat mentally at a steady pace” with “Learn the three methods.” It remains available regardless of the rotating or remotely published teaching.
+- [ ] The Japa and Sandhya pages show a compact reminder near the start action. Users can collapse the longer explanation, but the guide entry remains visible.
+- [ ] Store `guidanceVersion`, `openedAt`, and `acknowledgedAt` per profile; acknowledgement requires an explicit “I have read this” action. Opening or auto-displaying the panel must not set acknowledgement.
+- [ ] If dismissed without acknowledgement, show a gentle “Review the practice guide” prompt on Home and near the next Japa start. Do not block counting or repeatedly open an intrusive modal.
+- [ ] Resurface materially revised guidance for existing users and make it available offline. An optional sync of acknowledgement can carry it to another phone, but the guide is visible on every phone regardless.
+- [ ] Do not claim that an impression or acknowledgement proves understanding. Developer reporting of individual acknowledgements is not required; any later aggregate reporting must distinguish shown, opened, and acknowledged.
 
 Draft primary message:
 
@@ -124,6 +131,8 @@ The mentor describes a progression from external audible practice toward interna
 - [ ] Keep reference audio available on deliberate request. Playing or looping it does not add japa.
 - [ ] Demonstrate the reference pace at normal speed; do not encourage faster completion. Any slower learning aid must be identified as a learning aid, not the recommended daily-japa pace.
 - [ ] Put learning scores in the learning experience; avoid grading a silent session as incorrect because no speech was heard.
+
+Acceptance: a user dismisses onboarding, later finds the permanent Home card and Japa/Sandhya reminder, opens the full three-method guide offline, and acknowledges the current version. The reminder to review clears while the permanent guide stays available. A new remote Home teaching must not hide or replace it.
 
 ### 3.2 Supplied verse and the six cautions
 
@@ -152,24 +161,47 @@ Attribution supplied by the mentor: **पाणिनीयशिक्षा �
 - [ ] Make this guidance directly accessible before practice and from Help; a randomly rotating Home teaching is insufficient for essential instructions.
 - [ ] Review Devanagari, IAST diacritics, pronunciation, text wrapping, attribution, and any explanation of Shruti together with the mentor.
 
-## 4. Preparation reminders — MF-06
+## 4. Sandhya reminder setup and two reminder times — MF-06
 
 ### 4.1 Timing and navigation
 
-- [ ] Default each reminder to **15 minutes before** the selected location's sunrise, solar noon, or sunset.
-- [ ] Show both times, for example: “Sayam at 6:20 PM · Reminder at 6:05 PM.” The setting, preview, scheduler, and notification must agree.
-- [ ] Preserve the user's reminder-enabled choice on upgrade; replace the old implicit 5-minute default with 15 minutes and rearm existing alarms.
-- [ ] Draft notification: “Sayam is at 6:20 PM. Allow time to prepare for your Sandhya.” If delivery was delayed, show the actual event time rather than falsely promising 15 minutes remain.
+- [ ] For each enabled period, schedule **two reminders**: preparation at **15 minutes before** and another **at the Sandhya event time**. With all three periods enabled, this is up to six reminders per day.
+- [ ] Show both reminder stages, for example: “Sayam at 6:20 PM · Prepare at 6:05 PM · Sandhya reminder at 6:20 PM.” The settings, preview, scheduler, and notifications must agree.
+- [ ] Inside Sandhya, provide separate “15 minutes before” and “At Sandhya time” switches. Both default on when enabling reminders; users can turn either off.
+- [ ] Preserve the user's master reminder-enabled choice on upgrade; replace the old implicit 5-minute default with 15 minutes. Explain the added event-time reminder and expose its switch; never turn a disabled master setting on.
+- [ ] Draft preparation notification: “Sayam is at 6:20 PM. Allow time to prepare for your Sandhya.” Draft event notification: “It is time for Sayam Sandhya.” If delayed, show the actual event time rather than falsely saying 15 minutes remain or “now.”
 - [ ] Notification tap opens the matching date and period. Offer “Open Sandhya”/“Record count”; retaining “Mark observed” must not add 64/108/32 automatically.
 - [ ] Preserve account/profile ownership if an old notification is tapped after account switching. Do not record against the newly active profile by accident.
-- [ ] If reminders are enabled inside the 15-minute lead window but before the event, provide one immediate preparation cue and schedule the next occurrence. Avoid silently skipping today's still-upcoming Sandhya.
+- [ ] If enabled inside the 15-minute lead window, retain today's event-time reminder. Offer one immediate preparation cue when useful; proposed default: skip that extra cue if the event is within two minutes, to avoid back-to-back alerts.
+- [ ] If a delayed preparation cue arrives at the same time as the event reminder, coalesce to one event-time notification. Retries must not duplicate either stage.
+- [ ] Proposed default: suppress remaining reminders for an occurrence explicitly marked observed. Logging japa alone does not suppress them. Dismissing the preparation notification must not cancel the event-time reminder.
+- [ ] Both stages refer to the same Sandhya occurrence; they must not create duplicate observance records or count toward japa.
 - [ ] Recompute after location/timezone/clock changes and reboot. Add package-update recovery where needed. Do not notify old dates after long delivery delays.
 
-### 4.2 Reliability and diagnostics
+### 4.2 “Set up reminders” panel inside Sandhyavandhanam
+
+Add a visible “Set up reminders” / “Improve reminder delivery” card in Sandhya, beside the reminder controls. It explains and opens the relevant Android prompts/settings from that screen and rechecks state when the user returns.
+
+| Setup item | Action and status |
+| --- | --- |
+| Notifications | Explain preparation/event reminders, then request notification permission on the user's action. If denied, show “Not allowed” and a route to app notification settings. |
+| Sandhya notification channel | Show allowed/blocked and open that channel's settings for sound/vibration and visibility. Enabling the app preference cannot override a blocked Android channel. |
+| Reminder precision | If the selected implementation qualifies for and uses exact alarms, offer “Allow precise reminders” and open Alarms & reminders special access. Otherwise show the approximate-delivery mode; never display a grant button for unsupported access. |
+| Battery/background settings | Offer optional “Check battery settings” troubleshooting if delivery is restricted. Open available app/system settings, with clear return instructions when a device-specific shortcut is unavailable. |
+| Test and upcoming times | “Send test notification,” plus the next preparation and event-time reminder for each enabled period. Distinguish a posting attempt from the user's confirmation that they saw it. |
+
+- [ ] Clearly show “Ready,” “Notifications blocked,” or “Approximate timing,” with the concrete action needed. A ready state means checks passed, not guaranteed delivery.
+- [ ] Recheck permission and channel state after returning from Android settings and after revocation; rearm eligible reminders without duplicating them.
+- [ ] Keep count tracking usable if permissions are declined. Do not ask for microphone, contacts, background location, or unrelated permissions in reminder setup.
+- [ ] Enabling Sandhya notifications must not opt the user into developer teaching/announcement notifications; those have a separate preference and channel.
+
+Android exposes battery-optimization settings; direct exemption requests have narrower acceptable uses. Make this a targeted settings aid, not an unconditional demand for exemption. [Android Doze and App Standby guidance](https://developer.android.com/training/monitoring-device-state/doze-standby).
+
+### 4.3 Reliability and diagnostics
 
 The existing scheduler requests inexact alarms. Android may defer delivery; scheduling for 15 minutes before an event is not a guarantee of an exact arrival time. Reuse the background alarm mechanism and measure actual delivery before deciding whether another precision strategy is needed. Exact alarms have additional access requirements; do not assume the app qualifies for a particular permission merely from its feature name. [Android alarm guidance](https://developer.android.com/develop/background-work/services/alarms/schedule).
 
-- [ ] Provide reminder status: enabled periods, selected location/timezone, next scheduled times, and app/channel notification availability.
+- [ ] Provide reminder status: enabled periods/stages, selected location/timezone, both next scheduled times, and app/channel notification availability.
 - [ ] Offer a user-triggered test notification and a link to the relevant notification settings when blocked.
 - [ ] Request notification permission in context when enabling reminders. Android 13+ requires runtime notification permission for this flow. [Android notification permission](https://developer.android.com/develop/ui/compose/notifications/notification-permission).
 - [ ] Keep debugging data for scheduled time, receiver time, posting attempt/result, and rearm result, without logging unnecessary personal data.
@@ -177,7 +209,7 @@ The existing scheduler requests inexact alarms. Android may defer delivery; sche
 - [ ] Treat an explicit system force-stop separately from ordinary app closure. Document platform restrictions and recovery; do not promise to bypass a force-stop.
 - [ ] Do not require internet or repeated live location access once a location is saved.
 
-Pass criterion: reproduce and explain the mentor's reported failure on their phone or an equivalent configuration, then demonstrate a background reminder and the next day's rearming. Emulator-only success does not close this defect.
+Pass criterion: reproduce and explain the mentor's reported failure on their phone or an equivalent configuration, then demonstrate the setup flow, a preparation reminder at the requested -15-minute offset, an event-time reminder, and the next day's rearming without reopening the app. Record actual timing and supported conditions; emulator-only success does not close this defect. Test denied/revoked permissions, one stage disabled, observed-before-event suppression, late enablement, and delayed-stage coalescing.
 
 ## 5. Google sign-in, profile, and recovery — MF-07, MF-08
 
@@ -227,3 +259,15 @@ Show the next Sandhya reminder in the expanded widget, allow a deliberate “Rec
 - [ ] Keep count saves responsive and local, even with hundreds of repetitions or no network.
 - [ ] Avoid repeated prompts, audible celebrations, speed rewards, and full-screen interruptions during mental japa.
 - [ ] Update Home, Sandhya, Japa, Purashcharana, Progress, Settings, notifications, Help, debug review fixtures, and relevant screenshots together so terminology and behavior remain consistent.
+
+## 8. Developer announcements and dynamic Home content — MF-10, MF-11
+
+This is an additional requested P1 release stage. The full product/admin flow, architecture, and acceptance tests are in [Remote notifications and Home content](remote-content-and-notifications.md).
+
+- [ ] Authorized developers can draft, preview, test-send, send/schedule, cancel, and inspect a teaching/message campaign.
+- [ ] Users can independently enable “Teachings and messages,” set quiet hours, and read published Home content with that notification preference off.
+- [ ] Home has a remotely managed teaching/message area with a full-content destination, cached content, bundled fallback, and expiry handling. The permanent MF-03 practice guide remains visible separately.
+- [ ] Developers can publish, reorder/pin, schedule, edit, unpublish, and restore a supported content revision without another application release.
+- [ ] A Home publish or edit does not automatically send a push; sending is a separate intentional admin action.
+- [ ] Notification taps open the matching content, including from a cold launch. Old, expired, unpublished, or incompatible content has a clear fallback.
+- [ ] After the initial supporting app release, verify both a remote Home-content update and a test campaign on an already installed compatible app without updating its APK.
