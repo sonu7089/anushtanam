@@ -41,7 +41,7 @@ class SandhyaAlarmReceiver : BroadcastReceiver() {
 
                 withTimeoutOrNull(WORK_BUDGET_MS) {
                     val settings = entryPoint.preferences().current()
-                    if (!settings.enabled) return@withTimeoutOrNull
+                    if (!settings.enabled || settings.userId <= 0L) return@withTimeoutOrNull
                     val zone = settings.zone()
                     val dateKey = extraDateKey ?: SandhyaDateKey.of(
                         if (eventMillis > 0L) eventMillis else System.currentTimeMillis(),
@@ -53,7 +53,7 @@ class SandhyaAlarmReceiver : BroadcastReceiver() {
                         entryPoint.logRepository()
                             .logNotified(settings.userId, period, eventMillis, dateKey)
                     }
-                    entryPoint.notifier().showReminder(period, eventMillis, zone, dateKey)
+                    entryPoint.notifier().showReminder(period, eventMillis, zone, dateKey, settings.userId)
                 }
             } finally {
                 pending.finish()

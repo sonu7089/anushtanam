@@ -18,12 +18,24 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Keep this resource present even before Google is enabled in Firebase. Referencing it
+// directly also prevents the release resource shrinker from removing the OAuth client ID.
+val googleConfig = groovy.json.JsonSlurper().parse(file("google-services.json")) as Map<*, *>
+val googleClient = (googleConfig["client"] as? List<*>)?.filterIsInstance<Map<*, *>>()?.firstOrNull {
+    val info = it["client_info"] as? Map<*, *>
+    val androidInfo = info?.get("android_client_info") as? Map<*, *>
+    androidInfo?.get("package_name") == "shastralife.anushtanam"
+}
+val googleWebClientId = (googleClient?.get("oauth_client") as? List<*>)
+    ?.filterIsInstance<Map<*, *>>()?.firstOrNull { it["client_type"] == 3 }?.get("client_id") as? String ?: ""
+
 android {
     namespace = "com.mantrasiddhi"
     compileSdk = 36
 
     defaultConfig {
         applicationId = "shastralife.anushtanam"
+        resValue("string", "google_sign_in_web_client_id", googleWebClientId)
         minSdk = 33
         // targetSdk 36 (Android 16): required by Play policy from Aug 31, 2026.
         targetSdk = 36
@@ -122,6 +134,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.google.code.scanner)
+    implementation(libs.zxing.core)
     implementation(project(":core:domain"))
     implementation(project(":core:data"))
     implementation(project(":core:resources"))
@@ -160,6 +174,10 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
+    implementation(libs.coil.compose)
 
     // Local/Unit Tests
     testImplementation(libs.junit) // Fallback / standard junit4

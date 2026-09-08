@@ -22,6 +22,15 @@ import com.mantrasiddhi.domain.repository.TargetRepository
 import com.mantrasiddhi.domain.repository.TargetSyncRepository
 import com.mantrasiddhi.domain.repository.UserRepository
 import javax.inject.Inject
+import javax.inject.Singleton
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import com.mantrasiddhi.data.sandhya.SandhyaScheduler
 
 /**
  * Bridges a signed-in cloud [AuthAccount] to the local Room [UserProfile] world that
@@ -34,6 +43,7 @@ import javax.inject.Inject
  *
  * @return the local Room profile id now active in the session.
  */
+@Singleton
 class SyncSignedInUserUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
@@ -42,25 +52,66 @@ class SyncSignedInUserUseCase @Inject constructor(
     private val targetRepository: TargetRepository,
     private val targetSyncRepository: TargetSyncRepository,
     private val purashcharanaRepository: PurashcharanaRepository,
-    private val purashcharanaSyncRepository: PurashcharanaSyncRepository
+    private val purashcharanaSyncRepository: PurashcharanaSyncRepository,
+    private val auth: FirebaseAuth,
+    private val sandhyaScheduler: SandhyaScheduler
 ) {
-    suspend operator fun invoke(account: AuthAccount): Long {
+    private val mutex = Mutex()
+
+    /** Only profiles with real saved practice are offered, never the seeded demo profiles. */
+    suspend fun profilesForImport(account: AuthAccount): List<UserProfile> = mutex.withLock {
+        if (account.role == AccountRole.CHILD) return@withLock emptyList()
+        if (mappedProfile(account.uid) != null) return@withLock emptyList()
+        userRepository.getAll().first().filter {
+            it.firebaseUid == null && it.profileType != ProfileType.CHILD &&
+                userPreferencesDataStore.getOwnerOfLocalProfile(it.id) == null && userRepository.hasPractice(it.id)
+        }
+    }
+
+    private suspend fun mappedProfile(uid: String): UserProfile? =
+        userRepository.getByFirebaseUid(uid)
+            ?: userPreferencesDataStore.getLocalProfileId(uid)?.let { userRepository.getById(it) }
+
+    suspend operator fun invoke(account: AuthAccount): Long = sync(account, null)
+
+    /** Reuses the same row, so history and local family links are associated exactly once. */
+    suspend fun importProfile(account: AuthAccount, profileId: Long): Long = sync(account, profileId)
+
+    private suspend fun sync(account: AuthAccount, importId: Long?): Long = mutex.withLock {
+        check(!account.needsChildPinSetup)
+        check(account.role != AccountRole.CHILD || importId == null)
+        check(auth.currentUser?.uid == account.uid) { "Please sign in again to open your practice." }
         val profileType = when (account.role) {
+            AccountRole.INDIVIDUAL -> ProfileType.INDIVIDUAL
             AccountRole.PARENT -> ProfileType.PARENT
             AccountRole.CHILD -> ProfileType.CHILD
         }
         val name = account.displayName.ifBlank {
-            if (account.role == AccountRole.CHILD) "Child" else "Parent"
+            if (account.role == AccountRole.CHILD) "Child" else "Friend"
         }
 
         // Reuse the local profile previously mapped to this cloud account, if present.
-        val mappedId = userPreferencesDataStore.getLocalProfileId(account.uid)
-        val existing = mappedId?.let { userRepository.getById(it) }
+        val mapped = mappedProfile(account.uid)
+        check(mapped?.firebaseUid == null || mapped.firebaseUid == account.uid)
+        check(importId == null || mapped == null || mapped.id == importId) {
+            "This account already has a profile. Your saved practice has not been moved."
+        }
+        val existing = mapped ?: importId?.let { id ->
+            val candidate = userRepository.getById(id) ?: error("Please choose your profile again.")
+            check(candidate.firebaseUid == null && candidate.profileType != ProfileType.CHILD &&
+                userPreferencesDataStore.getOwnerOfLocalProfile(id) == null)
+            candidate
+        }
 
         val localId: Long = if (existing != null) {
-            // Keep the local profile in sync with the cloud display name/role.
+            // Existing names and family roles may have been chosen locally. Keep them.
             userRepository.insert(
-                existing.copy(name = name, profileType = profileType)
+                existing.copy(
+                    name = existing.name.ifBlank { name },
+                    firebaseUid = account.uid,
+                    photoUrl = if (existing.photoSource in listOf(null, "GOOGLE")) account.photoUrl ?: existing.photoUrl else existing.photoUrl,
+                    photoSource = existing.photoSource ?: account.photoSource
+                )
             )
             existing.id
         } else {
@@ -70,43 +121,56 @@ class SyncSignedInUserUseCase @Inject constructor(
                     name = name,
                     profileType = profileType,
                     parentId = null,
-                    avatarIndex = account.uid.hashCode().let { kotlin.math.abs(it) % 4 }
+                    avatarIndex = Math.floorMod(account.uid.hashCode(), 4),
+                    firebaseUid = account.uid,
+                    photoUrl = account.photoUrl,
+                    photoSource = account.photoSource
                 )
             )
-            userPreferencesDataStore.setLocalProfileId(account.uid, newId)
             newId
         }
 
+        // Room owns the association. A crash before this compatibility write cannot duplicate it.
+        userPreferencesDataStore.setLocalProfileId(account.uid, localId)
+
         val profile = userRepository.getById(localId)
             ?: UserProfile(id = localId, name = name, profileType = profileType, parentId = null, avatarIndex = 0)
-        sessionRepository.login(profile)
+        currentCoroutineContext().ensureActive()
+        check(auth.currentUser?.uid == account.uid)
         sandhyaPreferences.setUserId(localId)
+        check(auth.currentUser?.uid == account.uid)
+        sessionRepository.login(profile)
+        runCatching { sandhyaScheduler.scheduleAll() }
 
         // Restore the mirrored active self-target after a reinstall / new device:
         // only when Room has no active target (never clobber local state), and
         // best-effort — an offline login simply skips the restore.
-        runCatching {
+        withTimeoutOrNull(4_000) { runCatching {
+            check(auth.currentUser?.uid == account.uid)
             if (targetRepository.getActiveForUser(localId) == null) {
                 targetSyncRepository.fetchActive()?.let { mirrored ->
+                    check(auth.currentUser?.uid == account.uid)
                     targetRepository.create(
                         mirrored.copy(userId = localId, setByUserId = localId)
                     )
                 }
             }
-        }
+        } }
 
         // Restore the mirrored Purashcharana. A sankalpa is 24,00,000 japa — years of
         // work — so unlike the target restore this one also runs when a local sankalpa
         // already exists, to raise a count the cloud knows to be higher. The decision
         // itself is pure (see PurashcharanaReconciler) and can only ever raise; an
         // offline login simply skips it.
-        runCatching {
+        withTimeoutOrNull(4_000) { runCatching {
             // Drop anything the mirror's throttle is still holding first. It may have been
             // captured before this account signed in, and writing it after the reconcile
             // would push a superseded count back over the record we are about to adopt.
             purashcharanaSyncRepository.discardPending()
             val local = purashcharanaRepository.getActive(localId)
+            check(auth.currentUser?.uid == account.uid)
             val remote = purashcharanaSyncRepository.fetchMirrored()
+            check(auth.currentUser?.uid == account.uid)
             when (val action = PurashcharanaReconciler.resolve(local, remote)) {
                 is PurashcharanaReconcileAction.Restore ->
                     purashcharanaRepository.adoptRemote(localId, action.remote)
@@ -114,8 +178,10 @@ class SyncSignedInUserUseCase @Inject constructor(
                     purashcharanaRepository.adoptRemote(localId, action.merged)
                 PurashcharanaReconcileAction.None -> Unit
             }
-        }
+        } }
 
-        return localId
+        currentCoroutineContext().ensureActive()
+        check(auth.currentUser?.uid == account.uid)
+        localId
     }
 }

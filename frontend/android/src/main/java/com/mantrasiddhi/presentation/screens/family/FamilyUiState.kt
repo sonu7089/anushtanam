@@ -16,6 +16,9 @@ import com.mantrasiddhi.domain.model.ParentChildLink
 data class FamilyUiState(
     val account: AuthAccount? = null,
     val isBusy: Boolean = false,
+    val errorRes: Int? = null,
+    val qrInvite: com.mantrasiddhi.domain.model.FamilyQrInvite? = null,
+    val linkedParents: List<ParentChildLink> = emptyList(),
     // Parent
     val linkedChildren: List<ParentChildLink> = emptyList(),
     val selectedChild: ParentChildLink? = null,

@@ -15,6 +15,7 @@ object SandhyaContract {
 
     const val EXTRA_PERIOD = "com.mantrasiddhi.extra.PERIOD"
     const val EXTRA_DATE_KEY = "com.mantrasiddhi.extra.DATE_KEY"
+    const val EXTRA_USER_ID = "com.mantrasiddhi.extra.USER_ID"
 
     /** The solar-event time (epoch ms) the reminder is for; the alarm fires earlier. */
     const val EXTRA_EVENT_MILLIS = "com.mantrasiddhi.extra.EVENT_MILLIS"

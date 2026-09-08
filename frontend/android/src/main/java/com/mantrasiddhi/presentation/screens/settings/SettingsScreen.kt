@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.presentation.components.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mantrasiddhi.presentation.screens.auth.*
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier: Modifier = Modifier) {
@@ -21,6 +23,10 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
     val currentUser by viewModel.currentUser.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
+    val googleViewModel: GoogleAuthViewModel = hiltViewModel()
+    val googleState by googleViewModel.state.collectAsState()
+    val observedAccount by googleViewModel.account.collectAsState()
+    val account = googleState.account ?: observedAccount
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
@@ -31,19 +37,26 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
     }
     SettingsContent(currentUser, themeMode, languageDisplay,
         viewModel::setThemeMode, viewModel::setLanguageDisplay,
-        viewModel::logout, modifier)
+        viewModel::logout, modifier,
+        accountContent = {
+            GoogleAccountContent(account, googleState,
+                { account?.let { googleViewModel.start(context, linkTo = it) } },
+                googleViewModel::retryProfile, googleViewModel::continueWithProfile, googleViewModel::refreshProfile)
+        }, signOutEnabled = !googleState.busy)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisplay: String,
     onTheme: (String) -> Unit, onLanguage: (String) -> Unit,
-    onLogout: () -> Unit, modifier: Modifier = Modifier) {
+    onLogout: () -> Unit, modifier: Modifier = Modifier,
+    accountContent: @Composable () -> Unit = {},
+    signOutEnabled: Boolean = true) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            Box(Modifier.fillMaxWidth().heightIn(min = 152.dp)) {
-                LotusArtwork(LotusArt.JASMINE, Modifier.align(Alignment.CenterEnd).width(110.dp).height(180.dp))
+            Box(Modifier.fillMaxWidth()) {
+                LotusArtwork(LotusArt.JASMINE, Modifier.align(Alignment.TopEnd).fillMaxWidth(0.22f).height(120.dp))
                 Column(Modifier.fillMaxWidth(0.74f).padding(vertical = 16.dp)) {
                     Text(stringResource(R.string.lotus_settings_intro), style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
@@ -52,21 +65,22 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                 }
             }
             user?.let {
-                LotusCard(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ProfileAvatar(it.avatarIndex, it.name, 56.dp)
-                            Spacer(Modifier.width(16.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(it.name, style = MaterialTheme.typography.headlineSmall)
-                                Text(stringResource(if (it.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT) R.string.badge_parent else R.string.badge_child), style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.secondary)
-                            }
+                Column(Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ProfileAvatar(it.avatarIndex, it.name, 56.dp,
+                            photoUrl = it.photoUrl.takeIf { _ -> it.useGooglePhoto })
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(it.name, style = MaterialTheme.typography.headlineSmall)
+                            Text(stringResource(when (it.profileType) {
+                                com.mantrasiddhi.domain.model.ProfileType.PARENT -> R.string.badge_parent
+                                com.mantrasiddhi.domain.model.ProfileType.CHILD -> R.string.badge_child
+                                com.mantrasiddhi.domain.model.ProfileType.INDIVIDUAL -> R.string.badge_individual
+                            }), style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary)
                         }
-                        Spacer(Modifier.height(16.dp))
-                        Text(stringResource(R.string.settings_change_profile_description),
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    accountContent()
                 }
             }
             Column {
@@ -98,7 +112,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 AboutRow(R.string.settings_about_speech_engine, R.string.settings_about_speech_engine_value)
             }
-            OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text(stringResource(R.string.settings_switch_profile))
             }
             Spacer(Modifier.height(8.dp))

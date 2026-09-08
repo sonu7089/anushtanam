@@ -44,7 +44,7 @@ class SandhyaScheduler @Inject constructor(
     /** Re-arms every period if enabled, or cancels everything if disabled. */
     suspend fun scheduleAll() {
         val settings = preferences.current()
-        if (!settings.enabled) {
+        if (!settings.enabled || settings.userId <= 0L) {
             cancelAll()
             return
         }
@@ -54,7 +54,7 @@ class SandhyaScheduler @Inject constructor(
     /** Re-arms a single period (used by the alarm receiver after it fires). */
     suspend fun scheduleNext(period: SandhyaPeriod) {
         val settings = preferences.current()
-        if (!settings.enabled) {
+        if (!settings.enabled || settings.userId <= 0L) {
             cancel(period)
             return
         }

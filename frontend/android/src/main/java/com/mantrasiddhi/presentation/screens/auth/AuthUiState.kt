@@ -25,5 +25,6 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     @StringRes val errorMessageResId: Int? = null,
     val errorDetail: String? = null,
-    val generatedChildId: String? = null
+    val generatedChildId: String? = null,
+    val needsProfileRetry: Boolean = false
 )

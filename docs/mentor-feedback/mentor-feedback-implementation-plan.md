@@ -183,6 +183,8 @@ Inexact alarms and access requirements for exact alarms are documented by Androi
 
 ## 6. Google sign-in and profile photos — P1
 
+MF-07 source implementation and verification are described in [MF-07 implementation](mf-07-implementation.md). Firebase OAuth configuration and checks with real accounts are still needed before release.
+
 - [ ] Add compatible Credential Manager/Google ID dependencies and exchange a selected Google ID token for a Firebase credential. Keep Android SDK types out of domain contracts.
 - [ ] Configure the provider, required signing fingerprints for the distributed builds, web client ID, and refreshed Firebase configuration in the appropriate environment. Verify the actual configuration; source inspection did not inspect the live Firebase console. [Firebase setup](https://firebase.google.com/docs/auth/android/google-signin).
 - [ ] Add auth events/results for cancellation, credential selection, sign-in, linking, retry, and session recovery.

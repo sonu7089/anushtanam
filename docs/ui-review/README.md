@@ -1,5 +1,30 @@
 # Lotus UI review
 
+## Child Google sign-in and direct family linking
+
+The child sign-in page now offers Google. Family connects by QR or by ID and PIN. The QR screenshot uses an inactive local fixture, not a real invitation.
+
+- [Child sign-in, light](child-auth-light-family-google.png) and [dark](child-auth-dark-family-google.png).
+- [New child PIN setup](child-google-pin-light-family-google.png).
+- [Link Google in child Settings](settings-child-google-light-family-google.png).
+- [Parent Family page](family-light-family-google.png).
+- [Child Family page](family-child-light-family-google.png).
+- [Child QR code, light](family-child-qr-light-family-google.png) and [dark](family-child-qr-dark-family-google.png). The page brings the complete code into view when it opens.
+
+See the [implementation and setup notes](../mentor-feedback/child-google-family-linking.md).
+
+## MF-07: Google sign-in and profile photos
+
+Reviewed on an API 37 emulator with separate app data. These screens use the production components. The Settings pages use sample accounts and show the initial fallback for a missing photo.
+
+- [Adult sign-in, light](parent-auth-light-mf-seven.png) and [dark](parent-auth-dark-mf-seven.png).
+- [Link Google to an existing account](settings-link-google-light-mf-seven.png).
+- [Linked profile, light](settings-google-light-mf-seven.png) and [dark](settings-google-dark-mf-seven.png).
+
+See [MF-07 implementation and Firebase setup](../mentor-feedback/mf-07-implementation.md) for test results and the remaining live account checks.
+
+## Earlier reviews
+
 Captured from the Android debug build on an API 37 emulator. These are production Compose components with local sample profiles, counts, and targets. No account was created and no cloud data was seeded for the gallery. Practice and recitation show representative component states; the recording screenshot does not represent a live microphone session.
 
 ## Navigation, mala, and reflection polish, 6 September 2026
@@ -71,3 +96,25 @@ See [verification and scope](../ui-refinement.md).
 Install the debug APK, then run `scripts/capture-ui.ps1 -Serial <emulator-serial>`. Use `-Dark` for the dark theme, `-Pages home,settings` to select pages, and `-Suffix compact` to name captures made at a different display configuration. Use `-AdbPath` and `-AdbServerPort` when running a specific SDK executable or an isolated ADB server. The script waits for an idle rendered window before capture. It does not change screen size or font scale.
 
 The review activity is debug-only and excluded from the release app. Its bottom tabs navigate between fixtures. Authentication forms retain their real handlers; use those forms only for visual inspection unless you intend to sign in.
+
+## Simplified sign-in and Settings
+
+The latest screens show the sign-in fields, Login, then "or" and Google. The role question, account advice, photo switch and routine sync messages have been removed.
+
+| Screen | Light | Dark |
+| --- | --- | --- |
+| Parent sign-in | [Open](parent-auth-light-simple-signin.png) | [Open](parent-auth-dark-simple-signin.png) |
+| Child sign-in | [Open](child-auth-light-simple-signin.png) | [Open](child-auth-dark-simple-signin.png) |
+| Settings with Google | [Open](settings-google-light-simple-signin.png) | [Open](settings-google-dark-simple-signin.png) |
+| Link Google | [Open](settings-link-google-light-simple-signin.png) | |
+
+## Home and Settings spacing
+
+The streak sits at the right edge of the daily count, wrapping below it on compact screens. Settings uses a smaller flower area and shows the profile higher on the page without a card border or background. The debug build and four existing Home and Settings UI checks pass.
+
+| Screen | Light | Dark | 320dp, larger text |
+| --- | --- | --- | --- |
+| Home | [Open](home-light-spacing.png) | [Open](home-dark-spacing.png) | [Open](home-light-spacing-compact.png) |
+| Settings with Google | [Open](settings-google-light-spacing.png) | [Open](settings-google-dark-spacing.png) | [Open](settings-google-light-spacing-compact.png) |
+
+[Settings with bottom navigation](settings-light-spacing.png). The compact Home capture is scrolled to show the full streak.

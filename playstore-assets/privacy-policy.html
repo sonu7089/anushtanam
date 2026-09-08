@@ -20,7 +20,7 @@
 <body>
 
 <h1>Privacy Policy for Anushtanam</h1>
-<p class="updated">Last updated: 23 July 2026</p>
+<p class="updated">Last updated: 8 September 2026</p>
 
 <div class="callout">
   <strong>Summary:</strong> Anushtanam is a mantra practice app. Most of what you do — reciting,
@@ -68,6 +68,11 @@
     <td>Cloud Firestore.</td>
   </tr>
   <tr>
+    <td>Google account name, email address and profile photo link, if you choose Google sign-in</td>
+    <td>To sign in and show your profile.</td>
+    <td>Firebase Authentication, Cloud Firestore and the private database on your phone. A cached photo may stay on your phone until the cache or app storage is cleared.</td>
+  </tr>
+  <tr>
     <td>Account identifiers (user ID, link codes, child code)</td>
     <td>To manage accounts and to link a parent to a child profile.</td>
     <td>Firebase Authentication and Cloud Firestore.</td>
@@ -95,6 +100,13 @@
 
 <h2>4. How we use your data</h2>
 <p>
+  Google sign-in does not give us access to your Google Photos library, contacts or email messages.
+  Linking Google to an existing account keeps the same account and family links. If you connect a
+  profile saved only on this phone, we ask you to choose the profile and show the account it will belong to.
+  Its detailed practice history and Sandhya records stay on this phone. Google sign-in alone does not
+  back them up. Active goals and Purashcharana counts use the app's existing sync features.
+</p>
+<p>
   We use the data above only to provide the app's features: creating and securing accounts, linking a
   parent to a child profile, syncing practice goals, and sending reminders/notifications. We do not use
   it for advertising or profiling, and we do not sell it.
@@ -110,18 +122,22 @@
 
 <h2>6. Children's privacy</h2>
 <p>
-  Anushtanam is intended for family use, including children, and supports child profiles that a parent
-  sets up and manages. A child profile is created and linked by a parent using a link code; child
-  profiles use a synthetic internal identifier rather than a real email address. For a child profile we
-  store the child's chosen profile name, practice goals/progress, and the parent–child link so a parent
-  can follow along.
+  Children can sign in with their own Google account or with an app-generated 12-digit ID and a
+  6-digit PIN. Each Google account belongs to one profile. If a child chooses Google, we use the
+  name, email address and available profile photo link that Google provides.
 </p>
 <p>
-  We collect only what is needed to provide these features, we do not use children's data for
-  advertising, and we do not sell it. We do not knowingly collect personal information from a child
-  beyond what a parent provides when setting up and using the profile. A parent can review or request
-  deletion of a child's profile and associated data at any time by contacting us at the email below or
-  by using the in-app options.
+  A parent can connect by entering the child's ID and PIN, or by scanning a QR code shown in the
+  child's app. Both methods connect the accounts directly. Firebase Authentication checks the PIN;
+  the app does not store it in Firestore, the QR code or its local database. QR codes contain a random
+  invitation token. They work once and expire after five minutes. Making a new code disables the old
+  one. We store the invitation, creation time and the account that used it in Cloud Firestore.
+  Expired invitations cannot be used, even if their records remain stored.
+</p>
+<p>
+  A connected parent can see the child's profile name, shared practice progress and goals.
+  We do not use children's data for advertising or sell it. A parent can request deletion of a
+  child's profile and associated data by contacting us at the email below.
 </p>
 
 <h2>7. Data retention and deletion</h2>

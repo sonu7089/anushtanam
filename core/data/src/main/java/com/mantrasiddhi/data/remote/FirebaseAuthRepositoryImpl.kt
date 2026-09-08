@@ -6,6 +6,29 @@
  */
 package com.mantrasiddhi.data.remote
 
+import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.ClearCredentialStateRequest
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.firestore.Source
+import com.google.firebase.firestore.SetOptions
+import com.mantrasiddhi.domain.model.GoogleAuthFailure
+import com.mantrasiddhi.domain.model.GoogleAuthProblem
+import com.mantrasiddhi.data.preferences.SandhyaPreferences
+import com.mantrasiddhi.domain.repository.SessionRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import androidx.core.app.NotificationManagerCompat
+import com.mantrasiddhi.data.sandhya.SandhyaScheduler
+import com.mantrasiddhi.domain.repository.UserRepository
+import com.mantrasiddhi.domain.model.ProfileType
+
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -20,6 +43,7 @@ import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -37,32 +61,36 @@ import javax.inject.Singleton
 class FirebaseAuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val messaging: FirebaseMessaging
+    private val messaging: FirebaseMessaging,
+    @ApplicationContext private val context: Context,
+    private val sessionRepository: SessionRepository,
+    private val sandhyaPreferences: SandhyaPreferences,
+    private val sandhyaScheduler: SandhyaScheduler,
+    private val profiles: UserRepository
 ) : AuthRepository {
 
     private val random = SecureRandom()
+    private val accountChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     override val currentAccount: Flow<AuthAccount?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-            val user = firebaseAuth.currentUser
+        var loading: Job? = null
+        fun publish(user: FirebaseUser?) {
+            loading?.cancel()
             if (user == null) {
                 trySend(null)
             } else {
-                // Load the mirror doc; if it can't be read (e.g. offline), fall back to
-                // inferring the account shape from the email so auto-login still works.
-                firestore.collection(FirebaseContract.COLLECTION_USERS)
-                    .document(user.uid)
-                    .get()
-                    .addOnSuccessListener { snap ->
-                        trySend(snap.toAuthAccount(user.uid, user.email, user.displayName))
+                loading = launch {
+                    val account = loadAccount(user.uid, user.email, user.displayName)
+                    if (auth.currentUser?.uid == user.uid) {
+                        trySend(account.withIdentity(user))
                     }
-                    .addOnFailureListener {
-                        trySend(inferAccount(user.uid, user.email, user.displayName))
-                    }
+                }
             }
         }
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth -> publish(firebaseAuth.currentUser) }
+        val changes = launch { accountChanges.collect { publish(auth.currentUser) } }
         auth.addAuthStateListener(listener)
-        awaitClose { auth.removeAuthStateListener(listener) }
+        awaitClose { loading?.cancel(); changes.cancel(); auth.removeAuthStateListener(listener) }
     }
 
     override suspend fun signUpParent(
@@ -87,6 +115,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
             .set(data).awaitResult()
 
+        accountChanges.tryEmit(Unit)
         AuthAccount(uid = uid, role = AccountRole.PARENT, displayName = displayName, email = email.trim())
     }
 
@@ -142,6 +171,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
                 .set(data).awaitResult()
 
+            accountChanges.tryEmit(Unit)
             AuthAccount(
                 uid = uid,
                 role = AccountRole.CHILD,
@@ -169,7 +199,180 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         }
 
     override suspend fun signOut() {
-        auth.signOut()
+        // Clear the local owner first. Outbox rows keep the UID captured when saved.
+        sessionRepository.logout()
+        try { sandhyaPreferences.setUserId(0L) } finally { auth.signOut() }
+        sandhyaScheduler.cancelAll()
+        NotificationManagerCompat.from(context).cancelAll()
+        withTimeoutOrNull(3_000) {
+            try {
+                CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Firebase is already signed out. An unavailable provider must not trap the user.
+            }
+        }
+    }
+
+    override suspend fun signInWithGoogle(idToken: String, newAccountRole: AccountRole): Result<AuthAccount> =
+        googleResult {
+            if (auth.currentUser != null) throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+            val user = auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))
+                .awaitResult().signedInUser()
+            try {
+                // Resolve the saved role online before opening a profile. A parent's Google
+                // account must never become a child account by choosing the child sign-in page.
+                val saved = firestore.collection(FirebaseContract.COLLECTION_USERS)
+                    .document(user.uid).get(Source.SERVER).awaitResult()
+                val role = saved.getString(FirebaseContract.FIELD_ROLE)
+                    ?.let { value -> AccountRole.entries.firstOrNull { it.name == value } }
+                if (role != null && (role == AccountRole.CHILD) != (newAccountRole == AccountRole.CHILD)) {
+                    throw GoogleAuthFailure(GoogleAuthProblem.ROLE_MISMATCH)
+                }
+                val account = googleAccount(user, role ?: newAccountRole)
+                if (!saved.exists() && account.profileNeedsSync) {
+                    throw GoogleAuthFailure(GoogleAuthProblem.OFFLINE)
+                }
+                account
+            } catch (failure: Exception) {
+                if (auth.currentUser?.uid == user.uid) auth.signOut()
+                throw failure
+            }
+        }
+
+    override suspend fun linkGoogle(idToken: String, expectedUid: String): Result<AuthAccount> = googleResult {
+        val user = auth.currentUser
+            ?.takeIf { it.uid == expectedUid }
+            ?: throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+        val before = loadAccount(user.uid, user.email, user.displayName)
+        val linkedUser = if (user.providerData.none { it.providerId == GoogleAuthProvider.PROVIDER_ID }) {
+            user.linkWithCredential(GoogleAuthProvider.getCredential(idToken, null)).awaitResult().signedInUser()
+        } else {
+            user.reauthenticate(GoogleAuthProvider.getCredential(idToken, null)).awaitResult()
+            user
+        }
+        check(linkedUser.uid == expectedUid)
+        // Linking preserves the existing UID, cloud role, name and family documents.
+        googleAccount(linkedUser, before.role)
+    }
+
+    override suspend fun refreshAccount(): Result<AuthAccount> = googleResult {
+        val user = auth.currentUser ?: throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+        // Never invent a role for a Google sign-in interrupted before profile creation.
+        val saved = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
+            .get(Source.SERVER).awaitResult()
+        if (!saved.exists()) throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+        val existing = saved.toAuthAccount(user.uid, user.email, user.displayName).withIdentity(user)
+        if (existing.googleLinked) googleAccount(user, existing.role) else existing
+    }
+
+    override suspend fun completeChildGoogleSetup(pin: String, expectedUid: String): Result<AuthAccount> = googleResult {
+        require(pin.matches(Regex("[0-9]{6}")))
+        val user = auth.currentUser?.takeIf { it.uid == expectedUid }
+            ?: throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+        val snapshot = firestore.collection(FirebaseContract.COLLECTION_USERS)
+            .document(user.uid).get(Source.SERVER).awaitResult()
+        if (snapshot.getString(FirebaseContract.FIELD_ROLE) != AccountRole.CHILD.name) {
+            throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
+        }
+        val account = googleAccount(user, AccountRole.CHILD)
+        val code = account.linkCode ?: throw GoogleAuthFailure(GoogleAuthProblem.OFFLINE)
+        if (user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID }) {
+            user.linkWithCredential(EmailAuthProvider.getCredential(FirebaseContract.childEmail(code), pin))
+                .awaitResult()
+        }
+        // A retry after an interrupted response must reuse the same ID and Firebase UID.
+        user.reload().awaitResult()
+        accountChanges.tryEmit(Unit)
+        return@googleResult loadAccount(user.uid, user.email, user.displayName).withIdentity(user)
+    }
+
+    private suspend fun googleAccount(user: FirebaseUser, fallbackRole: AccountRole): AuthAccount {
+        val google = user.providerData.firstOrNull { it.providerId == GoogleAuthProvider.PROVIDER_ID }
+        val photo = google?.photoUrl?.toString()?.takeIf { it.startsWith("https://") }
+        // A failed profile write is recoverable on the next sign-in. Never wait for a photo download.
+        val mirrored = withTimeoutOrNull(8_000) {
+            try {
+                if (fallbackRole == AccountRole.CHILD) ensureGoogleChildIdentity(user)
+                val ref = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
+                firestore.runTransaction { transaction ->
+                    val existing = transaction.get(ref)
+                    val fields = mutableMapOf<String, Any?>()
+                    if (!existing.exists()) {
+                        fields[FirebaseContract.FIELD_ROLE] = fallbackRole.name
+                        fields[FirebaseContract.FIELD_DISPLAY_NAME] = user.displayName ?: google?.displayName.orEmpty()
+                        fields[FirebaseContract.FIELD_CREATED_AT] = FieldValue.serverTimestamp()
+                    }
+                    if (existing.getString("photoSource") in listOf(null, "GOOGLE")) {
+                        fields["photoUrl"] = photo
+                        fields["photoSource"] = "GOOGLE"
+                    }
+                    transaction.set(ref, fields, SetOptions.merge())
+                }.awaitResult()
+                true
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { false }
+        } == true
+        return loadAccount(user.uid, user.email, user.displayName).let {
+            // The mirror is authoritative for returning accounts.
+            it.copy(photoUrl = it.photoUrl ?: photo,
+                role = if (it.profileNeedsSync) fallbackRole else it.role,
+                profileNeedsSync = !mirrored || it.profileNeedsSync).withIdentity(user)
+        }.also {
+            accountChanges.tryEmit(Unit)
+        }
+    }
+
+    private suspend fun ensureGoogleChildIdentity(user: FirebaseUser) {
+        val ref = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
+        repeat(MAX_CODE_ATTEMPTS) {
+            val candidate = generateCode()
+            val claimed = firestore.runTransaction { transaction ->
+                val existing = transaction.get(ref)
+                if (existing.exists()) {
+                    check(existing.getString(FirebaseContract.FIELD_ROLE) == AccountRole.CHILD.name)
+                    if (existing.getString(FirebaseContract.FIELD_LINK_CODE) != null) return@runTransaction true
+                }
+                val code = FirebaseContract.codeFromChildEmail(user.email) ?: candidate
+                val codeRef = firestore.collection(FirebaseContract.COLLECTION_CHILD_CODES).document(code)
+                val owner = transaction.get(codeRef)
+                if (owner.exists() && owner.getString(FirebaseContract.FIELD_UID) != user.uid) {
+                    return@runTransaction false
+                }
+                val fields = mutableMapOf<String, Any?>(FirebaseContract.FIELD_LINK_CODE to code)
+                if (!existing.exists()) {
+                    fields[FirebaseContract.FIELD_ROLE] = AccountRole.CHILD.name
+                    fields[FirebaseContract.FIELD_DISPLAY_NAME] = user.displayName.orEmpty()
+                    fields[FirebaseContract.FIELD_CREATED_AT] = FieldValue.serverTimestamp()
+                }
+                if (!owner.exists()) transaction.set(codeRef, mapOf(FirebaseContract.FIELD_UID to user.uid))
+                transaction.set(ref, fields, SetOptions.merge())
+                true
+            }.awaitResult()
+            if (claimed) return
+        }
+        error("Please try setting up your child ID again.")
+    }
+
+    private suspend fun googleResult(block: suspend () -> AuthAccount): Result<AuthAccount> = try {
+        Result.success(block())
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (failure: Exception) {
+        val problem = when (failure) {
+            is GoogleAuthFailure -> failure.problem
+            is FirebaseNetworkException -> GoogleAuthProblem.OFFLINE
+            is FirebaseAuthUserCollisionException -> GoogleAuthProblem.COLLISION
+            is FirebaseAuthException -> when (failure.errorCode) {
+                "ERROR_INVALID_CREDENTIAL", "ERROR_USER_TOKEN_EXPIRED", "ERROR_REQUIRES_RECENT_LOGIN" -> GoogleAuthProblem.EXPIRED
+                "ERROR_OPERATION_NOT_ALLOWED", "ERROR_APP_NOT_AUTHORIZED" -> GoogleAuthProblem.UNAVAILABLE
+                "ERROR_USER_MISMATCH" -> GoogleAuthProblem.WRONG_ACCOUNT
+                else -> GoogleAuthProblem.UNKNOWN
+            }
+            else -> GoogleAuthProblem.UNKNOWN
+        }
+        Result.failure(GoogleAuthFailure(problem, failure))
     }
 
     override suspend fun sendParentPasswordReset(email: String): Result<Unit> = runCatching {
@@ -196,11 +399,22 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         user ?: error("Firebase reported a successful sign-in with no account attached")
 
     private suspend fun loadAccount(uid: String, email: String?, displayName: String?): AuthAccount {
-        return runCatching {
+        return (withTimeoutOrNull(4_000) { runCatching {
             val snap = firestore.collection(FirebaseContract.COLLECTION_USERS)
                 .document(uid).get().awaitResult()
             snap.toAuthAccount(uid, email, displayName)
-        }.getOrElse { inferAccount(uid, email, displayName) }
+        }.getOrNull() } ?: inferAccount(uid, email, displayName).copy(profileNeedsSync = true)).let { account ->
+            val localRole = if (account.profileNeedsSync) runCatching {
+                profiles.getByFirebaseUid(uid)?.profileType
+            }.getOrNull() else null
+            val resolved = account.copy(role = when (localRole) {
+                ProfileType.INDIVIDUAL -> AccountRole.INDIVIDUAL
+                ProfileType.PARENT -> AccountRole.PARENT
+                ProfileType.CHILD -> AccountRole.CHILD
+                null -> account.role
+            })
+            auth.currentUser?.takeIf { it.uid == uid }?.let { resolved.withIdentity(it) } ?: resolved
+        }
     }
 
     private fun DocumentSnapshot.toAuthAccount(
@@ -208,7 +422,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         email: String?,
         fallbackName: String?
     ): AuthAccount {
-        if (!exists()) return inferAccount(uid, email, fallbackName)
+        if (!exists()) return inferAccount(uid, email, fallbackName).copy(profileNeedsSync = true)
         val roleName = getString(FirebaseContract.FIELD_ROLE)
         val role = AccountRole.entries.firstOrNull { it.name == roleName }
             ?: inferRole(email)
@@ -221,7 +435,9 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             role = role,
             displayName = displayName,
             linkCode = if (role == AccountRole.CHILD) linkCode else null,
-            email = email
+            email = email,
+            photoUrl = getString("photoUrl"),
+            photoSource = getString("photoSource")
         )
     }
 
@@ -237,7 +453,18 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     }
 
     private fun inferRole(email: String?): AccountRole =
-        if (FirebaseContract.isChildEmail(email)) AccountRole.CHILD else AccountRole.PARENT
+        if (FirebaseContract.isChildEmail(email)) AccountRole.CHILD
+        else if (auth.currentUser?.providerData?.any { it.providerId == "password" } == true) AccountRole.PARENT
+        else AccountRole.INDIVIDUAL
+
+    private fun AuthAccount.withIdentity(user: FirebaseUser): AuthAccount {
+        val google = user.providerData.firstOrNull { it.providerId == GoogleAuthProvider.PROVIDER_ID }
+        return copy(googleLinked = google != null,
+            needsChildPinSetup = role == AccountRole.CHILD && google != null &&
+                (linkCode == null || user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID }),
+            photoSource = photoSource ?: if (google != null) "GOOGLE" else null,
+            photoUrl = photoUrl ?: google?.photoUrl?.toString()?.takeIf { it.startsWith("https://") })
+    }
 
     private suspend fun fetchTokenOrNull(): String? =
         runCatching { messaging.token.awaitResult() }.getOrNull()

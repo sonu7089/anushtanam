@@ -12,7 +12,36 @@
           "package_name": "shastralife.anushtanam"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1099014481275-7pl70h01krj44nrahcd9l00ubptcuigk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "shastralife.anushtanam",
+            "certificate_hash": "7d178522b5ce2368e3d3112b280e35e155dfb487"
+          }
+        },
+        {
+          "client_id": "1099014481275-gtgk7nmimqb82fbfuih4oo2gvq67o44g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "shastralife.anushtanam",
+            "certificate_hash": "ca5c966286041f5efd55cd29a70f899945f5806d"
+          }
+        },
+        {
+          "client_id": "1099014481275-hf0118e4o2oc79co2osueh7apq69vkoh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "shastralife.anushtanam",
+            "certificate_hash": "cc59b7de13a94e346305b3655ea943f290ffbe83"
+          }
+        },
+        {
+          "client_id": "1099014481275-286nmpe7hdvpqbjlhaspdhlnuclm84pn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBGZek00gonDOqHHNDeI8lurx17W4WrrhU"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1099014481275-286nmpe7hdvpqbjlhaspdhlnuclm84pn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

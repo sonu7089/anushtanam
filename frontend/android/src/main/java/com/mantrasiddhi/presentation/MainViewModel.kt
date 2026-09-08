@@ -27,6 +27,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.CancellationException
+import com.mantrasiddhi.domain.model.AuthAccount
+import com.mantrasiddhi.domain.repository.SessionRepository
+import com.mantrasiddhi.domain.repository.AuthRepository
+import com.mantrasiddhi.domain.usecase.SignOutUseCase
 import javax.inject.Inject
 
 /** App-entry auth decision. */
@@ -34,6 +40,8 @@ sealed interface AuthGateState {
     data object Loading : AuthGateState
     data object Authenticated : AuthGateState
     data object Unauthenticated : AuthGateState
+    data object NeedsRecovery : AuthGateState
+    data object NeedsChildSetup : AuthGateState
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -44,7 +52,10 @@ class MainViewModel @Inject constructor(
     observeAuthAccountUseCase: ObserveAuthAccountUseCase,
     observeChildGoalsUseCase: ObserveChildGoalsUseCase,
     private val syncSignedInUserUseCase: SyncSignedInUserUseCase,
-    private val goalNotifier: GoalNotifier
+    private val goalNotifier: GoalNotifier,
+    private val session: SessionRepository,
+    private val signOut: SignOutUseCase,
+    private val auth: AuthRepository
 ) : ViewModel() {
     val currentUser = getCurrentUserUseCase()
 
@@ -53,18 +64,55 @@ class MainViewModel @Inject constructor(
 
     private val _authGateState = MutableStateFlow<AuthGateState>(AuthGateState.Loading)
     val authGateState: StateFlow<AuthGateState> = _authGateState.asStateFlow()
+    private var startupAccount: AuthAccount? = null
+
+    fun retryOpeningProfile() {
+        if (startupAccount == null) return
+        if (_authGateState.value == AuthGateState.Loading) return
+        viewModelScope.launch {
+            _authGateState.value = AuthGateState.Loading
+            val refreshed = auth.refreshAccount().getOrNull()
+            if (refreshed != null) {
+                startupAccount = refreshed
+                openStartupProfile(refreshed)
+            } else _authGateState.value = AuthGateState.NeedsRecovery
+        }
+    }
+
+    fun signOutFromRecovery() { viewModelScope.launch { signOut() } }
+
+    private suspend fun openStartupProfile(account: AuthAccount) {
+        if (account.profileNeedsSync && account.googleLinked) {
+            _authGateState.value = AuthGateState.NeedsRecovery
+            return
+        }
+        if (account.needsChildPinSetup) {
+            _authGateState.value = AuthGateState.NeedsChildSetup
+            return
+        }
+        _authGateState.value = AuthGateState.Loading
+        try {
+            syncSignedInUserUseCase(account)
+            _authGateState.value = AuthGateState.Authenticated
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { _authGateState.value = AuthGateState.NeedsRecovery }
+    }
 
     init {
         // Decide the entry route and bridge the cloud account to a local profile.
         viewModelScope.launch {
             observeAuthAccountUseCase()
                 .distinctUntilChangedBy { it?.uid }
-                .collect { account ->
+                .collectLatest { account ->
                     if (account == null) {
+                        session.logout()
+                        startupAccount = null
                         _authGateState.value = AuthGateState.Unauthenticated
-                    } else {
-                        runCatching { syncSignedInUserUseCase(account) }
-                        _authGateState.value = AuthGateState.Authenticated
+                    } else if (_authGateState.value == AuthGateState.Loading) {
+                        // Interactive auth screens own new sign-ins and their import choice.
+                        // Only a persisted session is restored here, once at app startup.
+                        startupAccount = account
+                        openStartupProfile(account)
                     }
                 }
         }

@@ -63,6 +63,10 @@ Use case: photorealistic-natural. Asset type: immersive editorial photograph for
 
 Use case: product-mockup. Asset type: transparent photographic mala ring for the Purashcharana screen of a white and charcoal Indian prayer app. Primary request: a real sandalwood japa mala laid flat in a near-circular loop, photographed exactly from above. Only the mala, no other objects. Many small round natural pale sandalwood beads on a fine cream thread, natural subtle wood grain, one slightly larger guru bead at six o'clock and a short soft dusty mauve cotton tassel pointing downward. The loop is centered, circular rather than oval, taking up about 84 percent of a square canvas, with a large completely empty round center for a separate lotus emblem. Whole tassel visible with margin. Gentle neutral studio lighting, believable delicate contact shadows immediately beside beads, tactile real photography, elegant and modest. PNG with a real transparent alpha background everywhere outside the beads and tassel AND inside the ring. Do not render a checkerboard or any backdrop. No logo, lotus, text, markings, frame, gold, mandala ornament, illustration, vector or UI. 1024 by 1024.
 
+## Google sign-in logo
+
+MF-07 uses the [official Google G PNG](https://developers.google.com/static/identity/images/g-logo.png), downloaded on 8 September 2026, in `frontend/android/src/main/res/drawable-nodpi/google_g.png`. It is displayed without alteration in the Google sign-in button. This is a Google brand asset, not generated artwork. Usage guidance: [Google sign-in branding](https://developers.google.com/identity/branding-guidelines).
+
 ## Fonts
 
 Newsreader and DM Sans are bundled as variable fonts under the SIL Open Font License. Source: [Google Fonts / Newsreader](https://github.com/google/fonts/tree/main/ofl/newsreader), [Google Fonts / DM Sans](https://github.com/google/fonts/tree/main/ofl/dmsans). License copies live in `docs/licenses`. Android's system fallback supplies Devanagari glyphs.

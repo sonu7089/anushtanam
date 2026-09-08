@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 /**
@@ -51,6 +52,7 @@ class AuthViewModel @Inject constructor(
 
     /** The child account awaiting the "share your ID then continue" step. */
     private var pendingChildAccount: AuthAccount? = null
+    private var pendingProfile: AuthAccount? = null
 
     fun clearError() {
         _uiState.update { it.copy(errorMessageResId = null, errorDetail = null) }
@@ -123,15 +125,38 @@ class AuthViewModel @Inject constructor(
 
     /** Runs an auth call, syncs the local profile, then navigates home. */
     private fun run(call: suspend () -> Result<AuthAccount>) {
+        if (_uiState.value.isLoading) return
+        if (_uiState.value.needsProfileRetry) { retryProfile(); return }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
             call()
                 .onSuccess { account ->
-                    syncSignedInUserUseCase(account)
-                    _uiState.update { it.copy(isLoading = false) }
-                    _events.emit(AuthEvent.NavigateToHome)
+                    openProfile(account)
                 }
                 .onFailure { e -> failWith(e) }
+        }
+    }
+
+    fun retryProfile() {
+        val account = pendingProfile ?: return
+        if (_uiState.value.isLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
+            openProfile(account)
+        }
+    }
+
+    private suspend fun openProfile(account: AuthAccount) {
+        pendingProfile = account
+        try {
+            syncSignedInUserUseCase(account)
+            pendingProfile = null
+            _uiState.update { it.copy(isLoading = false, needsProfileRetry = false) }
+            _events.emit(AuthEvent.NavigateToHome)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) {
+            _uiState.update { it.copy(isLoading = false, needsProfileRetry = true,
+                errorMessageResId = R.string.auth_profile_retry, errorDetail = null) }
         }
     }
 

@@ -53,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
@@ -115,13 +116,16 @@ fun FamilyScreen(
                     uiState = uiState,
                     onRequestLink = viewModel::requestLink,
                     onSelectChild = viewModel::selectChild,
-                    onSetGoal = { goalForChild = it }
+                    onSetGoal = { goalForChild = it },
+                    onScan = { viewModel.scanQr(context) }
                 )
                 AccountRole.CHILD -> ChildSection(
                     uiState = uiState,
                     onApprove = viewModel::approve,
-                    onReject = viewModel::reject
+                    onReject = viewModel::reject,
+                    onShowQr = viewModel::createQr
                 )
+                AccountRole.INDIVIDUAL -> Text(stringResource(R.string.google_role_individual))
                 null -> Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -145,11 +149,13 @@ fun FamilyScreen(
 @Composable
 internal fun ParentSection(
     uiState: FamilyUiState,
-    onRequestLink: (String) -> Unit,
+    onRequestLink: (String, String) -> Unit,
     onSelectChild: (ParentChildLink?) -> Unit,
-    onSetGoal: (ParentChildLink) -> Unit
+    onSetGoal: (ParentChildLink) -> Unit,
+    onScan: () -> Unit = {}
 ) {
     var code by remember { mutableStateOf("") }
+    var pin by remember { mutableStateOf("") }
 
     LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -165,9 +171,16 @@ internal fun ParentSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
+            Button(onScan, enabled = !uiState.isBusy, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.family_scan_qr))
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(stringResource(R.string.family_manual_link), style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = code,
-                onValueChange = { if (it.length <= 12 && it.all(Char::isDigit)) code = it },
+                onValueChange = { if (it.matches(Regex("[0-9]{0,12}"))) code = it },
+                enabled = !uiState.isBusy,
                 label = { Text(stringResource(R.string.family_child_id_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -175,14 +188,22 @@ internal fun ParentSection(
                 shape = MaterialTheme.shapes.medium
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = { onRequestLink(code); code = "" },
-                enabled = !uiState.isBusy,
+            OutlinedTextField(pin, { if (it.matches(Regex("[0-9]{0,6}"))) pin = it },
+                label = { Text(stringResource(R.string.auth_pin_label)) },
+                singleLine = true, enabled = !uiState.isBusy,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium)
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { onRequestLink(code, pin); pin = "" },
+                enabled = !uiState.isBusy && code.length == 12 && pin.length == 6,
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Text(stringResource(R.string.family_send_request))
+                Text(stringResource(R.string.family_link_now))
             }
+            FamilyLinkFeedback(uiState)
         }
     }
 
@@ -258,7 +279,8 @@ internal fun ParentSection(
 internal fun ChildSection(
     uiState: FamilyUiState,
     onApprove: (String) -> Unit,
-    onReject: (String) -> Unit
+    onReject: (String) -> Unit,
+    onShowQr: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -284,7 +306,7 @@ internal fun ChildSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = myId ?: "—",
+                    text = myId ?: stringResource(R.string.family_id_loading),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -298,24 +320,29 @@ internal fun ChildSection(
                     }
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            ChildFamilyQr(uiState, onShowQr)
+            FamilyLinkFeedback(uiState)
+        }
+    }
+
+    if (uiState.linkedParents.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        Text(stringResource(R.string.family_linked_with), style = MaterialTheme.typography.titleMedium)
+        uiState.linkedParents.forEach { parent ->
+            Text(parent.parentName, Modifier.padding(vertical = 4.dp))
         }
     }
 
     Spacer(modifier = Modifier.height(20.dp))
 
+    if (uiState.pendingRequests.isNotEmpty()) {
     Text(
         text = stringResource(R.string.family_link_requests),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Medium
     )
     Spacer(modifier = Modifier.height(8.dp))
-    if (uiState.pendingRequests.isEmpty()) {
-        Text(
-            text = stringResource(R.string.family_no_requests),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    } else {
         uiState.pendingRequests.forEach { req ->
             LotusCard(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),

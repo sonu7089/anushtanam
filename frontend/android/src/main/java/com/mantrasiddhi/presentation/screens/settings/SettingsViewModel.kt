@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.mantrasiddhi.domain.repository.UserRepository
+import com.mantrasiddhi.domain.repository.SessionRepository
+import kotlinx.coroutines.CancellationException
 
 sealed class SettingsEvent {
     data object ProfileLoggedOut : SettingsEvent()
@@ -34,7 +37,9 @@ sealed class SettingsEvent {
 class SettingsViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val preferencesDataStore: UserPreferencesDataStore,
-    private val signOutUseCase: SignOutUseCase
+    private val signOutUseCase: SignOutUseCase,
+    private val users: UserRepository,
+    private val session: SessionRepository
 ) : ViewModel() {
 
     val currentUser: StateFlow<UserProfile?> = getCurrentUserUseCase()
@@ -79,6 +84,19 @@ class SettingsViewModel @Inject constructor(
             // Sign out of the Firebase cloud session and clear the local session.
             signOutUseCase()
             _events.emit(SettingsEvent.ProfileLoggedOut)
+        }
+    }
+
+    fun setUseGooglePhoto(enabled: Boolean) {
+        val user = currentUser.value ?: return
+        viewModelScope.launch {
+            try {
+                val saved = users.getById(user.id) ?: return@launch
+                val updated = saved.copy(useGooglePhoto = enabled)
+                users.insert(updated)
+                if (session.currentUser.value?.id == updated.id) session.login(updated)
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { _events.emit(SettingsEvent.Error("We could not save that choice. Please try again.")) }
         }
     }
 }

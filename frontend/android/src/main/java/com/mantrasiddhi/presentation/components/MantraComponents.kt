@@ -166,7 +166,8 @@ fun ProfileAvatar(
     avatarIndex: Int,
     name: String,
     size: Dp = 60.dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    photoUrl: String? = null
 ) {
     val extendedColors = LocalExtendedColors.current
     val (avatarColor, textColor) = when (avatarIndex % 4) {
@@ -191,6 +192,15 @@ fun ProfileAvatar(
             fontSize = (size.value * 0.45f).sp,
             fontWeight = FontWeight.Medium
         )
+        if (!photoUrl.isNullOrBlank()) {
+            // The initial stays underneath while loading, offline, or if the URL has expired.
+            coil.compose.AsyncImage(
+                model = photoUrl.takeIf { it.startsWith("https://") },
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+        }
     }
 }
 

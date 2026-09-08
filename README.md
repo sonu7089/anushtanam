@@ -30,7 +30,11 @@ Use JDK 17 or a compatible newer JDK, Android SDK 36, and the included Gradle wr
 .\gradlew.bat :app:connectedDebugAndroidTest :core:data:connectedDebugAndroidTest
 ```
 
-The debug APK is `frontend/android/build/outputs/apk/debug/app-debug.apk`. The application ID, signing configuration, database name, Firebase collections, and preference keys are unchanged. The Room schema is at v7: the v6 → v7 migration adds a `mantraId` column to recitation sessions and Purashcharana vows and backfills existing rows with the Gayatri. Release signing still reads the untracked root `keystore.properties`.
+The debug APK is `frontend/android/build/outputs/apk/debug/app-debug.apk`. The application ID, signing configuration and database name are unchanged. The Room schema is at v10. The v9 to v10 migration adds account ownership and photo preferences without removing saved practice. Release signing still reads the untracked root `keystore.properties`.
+
+MF-07 adds Google sign-in, account linking and profile photos. The refreshed Firebase configuration includes the Google OAuth client. See [MF-07 setup and verification](docs/mentor-feedback/mf-07-implementation.md) for the remaining live account checks.
+
+Children can also use their own Google account. Parents can connect by scanning a child's QR code or entering their ID and PIN. See [child sign-in and family linking setup](docs/mentor-feedback/child-google-family-linking.md), including the required Firestore rules update.
 
 ## UI review
 

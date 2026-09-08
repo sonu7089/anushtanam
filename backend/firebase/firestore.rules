@@ -7,9 +7,9 @@ rules_version = '2';
 // (full session history) stay on-device in Room and are never synced.
 //
 // Identity model:
-//   - Parent: real Firebase email + password.
-//   - Child:  synthetic email c<12digits>@child.anushtanam.app + 6-digit PIN.
-//     The 12-digit code doubles as the child's login id and the linking code.
+//   - Adult: Google or real email and password, one profile per account.
+//   - Child: own Google account, with a synthetic email for ID and PIN sign-in.
+//     The 12-digit ID and PIN can also verify a direct family link.
 //
 // A signed-out user can do nothing (every rule requires request.auth != null, and no
 // rule grants public access).
@@ -21,6 +21,36 @@ service cloud.firestore {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function hasRole(uid, role) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role == role;
+    }
+
+    function validParticipants(data, linkId) {
+      return data.keys().hasAll(['parentUid', 'childUid', 'parentName', 'childName', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['parentUid', 'childUid', 'parentName', 'childName', 'status', 'createdAt', 'updatedAt', 'method', 'inviteToken']) &&
+        data.parentUid != data.childUid && linkId == data.parentUid + '_' + data.childUid &&
+        hasRole(data.parentUid, 'PARENT') && hasRole(data.childUid, 'CHILD') &&
+        data.parentName == get(/databases/$(database)/documents/users/$(data.parentUid)).data.displayName &&
+        (data.status != 'APPROVED' || data.childName == get(/databases/$(database)/documents/users/$(data.childUid)).data.displayName) &&
+        data.updatedAt == request.time;
+    }
+
+    function validQrLink(data) {
+      let token = data.inviteToken;
+      let invite = get(/databases/$(database)/documents/familyInvites/$(token)).data;
+      let redeemed = getAfter(/databases/$(database)/documents/familyInvites/$(token)).data;
+      return data.method == 'QR' && data.parentUid == request.auth.uid &&
+        token.matches('[a-f0-9]{64}') && invite.childUid == data.childUid &&
+        invite.usedBy == '' && request.time < invite.createdAt + duration.value(5, 'm') &&
+        get(/databases/$(database)/documents/familyInviteState/$(data.childUid)).data.token == token &&
+        redeemed.usedBy == request.auth.uid && redeemed.usedAt == request.time;
+    }
+
+    function childPinLink(data) {
+      return data.childUid == request.auth.uid && data.method == 'PIN' &&
+        request.auth.token.firebase.sign_in_provider == 'password';
     }
 
     // True if an APPROVED link exists between the given parent and child uids.
@@ -42,7 +72,13 @@ service cloud.firestore {
         isApprovedLink(request.auth.uid, uid) ||
         isApprovedLink(uid, request.auth.uid)
       );
-      allow write: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.role in ['PARENT', 'CHILD', 'INDIVIDUAL'];
+      // A Google identity belongs to one profile. Its family role cannot be changed.
+      allow update: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.role == resource.data.role &&
+        (!('linkCode' in resource.data) || request.resource.data.linkCode == resource.data.linkCode);
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // --- childCodes/{code} -----------------------------------------------------
@@ -50,31 +86,74 @@ service cloud.firestore {
     // resolve a code to send a link request). A child may create only their own code
     // doc (uid must equal their auth uid). Codes are immutable: no update/delete.
     match /childCodes/{code} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && code.matches('[0-9]{12}') &&
+        request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid &&
+        (request.auth.token.email == 'c' + code + '@child.anushtanam.app' ||
+          (getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'CHILD' &&
+           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.linkCode == code));
       allow update, delete: if false;
     }
 
     // --- links/{parentUid}_{childUid} -----------------------------------------
-    // Create: only the parent, only a PENDING link they own (parentUid == auth.uid).
-    // Read:   only the two participants.
-    // Update: only the child (childUid == auth.uid), and only to flip the status
-    //         (parentUid/childUid must be unchanged). A parent can never self-approve.
-    // Delete: never.
+    // Direct approval requires the child's password session or atomic QR redemption.
+    // Old pending requests remain readable and can still be answered by the child.
     match /links/{linkId} {
-      allow read: if isSignedIn() && (
+      allow get: if isSignedIn() && (
+        linkId.matches(request.auth.uid + '_.*') || linkId.matches('.*_' + request.auth.uid)
+      );
+      allow list: if isSignedIn() && (
         request.auth.uid == resource.data.parentUid ||
         request.auth.uid == resource.data.childUid
       );
-      allow create: if isSignedIn() &&
-        request.resource.data.parentUid == request.auth.uid &&
-        request.resource.data.status == 'PENDING' &&
-        request.resource.data.childUid != request.auth.uid;
-      allow update: if isSignedIn() &&
-        request.auth.uid == resource.data.childUid &&
+      allow create: if isSignedIn() && validParticipants(request.resource.data, linkId) &&
+        request.resource.data.createdAt == request.time && (
+          (request.resource.data.parentUid == request.auth.uid && request.resource.data.status == 'PENDING') ||
+          (request.resource.data.status == 'APPROVED' &&
+            (childPinLink(request.resource.data) || validQrLink(request.resource.data)))
+        );
+      allow update: if isSignedIn() && validParticipants(request.resource.data, linkId) &&
         request.resource.data.parentUid == resource.data.parentUid &&
         request.resource.data.childUid == resource.data.childUid &&
-        request.resource.data.status in ['APPROVED', 'REJECTED'];
+        request.resource.data.createdAt == resource.data.createdAt && (
+          (request.auth.uid == resource.data.childUid && request.resource.data.status in ['APPROVED', 'REJECTED']) ||
+          (request.resource.data.status == 'APPROVED' && validQrLink(request.resource.data))
+        );
+      allow delete: if false;
+    }
+
+    // The invitation ID is a random 256-bit secret. It is never a child ID or PIN.
+    // Parents may fetch a known invitation but cannot list invitations or read the
+    // child's current token. Rules inspect that private state during redemption.
+    match /familyInviteState/{childUid} {
+      allow read: if isSignedIn() && request.auth.uid == childUid;
+      allow create, update: if isSignedIn() && request.auth.uid == childUid && hasRole(childUid, 'CHILD') &&
+        request.resource.data.keys().hasOnly(['token']) && request.resource.data.token.matches('[a-f0-9]{64}') &&
+        getAfter(/databases/$(database)/documents/familyInvites/$(request.resource.data.token)).data.childUid == childUid &&
+        getAfter(/databases/$(database)/documents/familyInvites/$(request.resource.data.token)).data.createdAt == request.time;
+      allow delete: if isSignedIn() && request.auth.uid == childUid;
+    }
+
+    match /familyInvites/{token} {
+      allow get: if isSignedIn() && (resource.data.childUid == request.auth.uid || hasRole(request.auth.uid, 'PARENT'));
+      allow list: if false;
+      allow create: if isSignedIn() && token.matches('[a-f0-9]{64}') &&
+        request.resource.data.keys().hasOnly(['childUid', 'childName', 'createdAt', 'usedBy']) &&
+        request.resource.data.childUid == request.auth.uid && hasRole(request.auth.uid, 'CHILD') &&
+        request.resource.data.childName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName &&
+        request.resource.data.createdAt == request.time && request.resource.data.usedBy == '' &&
+        getAfter(/databases/$(database)/documents/familyInviteState/$(request.auth.uid)).data.token == token;
+      allow update: if isSignedIn() && hasRole(request.auth.uid, 'PARENT') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy', 'usedAt']) &&
+        resource.data.usedBy == '' && request.resource.data.usedBy == request.auth.uid &&
+        request.resource.data.usedAt == request.time &&
+        request.time < resource.data.createdAt + duration.value(5, 'm') &&
+        get(/databases/$(database)/documents/familyInviteState/$(resource.data.childUid)).data.token == token &&
+        getAfter(/databases/$(database)/documents/links/$(request.auth.uid + '_' + resource.data.childUid)).data.status == 'APPROVED' &&
+        getAfter(/databases/$(database)/documents/links/$(request.auth.uid + '_' + resource.data.childUid)).data.inviteToken == token;
+      // Account deletion uses the Admin SDK. A client cannot delete and recreate a
+      // consumed invitation to make the same secret usable again.
       allow delete: if false;
     }
 

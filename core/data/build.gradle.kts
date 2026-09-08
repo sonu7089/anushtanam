@@ -37,6 +37,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
     testImplementation(libs.junit)
     testImplementation(libs.junit5.api)
     testRuntimeOnly(libs.junit5.engine)

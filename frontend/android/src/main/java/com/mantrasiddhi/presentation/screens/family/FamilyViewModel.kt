@@ -19,7 +19,6 @@ import com.mantrasiddhi.domain.usecase.ObserveGoalsForChildUseCase
 import com.mantrasiddhi.domain.usecase.ObserveLinkedChildrenUseCase
 import com.mantrasiddhi.domain.usecase.ObservePendingLinkRequestsUseCase
 import com.mantrasiddhi.domain.usecase.RejectLinkUseCase
-import com.mantrasiddhi.domain.usecase.RequestChildLinkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,6 +32,14 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.Context
+import com.mantrasiddhi.domain.repository.LinkRepository
+import com.mantrasiddhi.domain.model.FamilyLinkFailure
+import com.mantrasiddhi.domain.model.FamilyLinkProblem
+import com.mantrasiddhi.resources.R
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 
 /**
  * Backs the Family screen: parent linking + goal-setting, child link-approval + goals.
@@ -41,14 +48,15 @@ import javax.inject.Inject
 @HiltViewModel
 class FamilyViewModel @Inject constructor(
     observeAuthAccountUseCase: ObserveAuthAccountUseCase,
-    private val requestChildLinkUseCase: RequestChildLinkUseCase,
     private val approveLinkUseCase: ApproveLinkUseCase,
     private val rejectLinkUseCase: RejectLinkUseCase,
     private val createChildGoalUseCase: CreateChildGoalUseCase,
     observeLinkedChildrenUseCase: ObserveLinkedChildrenUseCase,
     observePendingLinkRequestsUseCase: ObservePendingLinkRequestsUseCase,
     observeChildGoalsUseCase: ObserveChildGoalsUseCase,
-    private val observeGoalsForChildUseCase: ObserveGoalsForChildUseCase
+    private val observeGoalsForChildUseCase: ObserveGoalsForChildUseCase,
+    private val links: LinkRepository,
+    private val scanner: FamilyQrScanner
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyUiState())
@@ -58,10 +66,16 @@ class FamilyViewModel @Inject constructor(
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     private val selectedChildUid = MutableStateFlow<String?>(null)
+    private var inviteWatch: Job? = null
 
     init {
         viewModelScope.launch {
             observeAuthAccountUseCase().collect { account ->
+                if (account?.uid != _uiState.value.account?.uid) {
+                    inviteWatch?.cancel()
+                    _uiState.value = FamilyUiState(account = account)
+                    selectedChildUid.value = null
+                }
                 _uiState.update { it.copy(account = account) }
             }
         }
@@ -81,19 +95,76 @@ class FamilyViewModel @Inject constructor(
             }.collect { goals -> _uiState.update { it.copy(myGoals = goals) } }
         }
         viewModelScope.launch {
+            observeAuthAccountUseCase().flatMapLatest { account ->
+                if (account?.role == AccountRole.CHILD) links.approvedParentsForChild() else flowOf(emptyList())
+            }.collect { parents -> _uiState.update { it.copy(linkedParents = parents) } }
+        }
+        viewModelScope.launch {
             selectedChildUid.flatMapLatest { uid ->
                 if (uid != null) observeGoalsForChildUseCase(uid) else flowOf(emptyList())
             }.collect { goals -> _uiState.update { it.copy(selectedChildGoals = goals) } }
         }
     }
 
-    fun requestLink(childCode: String) {
+    fun requestLink(childCode: String, pin: String) = runLink {
+        links.linkWithPin(childCode, pin).getOrThrow()
+        _messages.emit(MSG_LINK_APPROVED)
+    }
+
+    fun scanQr(context: Context) = runLink {
+        val owner = _uiState.value.account?.uid
+        val payload = try { scanner.scan(context) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) {
+            _uiState.update { it.copy(errorRes = R.string.family_scan_unavailable) }
+            return@runLink
+        }
+        if (payload != null && _uiState.value.account?.uid == owner) {
+            links.linkWithQr(payload).getOrThrow()
+            _messages.emit(MSG_LINK_APPROVED)
+        }
+    }
+
+    fun createQr() = runLink {
+        val uid = _uiState.value.account?.uid
+        inviteWatch?.cancel()
+        _uiState.update { it.copy(qrInvite = null) }
+        val invite = links.createQrInvite().getOrThrow()
+        if (_uiState.value.account?.uid != uid) return@runLink
+        _uiState.update { it.copy(qrInvite = invite) }
+        inviteWatch?.cancel()
+        inviteWatch = viewModelScope.launch {
+            links.observeQrInvite(invite.token).collect { updated ->
+                if (_uiState.value.account?.uid == uid) _uiState.update {
+                    it.copy(qrInvite = updated, errorRes = if (updated == null) R.string.family_qr_unavailable else null)
+                }
+            }
+        }
+    }
+
+    private fun runLink(action: suspend () -> Unit) {
+        if (_uiState.value.isBusy) return
+        val uid = _uiState.value.account?.uid ?: return
+        _uiState.update { it.copy(isBusy = true, errorRes = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isBusy = true) }
-            requestChildLinkUseCase(childCode)
-                .onSuccess { _messages.emit(MSG_LINK_REQUEST_SENT) }
-                .onFailure { e -> _messages.emit(e.message ?: MSG_GENERIC_ERROR) }
-            _uiState.update { it.copy(isBusy = false) }
+            try { if (_uiState.value.account?.uid == uid) action() }
+            catch (_: TimeoutCancellationException) {
+                if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(errorRes = R.string.family_link_offline) }
+            }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(errorRes = when ((failure as? FamilyLinkFailure)?.problem) {
+                    FamilyLinkProblem.INVALID_CREDENTIALS -> R.string.family_pin_invalid
+                    FamilyLinkProblem.INVALID_QR -> R.string.family_qr_invalid
+                    FamilyLinkProblem.QR_UNAVAILABLE -> R.string.family_qr_unavailable
+                    FamilyLinkProblem.OFFLINE -> R.string.family_link_offline
+                    FamilyLinkProblem.TOO_MANY_ATTEMPTS -> R.string.family_link_wait
+                    FamilyLinkProblem.WRONG_ACCOUNT -> R.string.family_link_wrong_account
+                    else -> R.string.family_link_unavailable
+                }) }
+            } finally {
+                if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(isBusy = false) }
+            }
         }
     }
 

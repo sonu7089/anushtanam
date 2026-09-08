@@ -14,7 +14,11 @@ data class UserProfile(
     val name: String,
     val profileType: ProfileType,
     val parentId: Long? = null,
-    val avatarIndex: Int
+    val avatarIndex: Int,
+    val firebaseUid: String? = null,
+    val photoUrl: String? = null,
+    val photoSource: String? = null,
+    val useGooglePhoto: Boolean = true
 ) {
     val canSetOwnGoal: Boolean
         get() = profileType == ProfileType.INDIVIDUAL || profileType == ProfileType.PARENT

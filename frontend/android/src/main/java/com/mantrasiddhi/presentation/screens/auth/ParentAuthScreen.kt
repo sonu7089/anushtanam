@@ -51,6 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mantrasiddhi.domain.model.AccountRole
 import com.mantrasiddhi.resources.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,10 +61,16 @@ fun ParentAuthScreen(
     viewModel: AuthViewModel,
     onBack: () -> Unit,
     onAuthenticated: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    googleViewModel: GoogleAuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val googleState by googleViewModel.state.collectAsState()
+    val formEnabled = !uiState.isLoading && !googleState.busy && googleState.account == null
+    LaunchedEffect(googleState.completed) {
+        if (googleState.completed) onAuthenticated()
+    }
 
     var isSignUp by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -171,7 +179,7 @@ fun ParentAuthScreen(
                     if (isSignUp) viewModel.signUpParent(email, password, name)
                     else viewModel.signInParent(email, password)
                 },
-                enabled = !uiState.isLoading,
+                enabled = formEnabled && !uiState.needsProfileRetry,
                 shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -193,15 +201,28 @@ fun ParentAuthScreen(
                 }
             }
 
+            Text(stringResource(R.string.auth_or), Modifier.padding(vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GoogleSignInButton({ googleViewModel.start(context, AccountRole.PARENT) }, formEnabled)
+            GoogleAuthFeedback(googleState, googleViewModel::retryProfile, googleViewModel::continueWithProfile,
+                googleViewModel::chooseAnotherAccount)
+
             Spacer(modifier = Modifier.height(8.dp))
 
+            if (uiState.needsProfileRetry) {
+                TextButton(viewModel::retryProfile, enabled = !uiState.isLoading) {
+                    Text(stringResource(R.string.auth_retry_profile))
+                }
+            }
+
             if (!isSignUp) {
-                TextButton(onClick = { viewModel.sendParentPasswordReset(email) }) {
+                TextButton(onClick = { viewModel.sendParentPasswordReset(email) }, enabled = formEnabled) {
                     Text(text = stringResource(R.string.auth_forgot_password))
                 }
             }
 
             TextButton(
+                enabled = formEnabled,
                 onClick = {
                     viewModel.clearError()
                     isSignUp = !isSignUp

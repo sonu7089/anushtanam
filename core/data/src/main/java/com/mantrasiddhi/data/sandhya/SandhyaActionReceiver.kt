@@ -28,6 +28,7 @@ class SandhyaActionReceiver : BroadcastReceiver() {
             ?.let { runCatching { SandhyaPeriod.valueOf(it) }.getOrNull() } ?: return
         val dateKey = intent.getStringExtra(SandhyaContract.EXTRA_DATE_KEY) ?: return
         val eventMillis = intent.getLongExtra(SandhyaContract.EXTRA_EVENT_MILLIS, 0L)
+        val ownerId = intent.getLongExtra(SandhyaContract.EXTRA_USER_ID, 0L)
         val entryPoint = SandhyaReceiverEntryPoint.from(context)
 
         val pending = goAsync()
@@ -35,6 +36,7 @@ class SandhyaActionReceiver : BroadcastReceiver() {
             try {
                 withTimeoutOrNull(WORK_BUDGET_MS) {
                     val userId = entryPoint.preferences().current().userId
+                    if (ownerId <= 0L || userId != ownerId) return@withTimeoutOrNull
                     val repo = entryPoint.logRepository()
                     // Upsert: ensure the row exists (no-op if it does) before flipping it to
                     // OBSERVED, so the tap is never lost even if the NOTIFIED row is missing.

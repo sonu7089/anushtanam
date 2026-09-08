@@ -57,6 +57,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mantrasiddhi.domain.model.AccountRole
 
 private const val CODE_LEN = 12
 private const val PIN_LEN = 6
@@ -67,9 +69,14 @@ fun ChildAuthScreen(
     viewModel: AuthViewModel,
     onBack: () -> Unit,
     onAuthenticated: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    googleViewModel: GoogleAuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val googleState by googleViewModel.state.collectAsState()
+    val googleAccount by googleViewModel.account.collectAsState()
+    LaunchedEffect(googleAccount) { googleAccount?.let(googleViewModel::resumeChildSetup) }
+    LaunchedEffect(googleState.completed) { if (googleState.completed) onAuthenticated() }
     val context = LocalContext.current
 
     var isSignUp by remember { mutableStateOf(false) }
@@ -135,6 +142,13 @@ fun ChildAuthScreen(
             PageIntro(stringResource(R.string.lotus_child_intro),
                 stringResource(R.string.lotus_child_description), LotusArt.LOTUS)
 
+            if (googleState.needsChildPin) {
+                ChildGooglePinSetup(googleState, googleViewModel::saveChildPin)
+                GoogleAuthFeedback(googleState, googleViewModel::retryProfile,
+                    googleViewModel::continueWithProfile, googleViewModel::chooseAnotherAccount)
+                return@Column
+            }
+
             if (isSignUp) {
                 OutlinedTextField(
                     value = name,
@@ -188,7 +202,7 @@ fun ChildAuthScreen(
                     if (isSignUp) viewModel.signUpChild(name, pin)
                     else viewModel.signInChild(code, pin)
                 },
-                enabled = !uiState.isLoading,
+                enabled = !uiState.isLoading && !googleState.busy && !googleState.needsProfileRetry,
                 shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -210,7 +224,16 @@ fun ChildAuthScreen(
                 }
             }
 
+            Text(stringResource(R.string.auth_or), Modifier.padding(vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GoogleSignInButton({ googleViewModel.start(context, AccountRole.CHILD) },
+                enabled = !uiState.isLoading && !googleState.busy && !googleState.needsProfileRetry)
+            GoogleAuthFeedback(googleState, googleViewModel::retryProfile,
+                googleViewModel::continueWithProfile, googleViewModel::chooseAnotherAccount)
+
+            Spacer(modifier = Modifier.height(8.dp))
             TextButton(
+                enabled = !googleState.busy && !uiState.isLoading && !googleState.needsProfileRetry,
                 onClick = {
                     viewModel.clearError()
                     isSignUp = !isSignUp

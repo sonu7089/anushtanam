@@ -53,7 +53,7 @@ class SandhyaNotifier @Inject constructor(
      * Posts the reminder for [period]. No-ops (without throwing) when POST_NOTIFICATIONS
      * is not granted, so scheduling never depends on the permission.
      */
-    fun showReminder(period: SandhyaPeriod, eventMillis: Long, zone: ZoneId, dateKey: String) {
+    fun showReminder(period: SandhyaPeriod, eventMillis: Long, zone: ZoneId, dateKey: String, userId: Long) {
         if (!hasPermission()) return
 
         val periodName = context.getString(periodNameRes(period))
@@ -73,7 +73,7 @@ class SandhyaNotifier @Inject constructor(
             .addAction(
                 R.drawable.ic_sandhya_sun,
                 context.getString(R.string.sandhya_mark_done),
-                markObservedIntent(period, dateKey, eventMillis)
+                markObservedIntent(period, dateKey, eventMillis, userId)
             )
             .build()
 
@@ -106,12 +106,13 @@ class SandhyaNotifier @Inject constructor(
         )
     }
 
-    private fun markObservedIntent(period: SandhyaPeriod, dateKey: String, eventMillis: Long): PendingIntent {
+    private fun markObservedIntent(period: SandhyaPeriod, dateKey: String, eventMillis: Long, userId: Long): PendingIntent {
         val intent = Intent(context, SandhyaActionReceiver::class.java).apply {
             action = SandhyaContract.ACTION_MARK_OBSERVED
             putExtra(SandhyaContract.EXTRA_PERIOD, period.name)
             putExtra(SandhyaContract.EXTRA_DATE_KEY, dateKey)
             putExtra(SandhyaContract.EXTRA_EVENT_MILLIS, eventMillis)
+            putExtra(SandhyaContract.EXTRA_USER_ID, userId)
         }
         return PendingIntent.getBroadcast(
             context,

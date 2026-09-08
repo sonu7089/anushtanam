@@ -58,7 +58,8 @@ internal fun HomeContent(
 ) {
     Scaffold(modifier = modifier, topBar = {
         LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
-            actions = { ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp)) })
+            actions = { ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp),
+                photoUrl = state.user.photoUrl.takeIf { state.user.useGooglePhoto }) })
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -68,7 +69,7 @@ internal fun HomeContent(
                     modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp),
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.widthIn(min = 160.dp)) {
                     Text(stringResource(R.string.home_today_summary), style = MaterialTheme.typography.labelLarge,
@@ -83,7 +84,8 @@ internal fun HomeContent(
                     }
                 }
                 if (state.streakDays > 0) {
-                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Surface(modifier = Modifier.align(Alignment.CenterVertically),
+                        shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
                         Text(stringResource(R.string.home_streak, state.streakDays),
                             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
@@ -138,8 +140,10 @@ internal fun HomeContent(
             Column {
                 SectionLabel(stringResource(R.string.lotus_beyond_practice))
                 HomeLink(stringResource(R.string.home_sandhya_title), stringResource(R.string.home_sandhya_subtitle), onSandhya)
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                HomeLink(stringResource(R.string.home_family_title), stringResource(R.string.home_family_subtitle), onFamily)
+                if (state.user.profileType != ProfileType.INDIVIDUAL) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HomeLink(stringResource(R.string.home_family_title), stringResource(R.string.home_family_subtitle), onFamily)
+                }
             }
             SadhanaWisdomCard()
             if (state.user.profileType == ProfileType.PARENT && state.childrenProgress.isNotEmpty()) {

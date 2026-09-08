@@ -22,5 +22,10 @@ data class AuthAccount(
     val role: AccountRole,
     val displayName: String,
     val linkCode: String? = null,
-    val email: String? = null
+    val email: String? = null,
+    val photoUrl: String? = null,
+    val googleLinked: Boolean = false,
+    val photoSource: String? = null,
+    val profileNeedsSync: Boolean = false,
+    val needsChildPinSetup: Boolean = false
 )

@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.Flow
 interface UserRepository {
     fun getAll(): Flow<List<UserProfile>>
     suspend fun getById(id: Long): UserProfile?
+    suspend fun getByFirebaseUid(uid: String): UserProfile?
+    suspend fun hasPractice(id: Long): Boolean
     fun getChildrenOf(parentId: Long): Flow<List<UserProfile>>
     suspend fun insert(user: UserProfile): Long
 }

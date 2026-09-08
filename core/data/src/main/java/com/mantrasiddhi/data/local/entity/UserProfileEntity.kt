@@ -7,17 +7,23 @@
 package com.mantrasiddhi.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.UserProfile
 
-@Entity(tableName = "user_profiles")
+@Entity(tableName = "user_profiles", indices = [Index(value = ["firebaseUid"], unique = true)])
 data class UserProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val profileType: String, // PARENT, CHILD, INDIVIDUAL
     val parentId: Long?,
-    val avatarIndex: Int
+    val avatarIndex: Int,
+    val firebaseUid: String? = null,
+    val photoUrl: String? = null,
+    val photoSource: String? = null,
+    @ColumnInfo(defaultValue = "1") val useGooglePhoto: Boolean = true
 ) {
     fun toDomain(): UserProfile {
         return UserProfile(
@@ -25,7 +31,11 @@ data class UserProfileEntity(
             name = name,
             profileType = ProfileType.valueOf(profileType),
             parentId = parentId,
-            avatarIndex = avatarIndex
+            avatarIndex = avatarIndex,
+            firebaseUid = firebaseUid,
+            photoUrl = photoUrl,
+            photoSource = photoSource,
+            useGooglePhoto = useGooglePhoto
         )
     }
 
@@ -36,7 +46,11 @@ data class UserProfileEntity(
                 name = domain.name,
                 profileType = domain.profileType.name,
                 parentId = domain.parentId,
-                avatarIndex = domain.avatarIndex
+                avatarIndex = domain.avatarIndex,
+                firebaseUid = domain.firebaseUid,
+                photoUrl = domain.photoUrl,
+                photoSource = domain.photoSource,
+                useGooglePhoto = domain.useGooglePhoto
             )
         }
     }

@@ -5,6 +5,7 @@
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.presentation.navigation
+import androidx.compose.ui.unit.dp
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -161,6 +162,12 @@ fun MantraApp(
             composable(Screen.AuthGate.route) {
                 AuthGate(
                     mainViewModel = mainViewModel,
+                    onChildSetup = {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(Screen.AuthGate.route) { inclusive = true }
+                        }
+                        navController.navigate(Screen.ChildAuth.route)
+                    },
                     onAuthenticated = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.AuthGate.route) { inclusive = true }
@@ -300,7 +307,8 @@ fun MantraApp(
 private fun AuthGate(
     mainViewModel: MainViewModel,
     onAuthenticated: () -> Unit,
-    onUnauthenticated: () -> Unit
+    onUnauthenticated: () -> Unit,
+    onChildSetup: () -> Unit
 ) {
     val state by mainViewModel.authGateState.collectAsState()
 
@@ -309,6 +317,8 @@ private fun AuthGate(
             is AuthGateState.Authenticated -> onAuthenticated()
             is AuthGateState.Unauthenticated -> onUnauthenticated()
             is AuthGateState.Loading -> Unit
+            is AuthGateState.NeedsRecovery -> Unit
+            is AuthGateState.NeedsChildSetup -> onChildSetup()
         }
     }
 
@@ -316,6 +326,16 @@ private fun AuthGate(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        if (state == AuthGateState.NeedsRecovery) {
+            androidx.compose.foundation.layout.Column(Modifier.padding(24.dp)) {
+                androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.auth_profile_retry))
+                androidx.compose.material3.Button(mainViewModel::retryOpeningProfile) {
+                    androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.auth_retry_profile))
+                }
+                androidx.compose.material3.TextButton(mainViewModel::signOutFromRecovery) {
+                    androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.settings_switch_profile))
+                }
+            }
+        } else CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }

@@ -1,5 +1,17 @@
 # Anushtanam — Firebase (Phase B) setup & deploy
 
+## Child Google sign-in and direct family links
+
+The [child sign-in and linking report](../../docs/mentor-feedback/child-google-family-linking.md) describes the latest account flow. Adults and children can use their own Google accounts. Each Google account has one profile. Children also keep a 12-digit ID and 6-digit PIN.
+
+Deploy the current `firestore.rules` before using the new direct linking flow. Parents can connect by scanning a child's single-use QR invitation or entering the child's ID and PIN. This uses Firebase Auth and Firestore without a new Cloud Function. Old rules will reject these operations.
+
+New collections are `familyInvites` and `familyInviteState`. QR expiry is enforced by server time, even if an expired document remains stored. Include these collections when deleting a child's account data. PINs are verified by Firebase Authentication and are not stored in these documents.
+
+Enable Google in Firebase Authentication and refresh the Android OAuth configuration as described in the [MF-07 setup notes](../../docs/mentor-feedback/mf-07-implementation.md). Google sign-in does not work with an empty OAuth client list.
+
+Run `npm ci` and `npm test` in this folder for the demo-project Auth and Firestore emulator tests. Auth uses localhost port 19099 and Firestore uses 18080. No live accounts are used.
+
 The Android app (`shastralife.anushtanam`) is already wired to Firebase Auth,
 Firestore, and Cloud Messaging. This folder holds the **server-side** pieces you deploy
 from the Firebase console / CLI. The app compiles and runs without deploying the Cloud
@@ -12,7 +24,7 @@ Function — that step only adds instant background push.
 ## 1. Enable Email/Password authentication
 Firebase Console → **Build → Authentication → Sign-in method** → enable
 **Email/Password**. This backs both parent accounts (real email) and child accounts
-(synthetic `c<12digits>@child.anushtanam.app` emails). No other providers are needed.
+(synthetic `c<12digits>@child.anushtanam.app` emails). Also enable Google for Google sign-in.
 
 ## 2. Create the Firestore database
 Firebase Console → **Build → Firestore Database → Create database** → **Production mode**
@@ -52,7 +64,7 @@ The trigger [`functions/index.js`](./functions/index.js) fires on `goals/{goalId
 creation, reads the child's `users/{uid}.fcmToken`, and sends an FCM notification.
 
 ## Data model (kept minimal — operational data only)
-- `users/{uid}`: `role` (`PARENT`|`CHILD`), `displayName`, `linkCode` (children),
+- `users/{uid}`: `role` (`PARENT`|`CHILD`|`INDIVIDUAL`), `displayName`, `linkCode` (children),
   `fcmToken`, `createdAt`.
 - `childCodes/{code}`: `{ uid }` — 12-digit code → child uid (uniqueness + parent lookup).
 - `links/{parentUid}_{childUid}`: `parentUid`, `childUid`, `childName`, `parentName`,

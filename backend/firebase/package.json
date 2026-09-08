@@ -1,0 +1,12 @@
+{
+  "name": "anushtanam-family-rules-tests",
+  "private": true,
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project demo-anushtanam \"node --test tests/*.test.cjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "4.0.1",
+    "firebase": "11.10.0",
+    "firebase-tools": "14.12.0"
+  }
+}

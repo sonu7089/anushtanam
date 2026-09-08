@@ -143,10 +143,29 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         "welcome" -> WelcomeScreen({}, {})
                         "parent-auth" -> ParentAuthScreen(hiltViewModel(), {}, {})
                         "child-auth" -> ChildAuthScreen(hiltViewModel(), {}, {})
+                        "child-google-pin" -> ReviewPage(R.string.auth_child_signup_title) {
+                            ChildGooglePinSetup(GoogleAuthUiState(account = AuthAccount("child-preview", AccountRole.CHILD,
+                                "Aarav", linkCode = "123456789012", googleLinked = true, needsChildPinSetup = true),
+                                needsChildPin = true), { _, _ -> })
+                        }
                         "child-id" -> ChildIdReveal("123456789012", false, {})
                         "home" -> HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {})
                         "settings" -> SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH",
                             { onDarkChange(it == "DARK") }, {}, {})
+                        "settings-google", "settings-link-google", "settings-child-google" -> {
+                            val linked = page == "settings-google"
+                            val isChild = page == "settings-child-google"
+                            val account = AuthAccount("preview", if (isChild) AccountRole.CHILD else AccountRole.PARENT,
+                                if (isChild) "Aarav" else "Ananya",
+                                email = if (isChild) "c123456789012@child.anushtanam.app" else "ananya@example.com", googleLinked = linked)
+                            SettingsContent((if (isChild) ReviewFixtures.child else ReviewFixtures.parent).copy(photoSource = if (linked) "GOOGLE" else null,
+                                useGooglePhoto = true), if (dark) "DARK" else "LIGHT", "BOTH",
+                                { onDarkChange(it == "DARK") }, {}, {},
+                                accountContent = {
+                                    com.mantrasiddhi.presentation.screens.settings.GoogleAccountContent(
+                                        account, GoogleAuthUiState(), {}, {}, {}, {})
+                                })
+                        }
                         "progress" -> ReviewPage(R.string.title_progress, scroll = false) {
                             ProgressContent(ProgressUiState.Success(RecitationOverviewStats(128, 108, .92, 7, .98),
                                 emptyList(), emptyList(), emptyList(), emptyList()))
@@ -156,7 +175,15 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         }
                         "family" -> ReviewPage(R.string.family_title) {
                             PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
-                            ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), {}, {}, {})
+                            ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), { _, _ -> }, {}, {})
+                        }
+                        "family-child", "family-child-qr" -> ReviewPage(R.string.family_title) {
+                            val invite = remember { com.mantrasiddhi.domain.model.FamilyQrInvite("a".repeat(64),
+                                System.currentTimeMillis() + 300_000) }
+                            PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
+                            com.mantrasiddhi.presentation.screens.family.ChildSection(FamilyUiState(
+                                account = AuthAccount("preview", AccountRole.CHILD, "Aarav", linkCode = "123456789012"),
+                                qrInvite = invite.takeIf { page == "family-child-qr" }), {}, {})
                         }
                         "children" -> ReviewPage(R.string.children_progress_title) {
                             PageIntro(stringResource(R.string.lotus_children_intro), stringResource(R.string.lotus_children_description), LotusArt.FAMILY)

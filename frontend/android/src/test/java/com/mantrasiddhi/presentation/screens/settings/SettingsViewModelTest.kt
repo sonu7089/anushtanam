@@ -41,6 +41,8 @@ class SettingsViewModelTest {
     private lateinit var preferencesDataStore: UserPreferencesDataStore
     private lateinit var signOutUseCase: SignOutUseCase
     private lateinit var viewModel: SettingsViewModel
+    private val users = mockk<com.mantrasiddhi.domain.repository.UserRepository>(relaxed = true)
+    private val session = mockk<com.mantrasiddhi.domain.repository.SessionRepository>(relaxed = true)
 
     private val testUser = UserProfile(
         id = 1L,
@@ -72,7 +74,9 @@ class SettingsViewModelTest {
         viewModel = SettingsViewModel(
             getCurrentUserUseCase,
             preferencesDataStore,
-            signOutUseCase
+            signOutUseCase,
+            users,
+            session
         )
     }
 
@@ -81,6 +85,17 @@ class SettingsViewModelTest {
         createViewModel()
         assertEquals("SYSTEM", viewModel.themeMode.value)
         assertEquals("BOTH", viewModel.languageDisplay.value)
+    }
+
+    @Test
+    fun `choosing initials persists without changing the saved profile identity or name`() = runTest(testDispatcher) {
+        val saved = testUser.copy(firebaseUid = "owner", photoUrl = "https://example.com/photo", photoSource = "GOOGLE")
+        coEvery { users.getById(saved.id) } returns saved
+        every { session.currentUser } returns MutableStateFlow(saved)
+        createViewModel()
+        viewModel.setUseGooglePhoto(false)
+        coVerify { users.insert(saved.copy(useGooglePhoto = false)) }
+        io.mockk.verify { session.login(saved.copy(useGooglePhoto = false)) }
     }
 
     @Test

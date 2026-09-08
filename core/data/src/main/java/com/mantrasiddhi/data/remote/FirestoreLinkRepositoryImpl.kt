@@ -27,12 +27,18 @@ import javax.inject.Singleton
 @Singleton
 class FirestoreLinkRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val directLinks: DirectFamilyLinkService
 ) : LinkRepository {
 
     private val links get() = firestore.collection(FirebaseContract.COLLECTION_LINKS)
     private val users get() = firestore.collection(FirebaseContract.COLLECTION_USERS)
     private val childCodes get() = firestore.collection(FirebaseContract.COLLECTION_CHILD_CODES)
+
+    override suspend fun linkWithPin(childCode: String, pin: String) = directLinks.linkWithPin(childCode, pin)
+    override suspend fun createQrInvite() = directLinks.createQrInvite()
+    override suspend fun linkWithQr(payload: String) = directLinks.linkWithQr(payload)
+    override fun observeQrInvite(token: String) = directLinks.observeQrInvite(token)
 
     override suspend fun requestLink(childCode: String): Result<Unit> = runCatching {
         val parentUid = auth.currentUser?.uid

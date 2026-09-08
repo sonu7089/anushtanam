@@ -13,6 +13,7 @@ package com.mantrasiddhi.domain.model
  * with a synthetic email derived from their 12-digit ID plus a 6-digit PIN.
  */
 enum class AccountRole {
+    INDIVIDUAL,
     PARENT,
     CHILD
 }

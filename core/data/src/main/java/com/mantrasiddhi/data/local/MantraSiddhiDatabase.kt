@@ -40,7 +40,7 @@ import javax.inject.Provider
         CloudSyncEntity::class,
         CloudSyncScheduleEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -237,6 +237,16 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN firebaseUid TEXT")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN photoUrl TEXT")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN photoSource TEXT")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN useGooglePhoto INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE UNIQUE INDEX index_user_profiles_firebaseUid ON user_profiles(firebaseUid)")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -258,7 +268,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
-                MIGRATION_8_9
+                MIGRATION_8_9,
+                MIGRATION_9_10
             )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

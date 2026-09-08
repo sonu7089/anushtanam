@@ -39,6 +39,11 @@ class UserRepositoryImpl @Inject constructor(
             .flowOn(ioDispatcher)
     }
 
+    override suspend fun getByFirebaseUid(uid: String): UserProfile? =
+        userDao.getByFirebaseUid(uid)?.toDomain()
+
+    override suspend fun hasPractice(id: Long): Boolean = userDao.hasPractice(id)
+
     override suspend fun insert(user: UserProfile): Long = withContext(ioDispatcher) {
         userDao.insert(UserProfileEntity.fromDomain(user))
     }

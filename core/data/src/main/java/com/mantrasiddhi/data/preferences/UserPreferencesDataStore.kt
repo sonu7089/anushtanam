@@ -53,6 +53,11 @@ class UserPreferencesDataStore @Inject constructor(
         context.dataStore.edit { it[key] = localId }
     }
 
+    suspend fun getOwnerOfLocalProfile(localId: Long): String? =
+        context.dataStore.data.first().asMap().entries.firstOrNull {
+            it.key.name.startsWith(FIREBASE_LOCAL_ID_PREFIX) && it.value == localId
+        }?.key?.name?.removePrefix(FIREBASE_LOCAL_ID_PREFIX)
+
     val themeModeFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[KEY_THEME] ?: "SYSTEM"
     }

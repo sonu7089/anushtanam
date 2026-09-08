@@ -112,6 +112,19 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun `profile loading can be retried after email sign in without signing in again`() = runTest(testDispatcher) {
+        coEvery { signInParentUseCase(any(), any()) } returns Result.success(parentAccount)
+        coEvery { syncSignedInUserUseCase(parentAccount) } throws IllegalStateException("disk unavailable")
+        viewModel.signInParent("meera@example.com", "secret1")
+        assertTrue(viewModel.uiState.value.needsProfileRetry)
+        assertEquals(R.string.auth_profile_retry, viewModel.uiState.value.errorMessageResId)
+        coEvery { syncSignedInUserUseCase(parentAccount) } returns 7L
+        viewModel.retryProfile()
+        assertTrue(!viewModel.uiState.value.needsProfileRetry)
+        coVerify(exactly = 1) { signInParentUseCase(any(), any()) }
+    }
+
+    @Test
     fun `child signup reveals generated id and defers navigation`() = runTest(testDispatcher) {
         coEvery { signUpChildUseCase(any(), any()) } returns Result.success(childAccount)
         val events = mutableListOf<AuthEvent>()
