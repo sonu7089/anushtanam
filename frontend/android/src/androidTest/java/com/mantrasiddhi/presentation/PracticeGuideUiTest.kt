@@ -24,7 +24,7 @@ class PracticeGuideUiTest {
         compose.setContent {
             var visible by remember { mutableStateOf(false) }
             AnushtanamTheme(false) {
-                HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {},
+                HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {},
                     onOpenGuide = { visible = true })
                 if (visible) PracticeGuideSheet(onDismiss = { visible = false })
             }
@@ -70,12 +70,12 @@ class PracticeGuideUiTest {
         compose.onNodeWithText(text(R.string.guide_verse_sanskrit)).performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun settingsHelpOpensGuideAndPronunciationActionWorks() {
+    @Test fun homeGuidePronunciationActionWorks() {
         var practice = 0
         compose.setContent {
             var visible by remember { mutableStateOf(false) }
             AnushtanamTheme(false) {
-                SettingsContent(ReviewFixtures.parent, "LIGHT", "BOTH", {}, {}, {},
+                HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {},
                     onOpenGuide = { visible = true })
                 if (visible) PracticeGuideSheet(onDismiss = { visible = false }, onPractice = { practice++ })
             }

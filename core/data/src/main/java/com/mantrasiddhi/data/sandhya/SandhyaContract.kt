@@ -8,6 +8,10 @@ package com.mantrasiddhi.data.sandhya
 
 /** Shared constants for the Sandhya reminder intents and notification channel. */
 object SandhyaContract {
+    const val EXTRA_STAGE = "com.mantrasiddhi.extra.STAGE"
+    const val EXTRA_REGION = "com.mantrasiddhi.extra.REGION"
+    const val EXTRA_ZONE = "com.mantrasiddhi.extra.ZONE"
+    const val ACTION_OPEN = "com.mantrasiddhi.action.OPEN_SANDHYA_REMINDER"
     const val CHANNEL_ID = "sandhya_reminders"
 
     /** Action for the notification's "Mark as done" button. */
@@ -21,7 +25,7 @@ object SandhyaContract {
     const val EXTRA_EVENT_MILLIS = "com.mantrasiddhi.extra.EVENT_MILLIS"
 
     /** Lead time before the solar event that the reminder fires. */
-    const val LEAD_MINUTES = 5L
+    const val LEAD_MINUTES = com.mantrasiddhi.domain.model.SandhyaReminderPolicy.LEAD_MINUTES
     const val LEAD_MILLIS = LEAD_MINUTES * 60_000L
 
     /** Request-code offset so "mark done" PendingIntents don't collide with alarms. */

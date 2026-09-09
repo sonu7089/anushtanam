@@ -6,6 +6,9 @@
  */
 package com.mantrasiddhi.data.sandhya
 
+import com.mantrasiddhi.domain.model.SandhyaReminderStage
+import android.os.Build
+import android.net.Uri
 import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -53,13 +56,19 @@ class SandhyaNotifier @Inject constructor(
      * Posts the reminder for [period]. No-ops (without throwing) when POST_NOTIFICATIONS
      * is not granted, so scheduling never depends on the permission.
      */
-    fun showReminder(period: SandhyaPeriod, eventMillis: Long, zone: ZoneId, dateKey: String, userId: Long) {
-        if (!hasPermission()) return
+    fun showReminder(period: SandhyaPeriod, eventMillis: Long, zone: ZoneId, dateKey: String, userId: Long, stage: SandhyaReminderStage): Boolean {
+        if (!notificationsAllowed()) return false
 
         val periodName = context.getString(periodNameRes(period))
         val timeText = timeFormatter.format(Instant.ofEpochMilli(eventMillis).atZone(zone))
-        val title = context.getString(R.string.sandhya_notif_title, periodName)
-        val text = context.getString(R.string.sandhya_notif_text, periodName, timeText)
+        val preparation = stage == SandhyaReminderStage.PREPARATION
+        val late = System.currentTimeMillis() > eventMillis + 120_000
+        val title = context.getString(if (preparation) R.string.reminder_prepare_title else R.string.reminder_event_title)
+        val text = context.getString(when {
+            preparation -> R.string.reminder_prepare_body
+            late -> R.string.reminder_event_late_body
+            else -> R.string.reminder_event_body
+        }, periodName, timeText)
 
         val notification = NotificationCompat.Builder(context, SandhyaContract.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_sandhya_sun)
@@ -69,18 +78,19 @@ class SandhyaNotifier @Inject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openAppIntent())
+            .setContentIntent(openAppIntent(period, dateKey, userId, stage))
             .addAction(
                 R.drawable.ic_sandhya_sun,
-                context.getString(R.string.sandhya_mark_done),
-                markObservedIntent(period, dateKey, eventMillis, userId)
+                context.getString(if (preparation) R.string.reminder_read_guide else R.string.reminder_record_count),
+                openAppIntent(period, dateKey, userId, stage)
             )
             .build()
 
         try {
             NotificationManagerCompat.from(context).notify(period.requestCode, notification)
+            return true
         } catch (_: SecurityException) {
-            // Permission revoked between the check and the post; ignore.
+            return false
         }
     }
 
@@ -89,37 +99,26 @@ class SandhyaNotifier @Inject constructor(
         NotificationManagerCompat.from(context).cancel(period.requestCode)
     }
 
-    private fun hasPermission(): Boolean =
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
-
-    private fun openAppIntent(): PendingIntent {
-        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }
-        return PendingIntent.getActivity(
-            context,
-            0,
-            launch ?: Intent(),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+    fun notificationsAllowed(): Boolean {
+        val manager = NotificationManagerCompat.from(context)
+        return (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context,
+            Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&
+            manager.areNotificationsEnabled() &&
+            manager.getNotificationChannel(SandhyaContract.CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
     }
 
-    private fun markObservedIntent(period: SandhyaPeriod, dateKey: String, eventMillis: Long, userId: Long): PendingIntent {
-        val intent = Intent(context, SandhyaActionReceiver::class.java).apply {
-            action = SandhyaContract.ACTION_MARK_OBSERVED
+    private fun openAppIntent(period: SandhyaPeriod, dateKey: String, userId: Long, stage: SandhyaReminderStage): PendingIntent {
+        val launch = Intent().setClassName(context.packageName, "com.mantrasiddhi.presentation.MainActivity").apply {
+            action = SandhyaContract.ACTION_OPEN
+            data = Uri.parse("anushtanam://sandhya/$userId/$dateKey/${period.name}/${stage.name}")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(SandhyaContract.EXTRA_PERIOD, period.name)
             putExtra(SandhyaContract.EXTRA_DATE_KEY, dateKey)
-            putExtra(SandhyaContract.EXTRA_EVENT_MILLIS, eventMillis)
             putExtra(SandhyaContract.EXTRA_USER_ID, userId)
+            putExtra(SandhyaContract.EXTRA_STAGE, stage.name)
         }
-        return PendingIntent.getBroadcast(
-            context,
-            period.requestCode + SandhyaContract.ACTION_REQUEST_OFFSET,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        return PendingIntent.getActivity(context, period.requestCode, launch,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
     private companion object {

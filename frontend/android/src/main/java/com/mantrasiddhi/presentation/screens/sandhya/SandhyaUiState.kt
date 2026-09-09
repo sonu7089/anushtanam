@@ -30,6 +30,10 @@ data class SandhyaTodayItem(
 data class SandhyaUiState(
     val loading: Boolean = true,
     val enabled: Boolean = false,
+    val preparationEnabled: Boolean = true,
+    val eventEnabled: Boolean = true,
+    val nextReminders: Map<Pair<SandhyaPeriod, com.mantrasiddhi.domain.model.SandhyaReminderStage>, com.mantrasiddhi.domain.model.SandhyaReminderTime> = emptyMap(),
+    val reminderZoneId: String = java.time.ZoneId.systemDefault().id,
     val region: SandhyaRegion = SandhyaRegions.DEFAULT,
     val today: List<SandhyaTodayItem> = emptyList(),
     val adherence: SandhyaAdherence = SandhyaAdherence.EMPTY,

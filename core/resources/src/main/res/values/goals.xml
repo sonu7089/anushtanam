@@ -1,0 +1,16 @@
+<resources>
+    <string name="goals_japa">Gayatri Mantra japa</string>
+    <string name="goals_counted">of %1$s japa completed</string>
+    <string name="goals_remaining">%1$s to go</string>
+    <string name="goals_started">Started %1$s</string>
+    <string name="goals_continue">Continue japa</string>
+    <string name="goals_count_note">Your recorded Gayatri Mantra japa counts here. This goal stays open until you finish.</string>
+    <string name="goals_empty_title">Choose your next goal</string>
+    <string name="goals_empty_body">Start with a count that feels right for you. Your goal stays with you until you complete it.</string>
+    <string name="goals_complete_body">You reached your goal. When you feel ready, you can begin another.</string>
+    <string name="goals_new">Set a new goal</string>
+    <string name="goals_child">Set a goal for your child</string>
+    <string name="goals_reward">Your reward</string>
+    <string name="goals_history_count">%1$s japa</string>
+    <string name="goals_back">Go back</string>
+</resources>

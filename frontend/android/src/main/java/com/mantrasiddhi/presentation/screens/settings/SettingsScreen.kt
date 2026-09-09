@@ -13,21 +13,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.UserProfile
-import com.mantrasiddhi.domain.model.SandhyaMinimums
 import com.mantrasiddhi.presentation.components.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.presentation.screens.auth.*
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier: Modifier = Modifier,
-    onOpenGuide: () -> Unit = {}) {
+    onOpenSandhyaSettings: () -> Unit = {}) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
-    val minimums by viewModel.sandhyaMinimums.collectAsState()
-    val savingMinimums by viewModel.savingMinimums.collectAsState()
-    val minimumsSaveError by viewModel.minimumsSaveError.collectAsState()
     val googleViewModel: GoogleAuthViewModel = hiltViewModel()
     val googleState by googleViewModel.state.collectAsState()
     val observedAccount by googleViewModel.account.collectAsState()
@@ -48,8 +44,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
                 { account?.let { googleViewModel.start(context, linkTo = it) } },
                 googleViewModel::retryProfile, googleViewModel::continueWithProfile, googleViewModel::refreshProfile)
         }, signOutEnabled = !googleState.busy,
-        minimums = minimums, onMinimumsSave = viewModel::setSandhyaMinimums,
-        savingMinimums = savingMinimums, minimumsSaveError = minimumsSaveError, onOpenGuide = onOpenGuide)
+        onOpenSandhyaSettings = onOpenSandhyaSettings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -59,11 +54,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     onLogout: () -> Unit, modifier: Modifier = Modifier,
     accountContent: @Composable () -> Unit = {},
     signOutEnabled: Boolean = true,
-    minimums: SandhyaMinimums = SandhyaMinimums(),
-    onMinimumsSave: (SandhyaMinimums) -> Unit = {},
-    savingMinimums: Boolean = false,
-    minimumsSaveError: Boolean = false,
-    onOpenGuide: () -> Unit = {}) {
+    onOpenSandhyaSettings: () -> Unit = {}) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -118,13 +109,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                     }
                 }
             }
-            key(user?.id) {
-                SandhyaMinimumSettings(minimums, onMinimumsSave, savingMinimums, minimumsSaveError)
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel(stringResource(R.string.guide_help))
-                com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
-            }
+            SandhyaSettingsEntry(onOpenSandhyaSettings)
             Column {
                 SectionLabel(stringResource(R.string.settings_about_anushtanam))
                 AboutRow(R.string.settings_about_app_version, R.string.settings_about_app_version_value)

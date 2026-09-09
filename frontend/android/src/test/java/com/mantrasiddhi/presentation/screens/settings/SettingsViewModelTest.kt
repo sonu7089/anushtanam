@@ -78,6 +78,7 @@ class SettingsViewModelTest {
             signOutUseCase,
             users,
             session,
+            mockk(relaxed = true),
             sandhyaPreferences
         )
     }

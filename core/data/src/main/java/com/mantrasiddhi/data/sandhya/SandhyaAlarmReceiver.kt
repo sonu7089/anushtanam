@@ -1,67 +1,53 @@
-/*
- * Anushtanam - Vedic mantra recitation app
- * Copyright (c) 2026. All rights reserved.
- *
- * This is a demo application. Not for production use.
- */
 package com.mantrasiddhi.data.sandhya
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.mantrasiddhi.domain.model.SandhyaPeriod
+import android.util.Log
+import com.mantrasiddhi.domain.model.*
 import com.mantrasiddhi.domain.util.SandhyaDateKey
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.time.LocalDate
 
-/**
- * Fired ~5 minutes before a solar event. Logs the occurrence, posts the reminder,
- * then re-arms the same period for the next day. [goAsync] keeps the process alive
- * long enough for the IO work to finish.
- */
 class SandhyaAlarmReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
-        val period = intent.getStringExtra(SandhyaContract.EXTRA_PERIOD)
-            ?.let { runCatching { SandhyaPeriod.valueOf(it) }.getOrNull() } ?: return
-        val eventMillis = intent.getLongExtra(SandhyaContract.EXTRA_EVENT_MILLIS, 0L)
-        val extraDateKey = intent.getStringExtra(SandhyaContract.EXTRA_DATE_KEY)
-        val entryPoint = SandhyaReceiverEntryPoint.from(context)
-
+        val period = runCatching { SandhyaPeriod.valueOf(intent.getStringExtra(SandhyaContract.EXTRA_PERIOD) ?: "") }.getOrNull() ?: return
+        val stage = runCatching { SandhyaReminderStage.valueOf(intent.getStringExtra(SandhyaContract.EXTRA_STAGE) ?: "") }.getOrNull() ?: return
+        val event = intent.getLongExtra(SandhyaContract.EXTRA_EVENT_MILLIS, 0)
+        val owner = intent.getLongExtra(SandhyaContract.EXTRA_USER_ID, 0)
+        val date = intent.getStringExtra(SandhyaContract.EXTRA_DATE_KEY) ?: return
+        val entry = SandhyaReceiverEntryPoint.from(context)
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                // Durability-critical and cheap: re-arm the next occurrence FIRST, so the
-                // daily self-perpetuating chain survives even if the work below is slow or
-                // cancelled. Losing this would stop all future reminders until app open.
-                runCatching { entryPoint.scheduler().scheduleNext(period) }
-
-                withTimeoutOrNull(WORK_BUDGET_MS) {
-                    val settings = entryPoint.preferences().current()
-                    if (!settings.enabled || settings.userId <= 0L) return@withTimeoutOrNull
-                    val zone = settings.zone()
-                    val dateKey = extraDateKey ?: SandhyaDateKey.of(
-                        if (eventMillis > 0L) eventMillis else System.currentTimeMillis(),
-                        zone
-                    )
-                    // Only attribute a log once a real profile is resolved; never create
-                    // orphan rows under the userId=0 default.
-                    if (settings.userId > 0L) {
-                        entryPoint.logRepository()
-                            .logNotified(settings.userId, period, eventMillis, dateKey)
+                runCatching { entry.scheduler().scheduleNext(period, stage, event) }
+                    .onFailure { Log.w("SandhyaReminder", "Rearm failed", it) }
+                withTimeoutOrNull(8_000) {
+                    deliveryLock.withLock {
+                        val settings = entry.preferences().current()
+                        val now = System.currentTimeMillis()
+                        Log.d("SandhyaReminder", "received $period $stage event=$event at=$now")
+                        if (!settings.enabled || owner <= 0 || settings.userId != owner || !settings.stageEnabled(stage)) return@withLock
+                        if (intent.getStringExtra(SandhyaContract.EXTRA_REGION) != settings.region.toString() ||
+                            intent.getStringExtra(SandhyaContract.EXTRA_ZONE) != settings.zone().id) return@withLock
+                        if (date != SandhyaDateKey.of(LocalDate.now(settings.zone()))) return@withLock
+                        val actual = SandhyaReminderPolicy.delivery(stage, event, now, settings.eventEnabled) ?: return@withLock
+                        if (entry.preferences().deliveredDate(owner, period, actual) == date) return@withLock
+                        if (actual == SandhyaReminderStage.PREPARATION && entry.preferences().deliveredDate(owner, period, SandhyaReminderStage.EVENT) == date) return@withLock
+                        if (entry.logRepository().getLogs(owner).any { it.dateKey == date && it.period == period && it.status == SandhyaStatus.OBSERVED }) return@withLock
+                        val posted = entry.notifier().showReminder(period, event, settings.zone(), date, owner, actual)
+                        Log.d("SandhyaReminder", "post $period $actual accepted=$posted")
+                        if (posted) {
+                            entry.preferences().recordDelivery(owner, period, actual, event, date)
+                            entry.logRepository().logNotified(owner, period, event, date)
+                        }
                     }
-                    entryPoint.notifier().showReminder(period, eventMillis, zone, dateKey, settings.userId)
                 }
-            } finally {
-                pending.finish()
-            }
+            } catch (error: Exception) { Log.w("SandhyaReminder", "Delivery failed", error) }
+            finally { pending.finish() }
         }
     }
-
-    private companion object {
-        const val WORK_BUDGET_MS = 8_000L
-    }
+    companion object { private val deliveryLock = Mutex() }
 }

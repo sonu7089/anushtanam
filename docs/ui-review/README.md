@@ -1,5 +1,14 @@
 # Lotus UI review
 
+## Sandhya settings page, 9 September 2026
+
+All configuration is grouped under Settings > Sandhya Vandan. The main practice page keeps a settings shortcut and a reminder summary below its progress charts. The timing disclaimer has been removed. Current previews: [dedicated page](settings-sandhya-light-mf-six-grouped.png), [dark](settings-sandhya-dark-mf-six-grouped.png), and [reminder summary](sandhya-next-reminders-light-mf-six-grouped.png).
+
+## Earlier MF-06 reminder layout, 9 September 2026
+
+Settings uses the existing Lotus cards, colors, typography and accessible switch rows. Preview captures use fixed example times, not delivery measurements: [light](settings-reminders-light-mf-six.png), [dark](settings-reminders-dark-mf-six.png), [notifications blocked](settings-reminders-blocked-light-mf-six.png), and [large text](settings-reminders-light-mf-six-large-text.png). There is no test-notification button.
+
+
 ## Simplified Sandhya counts, 9 September 2026
 
 One filled “Start mental Japa” button per period, aligned dates and observance labels, a clearer draft card, and personal minimums in Settings. Counts now use “mantra” and “mantras.”
@@ -154,3 +163,11 @@ The existing layout and artwork are unchanged. The count sheet explains goal eli
 | --- | --- | --- |
 | Correct a Sandhya count | [Open](sandhya-entry-light-mf-two.png) | [Open](sandhya-entry-dark-mf-two.png) |
 | Japa total on Progress | [Open](progress-light-mf-two.png) | |
+
+## MF-06 Home, Family and reminder refinement
+
+[Implementation and artwork prompt](../mentor-feedback/mf-06-ui-refinement.md). Current captures: [Home](home-cards-light-refined.png), [Home dark](home-cards-dark-refined.png), [reminders](sandhya-next-reminders-light-refined.png), [reminders dark](sandhya-next-reminders-dark-refined.png), [button padding](settings-reminders-light-refined.png), [Family](family-light-refined.png).
+
+## Home goal credit and subtle tile artwork
+
+[Implementation and verification](../mentor-feedback/home-goal-japa-sync.md). [Light Home](home-light-goal-sync.png) and [dark Home](home-dark-goal-sync.png).

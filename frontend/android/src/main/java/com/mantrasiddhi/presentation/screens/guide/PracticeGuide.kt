@@ -62,12 +62,12 @@ fun PracticeGuideCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 fun PracticeGuideReminder(onClick: () -> Unit, modifier: Modifier = Modifier,
-    messageRes: Int = R.string.guide_reminder) {
+    messageRes: Int? = R.string.guide_reminder) {
     Surface(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(messageRes), style = MaterialTheme.typography.bodyMedium)
+                if (messageRes != null) Text(stringResource(messageRes), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(R.string.guide_how),
                     style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }

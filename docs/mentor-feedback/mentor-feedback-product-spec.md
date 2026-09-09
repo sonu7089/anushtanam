@@ -162,6 +162,8 @@ Attribution supplied by the mentor: **पाणिनीयशिक्षा �
 
 ## 4. Sandhya reminder setup and two reminder times — MF-06
 
+App-owner update, 9 September 2026: region, mantra minimums, reminder switches and delivery help belong in Settings > Sandhya Vandan, with a shortcut from Sandhya. Upcoming reminders appear at the bottom of the main Sandhya page, below the charts, with dates and only enabled stages. Do not show an approximate-timing label. There is no test-notification button. The preparation notification opens the practice guide; the event notification opens the matching date and period for recording a count. Use warm, simple English without em dashes. See [implementation and verification](mf-06-implementation.md). This update supersedes conflicting reminder UI items below.
+
 ### 4.1 Timing and navigation
 
 - [ ] For each enabled period, schedule **two reminders**: preparation at **15 minutes before** and another **at the Sandhya event time**. With all three periods enabled, this is up to six reminders per day.

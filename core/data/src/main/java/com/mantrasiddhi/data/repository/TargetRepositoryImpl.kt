@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -30,9 +31,11 @@ class TargetRepositoryImpl @Inject constructor(
     override suspend fun create(target: Target): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {
             targetDao.getByStableId(target.userId, target.stableId)?.let { return@withTransaction it.id }
+            val before = database.japaDao().entries(target.userId)
             targetDao.closePrevious(target.userId, target.startedAtMillis)
             val id = targetDao.insert(TargetEntity.fromDomain(target))
-            sync.enqueue(target.userId, database.japaDao().entries(target.userId))
+            database.japaDao().project(target.userId, target.startedAtMillis)
+            sync.enqueue(target.userId, before)
             id
         }
         sync.schedule()
@@ -44,13 +47,28 @@ class TargetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getActiveForUser(userId: Long): Target? = withContext(ioDispatcher) {
+        refreshGoalCredit(userId)
         targetDao.getActiveForUser(userId)?.toDomain()
     }
 
     override fun getAllForUser(userId: Long): Flow<List<Target>> {
         return targetDao.getAllForUser(userId)
+            .onStart { refreshGoalCredit(userId) }
             .map { list -> list.map { it.toDomain() } }
             .flowOn(ioDispatcher)
+    }
+
+    private suspend fun refreshGoalCredit(userId: Long) {
+        val changed = database.withTransaction {
+            val dao = database.japaDao()
+            val before = dao.entries(userId)
+            val now = System.currentTimeMillis()
+            if (!dao.creditUnassignedTargetEntries(userId, now)) return@withTransaction false
+            dao.project(userId, now)
+            sync.enqueue(userId, before)
+            true
+        }
+        if (changed) sync.schedule()
     }
 
     override suspend fun delete(targetId: Long) = withContext(ioDispatcher) {

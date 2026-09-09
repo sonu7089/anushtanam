@@ -1,143 +1,106 @@
-/*
- * Anushtanam - Vedic mantra recitation app
- * Copyright (c) 2026. All rights reserved.
- *
- * This is a demo application. Not for production use.
- */
 package com.mantrasiddhi.data.sandhya
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.mantrasiddhi.data.preferences.SandhyaPreferences
 import com.mantrasiddhi.data.preferences.SandhyaSettings
-import com.mantrasiddhi.domain.model.SandhyaPeriod
+import com.mantrasiddhi.domain.model.*
+import com.mantrasiddhi.domain.repository.SandhyaLogRepository
 import com.mantrasiddhi.domain.solar.SolarCalculator
 import com.mantrasiddhi.domain.util.SandhyaDateKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Schedules the three daily Sandhya reminders with [AlarmManager].
- *
- * Design notes (Play-policy compliant, dependency-free):
- *  - Uses the **inexact** [AlarmManager.setAndAllowWhileIdle]. A devotional nudge is
- *    a soft reminder, not an alarm-clock event, so we declare neither USE_EXACT_ALARM
- *    nor SCHEDULE_EXACT_ALARM (both would draw Play exact-alarm review a sunrise
- *    reminder can't justify). Doze may delay delivery by minutes; that's acceptable
- *    and surfaced in the UI.
- *  - Each period has a distinct, stable request code, so the three alarms are
- *    independent and individually cancellable.
- *  - Single-shot + self-rearming: each fired alarm re-arms only itself for the next
- *    day (done in [SandhyaAlarmReceiver]); boot / time-change re-arms all three.
- */
 @Singleton
 class SandhyaScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val preferences: SandhyaPreferences
+    private val preferences: SandhyaPreferences,
+    private val logs: SandhyaLogRepository
 ) {
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val lock = Mutex()
 
-    /** Re-arms every period if enabled, or cancels everything if disabled. */
-    suspend fun scheduleAll() {
+    suspend fun scheduleAll() = lock.withLock {
         val settings = preferences.current()
-        if (!settings.enabled || settings.userId <= 0L) {
-            cancelAll()
-            return
+        SandhyaPeriod.entries.forEach { period ->
+            // Remove pre-MF-06 alarms, whose identity had no stage.
+            PendingIntent.getBroadcast(context, period.requestCode, Intent(context, SandhyaAlarmReceiver::class.java),
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let { alarms.cancel(it); it.cancel() }
+            SandhyaReminderStage.entries.forEach { schedule(period, it, settings) }
         }
-        SandhyaPeriod.entries.forEach { schedule(it, settings) }
     }
 
-    /** Re-arms a single period (used by the alarm receiver after it fires). */
-    suspend fun scheduleNext(period: SandhyaPeriod) {
-        val settings = preferences.current()
-        if (!settings.enabled || settings.userId <= 0L) {
-            cancel(period)
-            return
+    suspend fun scheduleNext(period: SandhyaPeriod, stage: SandhyaReminderStage, afterEvent: Long) = lock.withLock {
+        schedule(period, stage, preferences.current(), afterEvent)
+    }
+
+    fun cancelAll() {
+        SandhyaPeriod.entries.forEach { period ->
+            PendingIntent.getBroadcast(context, period.requestCode, Intent(context, SandhyaAlarmReceiver::class.java),
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let { alarms.cancel(it); it.cancel() }
+            SandhyaReminderStage.entries.forEach { cancel(period, it) }
         }
-        schedule(period, settings)
     }
 
-    fun cancelAll() = SandhyaPeriod.entries.forEach { cancel(it) }
-
-    private fun schedule(period: SandhyaPeriod, settings: SandhyaSettings) {
-        val eventMillis = nextEventMillis(period, settings) ?: run {
-            // Polar day/night (no Indian city hits this) — nothing to arm today.
-            cancel(period)
-            return
+    suspend fun upcoming(settings: SandhyaSettings, now: Long = System.currentTimeMillis()): Map<Pair<SandhyaPeriod, SandhyaReminderStage>, SandhyaReminderTime> = buildMap {
+        for (period in SandhyaPeriod.entries) for (stage in SandhyaReminderStage.entries) {
+            next(period, stage, settings, now)?.let { put(period to stage, it) }
         }
-        // Compute the target local day once, here, and carry it on the intent so the
-        // receiver buckets the occurrence under the same day the UI assumes (avoids a
-        // timezone/DST shift between scheduling and firing splitting an anushtanam day).
-        val dateKey = SandhyaDateKey.of(eventMillis, settings.zone())
-        val triggerAt = eventMillis - SandhyaContract.LEAD_MILLIS
-        alarmManager.setAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            triggerAt,
-            alarmPendingIntent(period, eventMillis, dateKey)
-        )
     }
 
-    private fun cancel(period: SandhyaPeriod) {
-        // FLAG_NO_CREATE: resolve an existing PendingIntent to cancel, or no-op if none.
-        cancelPendingIntent(period)?.let { alarmManager.cancel(it) }
-    }
-
-    /**
-     * Epoch ms of the next occurrence of [period]'s solar event whose reminder time
-     * is still in the future. Looks a few days ahead so a polar gap or an event that
-     * already passed today rolls forward. Null only if persistently undefined (polar).
-     */
-    private fun nextEventMillis(period: SandhyaPeriod, settings: SandhyaSettings): Long? {
-        val zone = settings.zone()
-        val region = settings.region
-        val now = System.currentTimeMillis()
-        var date = LocalDate.now(zone)
-        repeat(LOOKAHEAD_DAYS) {
-            val epochs = SolarCalculator.computeEpochMillis(date, region.latitude, region.longitude, zone)
-            val eventMillis = when (period) {
+    private suspend fun next(period: SandhyaPeriod, stage: SandhyaReminderStage, settings: SandhyaSettings,
+        now: Long, afterEvent: Long = 0): SandhyaReminderTime? {
+        if (!settings.enabled || settings.userId <= 0 || !settings.stageEnabled(stage)) return null
+        val delivered = maxOf(afterEvent, preferences.delivered(settings.userId, period, stage))
+        val deliveredDate = preferences.deliveredDate(settings.userId, period, stage)
+        val observed = logs.getLogs(settings.userId).filter { it.period == period && it.status == SandhyaStatus.OBSERVED }.map { it.dateKey }.toSet()
+        var date = java.time.Instant.ofEpochMilli(now).atZone(settings.zone()).toLocalDate()
+        repeat(8) {
+            val epochs = SolarCalculator.computeEpochMillis(date, settings.region.latitude, settings.region.longitude, settings.zone())
+            val event = when (period) {
                 SandhyaPeriod.PRATAH -> epochs.sunriseUtcMillis
                 SandhyaPeriod.MADHYAHNA -> epochs.solarNoonUtcMillis
                 SandhyaPeriod.SAYAM -> epochs.sunsetUtcMillis
             }
-            if (eventMillis != null && eventMillis - SandhyaContract.LEAD_MILLIS > now + FUTURE_BUFFER_MS) {
-                return eventMillis
+            if (event != null && event > delivered && SandhyaDateKey.of(date) != deliveredDate && SandhyaDateKey.of(date) !in observed) {
+                SandhyaReminderPolicy.trigger(event, stage, now)?.let { return SandhyaReminderTime(event, it) }
             }
             date = date.plusDays(1)
         }
         return null
     }
 
-    private fun alarmPendingIntent(period: SandhyaPeriod, eventMillis: Long, dateKey: String): PendingIntent {
-        val intent = Intent(context, SandhyaAlarmReceiver::class.java).apply {
+    private suspend fun schedule(period: SandhyaPeriod, stage: SandhyaReminderStage, settings: SandhyaSettings, afterEvent: Long = 0) {
+        val next = next(period, stage, settings, System.currentTimeMillis(), afterEvent)
+        if (next == null) { cancel(period, stage); return }
+        val intent = alarmIntent(period, stage).apply {
             putExtra(SandhyaContract.EXTRA_PERIOD, period.name)
-            putExtra(SandhyaContract.EXTRA_EVENT_MILLIS, eventMillis)
-            putExtra(SandhyaContract.EXTRA_DATE_KEY, dateKey)
+            putExtra(SandhyaContract.EXTRA_STAGE, stage.name)
+            putExtra(SandhyaContract.EXTRA_USER_ID, settings.userId)
+            putExtra(SandhyaContract.EXTRA_EVENT_MILLIS, next.eventMillis)
+            putExtra(SandhyaContract.EXTRA_DATE_KEY, SandhyaDateKey.of(next.eventMillis, settings.zone()))
+            putExtra(SandhyaContract.EXTRA_REGION, settings.region.toString())
+            putExtra(SandhyaContract.EXTRA_ZONE, settings.zone().id)
         }
-        return PendingIntent.getBroadcast(
-            context,
-            period.requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val pending = PendingIntent.getBroadcast(context, period.requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.triggerMillis, pending)
+        Log.d("SandhyaReminder", "scheduled $period $stage at ${next.triggerMillis}")
     }
-
-    /** Equivalent PendingIntent for cancellation; null if none is currently armed. */
-    private fun cancelPendingIntent(period: SandhyaPeriod): PendingIntent? {
-        val intent = Intent(context, SandhyaAlarmReceiver::class.java)
-        return PendingIntent.getBroadcast(
-            context,
-            period.requestCode,
-            intent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
-    private companion object {
-        const val LOOKAHEAD_DAYS = 4
-        const val FUTURE_BUFFER_MS = 1_000L
+    private fun alarmIntent(period: SandhyaPeriod, stage: SandhyaReminderStage) =
+        Intent(context, SandhyaAlarmReceiver::class.java).setAction("sandhya.${period.name}.${stage.name}")
+    private fun cancel(period: SandhyaPeriod, stage: SandhyaReminderStage) {
+        PendingIntent.getBroadcast(context, period.requestCode, alarmIntent(period, stage),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let { alarms.cancel(it); it.cancel() }
     }
 }
+
+fun SandhyaSettings.stageEnabled(stage: SandhyaReminderStage) =
+    if (stage == SandhyaReminderStage.PREPARATION) preparationEnabled else eventEnabled

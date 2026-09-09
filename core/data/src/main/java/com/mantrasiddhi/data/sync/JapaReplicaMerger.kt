@@ -6,8 +6,8 @@ import com.mantrasiddhi.data.local.entity.*
 
 internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
     suspend fun merge(userId: Long, goals: List<Map<String, Any?>>, entries: List<Map<String, Any?>>,
-        ownerStillActive: () -> Boolean) {
-        database.withTransaction {
+        ownerStillActive: () -> Boolean): Boolean {
+        return database.withTransaction {
             check(ownerStillActive())
             val dao = database.japaDao()
             for (goal in goals) {
@@ -48,7 +48,9 @@ internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
                     sessionId = old?.sessionId, updatedAtMillis = value.number("updatedAtMillis"), operationId = value.text("operationId")))
             }
             database.sandhyaCountDao().rebuildPeriods(userId)
+            val beforeProjection = dao.entries(userId)
             dao.project(userId, System.currentTimeMillis())
+            beforeProjection != dao.entries(userId)
         }
     }
 }

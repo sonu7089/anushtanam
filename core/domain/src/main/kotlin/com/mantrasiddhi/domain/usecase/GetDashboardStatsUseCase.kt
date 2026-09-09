@@ -62,7 +62,8 @@ class GetDashboardStatsUseCase @Inject constructor(
                     user = user,
                     todayRecitationCount = countToday(sessions),
                     streakDays = streakDays(sessions),
-                    activeTarget = targets.firstOrNull { it.isActive && !it.isCompleted },
+                    activeTarget = targets.filter { it.isActive }.maxWithOrNull(
+                        compareBy<Target> { it.startedAtMillis }.thenBy { it.stableId }),
                     childrenProgress = emptyList()
                 )
                 childrenProgress(user, children).map { stats.copy(childrenProgress = it) }

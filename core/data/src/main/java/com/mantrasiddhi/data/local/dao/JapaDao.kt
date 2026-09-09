@@ -44,12 +44,42 @@ abstract class JapaDao {
         return start <= recordedAt && start < dayEnd && (end == null || minOf(recordedAt, dayEnd - 1) < end)
     }
 
-    suspend fun allocate(entry: JapaEntryEntity): JapaEntryEntity {
-        val target = targets(entry.userId).firstOrNull {
+    private fun targetFor(entry: JapaEntryEntity, targets: List<TargetEntity>): TargetEntity? {
+        val candidates = targets.filter {
             it.mantraId == entry.mantraId &&
-                (entry.source == "AUDIO_ACCEPTED" || it.setByUserId == it.userId) &&
-                eligible(it.startedAtMillis, it.endedAtMillis, entry.dateKey, entry.zoneId, entry.createdAtMillis)
+                (entry.source == "AUDIO_ACCEPTED" || it.setByUserId == it.userId)
         }
+        // Practice performed during a goal keeps its original allocation rules.
+        candidates.firstOrNull {
+            eligible(it.startedAtMillis, it.endedAtMillis, entry.dateKey, entry.zoneId, entry.createdAtMillis)
+        }?.let { return it }
+        // A self-set goal also includes unclaimed practice from earlier on its first day.
+        // Use the entry's recorded timezone, never a device's current timezone.
+        return candidates.asReversed().firstOrNull {
+            it.setByUserId == it.userId && entry.createdAtMillis > 0 &&
+                entry.createdAtMillis < it.startedAtMillis &&
+                java.time.Instant.ofEpochMilli(it.startedAtMillis).atZone(ZoneId.of(entry.zoneId)).toLocalDate() ==
+                    SandhyaDateKey.parse(entry.dateKey) &&
+                java.time.Instant.ofEpochMilli(entry.createdAtMillis).atZone(ZoneId.of(entry.zoneId)).toLocalDate() ==
+                    SandhyaDateKey.parse(entry.dateKey)
+        }
+    }
+
+    /** Repair only unclaimed entries. Corrections and later goals never reuse claimed japa. */
+    suspend fun creditUnassignedTargetEntries(userId: Long, now: Long): Boolean {
+        val targets = targets(userId)
+        var changed = false
+        for (entry in entries(userId).filter { it.targetId == null && it.createdAtMillis > 0 }) {
+            val target = targetFor(entry, targets) ?: continue
+            putEntry(entry.copy(targetId = target.stableId, revision = Math.addExact(entry.revision, 1),
+                updatedAtMillis = maxOf(entry.updatedAtMillis, now), operationId = java.util.UUID.randomUUID().toString()))
+            changed = true
+        }
+        return changed
+    }
+
+    suspend fun allocate(entry: JapaEntryEntity): JapaEntryEntity {
+        val target = targetFor(entry, targets(entry.userId))
         val vow = vows(entry.userId).firstOrNull {
             it.mantraId == entry.mantraId &&
                 eligible(it.startedAtMillis, it.endedAtMillis, entry.dateKey, entry.zoneId, entry.createdAtMillis)
@@ -59,6 +89,7 @@ abstract class JapaDao {
 
     /** Recompute from uncapped quantities, so an edit after an overshoot remains correct. */
     suspend fun project(userId: Long, now: Long): JapaGoalFeedback {
+        creditUnassignedTargetEntries(userId, now)
         val entries = entries(userId)
         var feedback = JapaGoalFeedback()
         for (target in targets(userId)) {

@@ -10,12 +10,6 @@ import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
 import com.mantrasiddhi.presentation.components.LotusCard
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -37,8 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.domain.model.SandhyaCountMode
@@ -81,7 +74,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.SandhyaAdherence
 import com.mantrasiddhi.domain.model.SandhyaPeriod
@@ -96,7 +88,10 @@ fun SandhyaScreen(
     viewModel: SandhyaViewModel,
     modifier: Modifier = Modifier,
     countViewModel: SandhyaCountViewModel = hiltViewModel(),
-    onOpenGuide: () -> Unit = {}
+    onOpenGuide: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    reminderTarget: com.mantrasiddhi.presentation.navigation.SandhyaReminderTarget? = null,
+    onReminderHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -105,39 +100,13 @@ fun SandhyaScreen(
     val snackbar = remember { SnackbarHostState() }
     var showDatePicker by remember { mutableStateOf(false) }
     var datePickerForDraft by remember { mutableStateOf(false) }
-    var showRegionDialog by remember { mutableStateOf(false) }
 
-    var notificationsGranted by remember {
-        mutableStateOf(
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-
-    val notificationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        notificationsGranted = granted
-        viewModel.setEnabled(true) // schedule regardless; the notifier no-ops until granted
-    }
-
-    val locationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            viewModel.useMyLocation()
-        } else {
-            Toast.makeText(context, R.string.sandhya_location_denied, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.messages.collect { resId ->
-            Toast.makeText(context, resId, Toast.LENGTH_LONG).show()
-        }
+    LaunchedEffect(reminderTarget, uiState.loading) {
+        val target = reminderTarget ?: return@LaunchedEffect
+        if (uiState.loading) return@LaunchedEffect
+        viewModel.selectDate(target.date)
+        countViewModel.openFromReminder(target.period, target.date, target.userId)
+        onReminderHandled()
     }
 
     LaunchedEffect(countViewModel) {
@@ -170,6 +139,11 @@ fun SandhyaScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             LotusTopAppBar(
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.sandhya_settings_open))
+                    }
+                },
                 title = {
                     Text(
                         text = stringResource(R.string.title_sandhya),
@@ -206,44 +180,19 @@ fun SandhyaScreen(
                 }
                 if (!uiState.loading) {
                     TodayCard(today = uiState.today, onMarkDone = viewModel::markObservedToday,
-                        date = uiState.date, remindersEnabled = uiState.enabled && uiState.isToday,
+                        date = uiState.date,
                         canMarkObserved = uiState.isToday,
                         onSelectDate = { datePickerForDraft = false; showDatePicker = true },
                         onRecord = { period, mode -> countViewModel.open(period, uiState.date, mode) })
                     Spacer(Modifier.height(16.dp))
                 }
 
-                RegionCard(
-                    regionName = uiState.region.displayName.ifBlank {
-                        stringResource(R.string.sandhya_region_current)
-                    },
-                    onChangeClick = { showRegionDialog = true },
-                    onUseLocationClick = {
-                        if (viewModel.locationPermissionGranted()) {
-                            viewModel.useMyLocation()
-                        } else {
-                            locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                        }
-                    }
-                )
-                Spacer(Modifier.height(16.dp))
-
-                ReminderToggleCard(
-                    enabled = uiState.enabled,
-                    notificationsBlocked = uiState.enabled && !notificationsGranted,
-                    onToggle = { wantEnabled ->
-                        if (wantEnabled && !notificationsGranted &&
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                        ) {
-                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            viewModel.setEnabled(wantEnabled)
-                        }
-                    }
-                )
-                Spacer(Modifier.height(16.dp))
-
                 MetricsSection(adherence = uiState.adherence)
+                if (uiState.enabled && (uiState.preparationEnabled || uiState.eventEnabled)) {
+                    Spacer(Modifier.height(24.dp))
+                    SandhyaNextReminders(uiState.enabled, uiState.preparationEnabled, uiState.eventEnabled,
+                        uiState.nextReminders, uiState.reminderZoneId)
+                }
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -288,102 +237,7 @@ fun SandhyaScreen(
         }) { DatePicker(state = picker) }
     }
 
-    if (showRegionDialog) {
-        val searchState by viewModel.searchState.collectAsState()
-        RegionPickerDialog(
-            searchState = searchState,
-            onSearch = viewModel::searchLocations,
-            onSelectPlace = { place ->
-                viewModel.selectSearchedPlace(place)
-                showRegionDialog = false
-            },
-            onDismiss = {
-                viewModel.clearLocationSearch()
-                showRegionDialog = false
-            }
-        )
-    }
-}
 
-@Composable
-private fun RegionCard(
-    regionName: String,
-    onChangeClick: () -> Unit,
-    onUseLocationClick: () -> Unit
-) {
-    LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(24.dp)) {
-            Text(
-                text = stringResource(R.string.sandhya_region_label),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = regionName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onChangeClick, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.sandhya_change))
-                }
-                FilledTonalButton(onClick = onUseLocationClick, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.sandhya_use_location))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReminderToggleCard(
-    enabled: Boolean,
-    notificationsBlocked: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.sandhya_enable_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.sandhya_enable_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = enabled, onCheckedChange = onToggle)
-            }
-            if (notificationsBlocked) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.sandhya_notif_perm_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -394,6 +248,8 @@ internal fun TodayCard(
     date: LocalDate = LocalDate.now(),
     remindersEnabled: Boolean = false,
     canMarkObserved: Boolean = true,
+    preparationEnabled: Boolean = true,
+    eventEnabled: Boolean = true,
     onSelectDate: () -> Unit = {},
     onRecord: (SandhyaPeriod, SandhyaCountMode) -> Unit = { _, _ -> }
 ) {
@@ -430,8 +286,12 @@ internal fun TodayCard(
                                 Text(item.eventTime?.let { "${stringResource(item.eventLabelRes)} · ${formatter.format(it)}" }
                                     ?: stringResource(R.string.sandhya_polar_none),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                if (remindersEnabled) item.reminderTime?.let {
-                                    Text(stringResource(R.string.sandhya_reminder_at, formatter.format(it)),
+                                if (remindersEnabled && !item.observedToday && eventEnabled) item.eventTime?.let {
+                                    Text(stringResource(R.string.reminder_today_event, formatter.format(it)),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (remindersEnabled && !item.observedToday && preparationEnabled) item.reminderTime?.let {
+                                    Text(stringResource(R.string.reminder_today_prepare, formatter.format(it)),
                                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -663,132 +523,6 @@ internal fun WeeklyTrend(points: List<TrendPoint>) {
             }
         }
     }
-}
-
-/**
- * Free-text location search dialog: the user types any town/place, the platform
- * geocoder resolves candidates, and tapping one sets it as the Sandhya region.
- * Replaces the earlier fixed city list.
- */
-@Composable
-private fun RegionPickerDialog(
-    searchState: LocationSearchState,
-    onSearch: (String) -> Unit,
-    onSelectPlace: (com.mantrasiddhi.data.location.GeocodingService.GeocodedPlace) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var query by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sandhya_select_region_title)) },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.material3.OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text(stringResource(R.string.sandhya_search_hint)) },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Search
-                    ),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onSearch = { onSearch(query) }
-                    ),
-                    trailingIcon = {
-                        androidx.compose.material3.IconButton(onClick = { onSearch(query) }) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = stringResource(R.string.sandhya_search_action)
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    when (searchState) {
-                        is LocationSearchState.Idle -> {
-                            Text(
-                                text = stringResource(R.string.sandhya_search_prompt),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
-                        }
-                        is LocationSearchState.Searching -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            ) {
-                                androidx.compose.material3.CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(Modifier.width(10.dp))
-                                Text(
-                                    text = stringResource(R.string.sandhya_searching),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                        is LocationSearchState.NoResults -> {
-                            Text(
-                                text = stringResource(R.string.sandhya_search_no_results),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
-                        }
-                        is LocationSearchState.Error -> {
-                            Text(
-                                text = stringResource(R.string.sandhya_search_error),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
-                        }
-                        is LocationSearchState.Results -> {
-                            searchState.places.forEach { place ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(MaterialTheme.shapes.small)
-                                        .clickable { onSelectPlace(place) }
-                                        .padding(vertical = 12.dp, horizontal = 8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = place.displayName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.target_dialog_cancel)) }
-        }
-    )
 }
 
 internal fun periodNameRes(period: SandhyaPeriod): Int = when (period) {

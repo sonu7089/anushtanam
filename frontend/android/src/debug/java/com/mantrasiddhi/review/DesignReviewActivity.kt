@@ -90,7 +90,7 @@ private fun ReviewPage(title: Int, scroll: Boolean = true, content: @Composable 
 
 private val reviewTabs = mapOf(
     "home" to Screen.Home, "practice" to Screen.Practice, "recitation" to Screen.Recitation,
-    "progress" to Screen.Progress, "children" to Screen.ChildProgress, "settings" to Screen.Settings
+    "progress" to Screen.Progress, "family" to Screen.Family, "settings" to Screen.Settings
 )
 
 @Composable
@@ -102,7 +102,7 @@ private fun ReviewNavigation(initialPage: String, dark: Boolean, onDarkChange: (
     }
     val controller = rememberNavController()
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = { MantraBottomBar(controller, isParent = true) }) { padding ->
+        bottomBar = { MantraBottomBar(controller, showFamily = true) }) { padding ->
         NavHost(controller, startDestination = start.route,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             enterTransition = { enterScreenTransition() }, exitTransition = { exitScreenTransition() },
@@ -151,10 +151,15 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         "child-id" -> ChildIdReveal("123456789012", false, {})
                         "home" -> {
                             var guideVisible by remember { mutableStateOf(false) }
-                            HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {},
+                            HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {},
                                 onOpenGuide = { guideVisible = true })
                             if (guideVisible) com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet(
                                 onDismiss = { guideVisible = false }, onPractice = {})
+                        }
+                        "home-cards" -> ReviewPage(R.string.title_home) {
+                            com.mantrasiddhi.presentation.screens.home.components.SandhyaHomeCard({})
+                            com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard({})
+                            com.mantrasiddhi.presentation.screens.home.components.PurashcharanaHomeCard(null, {})
                         }
                         "practice-guide" -> {
                             var visible by remember { mutableStateOf(true) }
@@ -189,6 +194,8 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         }
                         "family" -> ReviewPage(R.string.family_title) {
                             PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
+                            com.mantrasiddhi.presentation.screens.family.FamilyProgressEntry({})
+                            Spacer(Modifier.height(20.dp))
                             ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), { _, _ -> }, {}, {})
                         }
                         "family-child", "family-child-qr" -> ReviewPage(R.string.family_title) {
@@ -203,9 +210,17 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             PageIntro(stringResource(R.string.lotus_children_intro), stringResource(R.string.lotus_children_description), LotusArt.FAMILY)
                             ChildCard(ReviewFixtures.childProgress, {})
                         }
-                        "targets" -> ReviewPage(R.string.targets_title) {
-                            PageIntro(stringResource(R.string.lotus_targets_intro), stringResource(R.string.lotus_targets_description), LotusArt.RITUAL)
-                            TargetCard(ReviewFixtures.target, {})
+                        "targets", "targets-empty", "targets-complete" -> {
+                            val complete = ReviewFixtures.target.copy(currentRecitationCount = 108, isCompleted = true)
+                            val past = ReviewFixtures.target.copy(id = 20, stableId = "past-goal", isActive = false,
+                                isCompleted = true, currentRecitationCount = 1008, targetRecitationCount = 1008,
+                                startedAtMillis = ReviewFixtures.target.startedAtMillis - 14L * 86400000)
+                            com.mantrasiddhi.presentation.screens.targets.TargetsContent(
+                                com.mantrasiddhi.presentation.screens.targets.TargetsUiState.Success(
+                                    currentUser = ReviewFixtures.parent,
+                                    activeTarget = if (page == "targets") ReviewFixtures.target else null,
+                                    completedTargets = if (page == "targets-complete") listOf(complete, past) else if (page == "targets") listOf(past) else emptyList(),
+                                    children = emptyList()), {}, {}, {}, {})
                         }
                         "set-target" -> ReviewPage(R.string.targets_title) {
                             SetTargetDialog(ReviewFixtures.parent, emptyList(), {}, { _, _, _, _ -> })
@@ -213,6 +228,13 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         "sandhya" -> SandhyaScreen(hiltViewModel())
                         "sandhya-counts", "sandhya-empty", "sandhya-entry", "sandhya-counter", "sandhya-draft" -> ReviewPage(R.string.title_sandhya) {
                             SandhyaCountReview(page)
+                        }
+                        "settings-sandhya" -> SandhyaSettingsReview()
+                        "sandhya-next-reminders" -> ReviewPage(R.string.title_sandhya) {
+                            ReminderReview(summary = true)
+                        }
+                        "settings-reminders", "settings-reminders-blocked" -> ReviewPage(R.string.settings_title) {
+                            ReminderReview(blocked = page.endsWith("blocked"))
                         }
                         "settings-minimums" -> ReviewPage(R.string.settings_title) {
                             var minimums by remember { mutableStateOf(SandhyaMinimums()) }

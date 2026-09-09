@@ -1,6 +1,9 @@
 package com.mantrasiddhi.presentation.screens.home
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,9 +18,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
-import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.presentation.components.*
-import com.mantrasiddhi.presentation.screens.childprogress.components.ChildCard
+import com.mantrasiddhi.presentation.screens.home.components.SandhyaHomeCard
 import com.mantrasiddhi.presentation.screens.home.components.PurashcharanaHomeCard
 import com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard
 
@@ -28,9 +30,7 @@ fun HomeScreen(
     onNavigateToRecitation: () -> Unit,
     onNavigateToPractice: () -> Unit,
     onNavigateToTargets: () -> Unit,
-    onNavigateToChildProgress: () -> Unit,
     onNavigateToSandhya: () -> Unit = {},
-    onNavigateToFamily: () -> Unit = {},
     onNavigateToPurashcharana: () -> Unit = {},
     modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {}
@@ -44,8 +44,8 @@ fun HomeScreen(
             Text(stringResource(state.messageResId), color = MaterialTheme.colorScheme.error)
         }
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
-            onNavigateToTargets, onNavigateToChildProgress, onNavigateToSandhya,
-            onNavigateToFamily, onNavigateToPurashcharana, modifier, onOpenGuide)
+            onNavigateToTargets, onNavigateToSandhya,
+            onNavigateToPurashcharana, modifier, onOpenGuide)
     }
 }
 
@@ -54,7 +54,7 @@ fun HomeScreen(
 internal fun HomeContent(
     state: HomeUiState.Success,
     onRecitation: () -> Unit, onPractice: () -> Unit, onTargets: () -> Unit,
-    onChildren: () -> Unit, onSandhya: () -> Unit, onFamily: () -> Unit,
+    onSandhya: () -> Unit,
     onPurashcharana: () -> Unit, modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {}
 ) {
@@ -108,7 +108,9 @@ internal fun HomeContent(
                 Column(Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.home_active_target), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(if (state.activeTarget?.isCompleted == true)
+                                R.string.targets_completed_goal_title else R.string.home_active_target),
+                                style = MaterialTheme.typography.titleMedium)
                             Text(stringResource(R.string.home_active_target_gloss), style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -138,23 +140,10 @@ internal fun HomeContent(
                     }
                 }
             }
+            SandhyaHomeCard(onSandhya)
             com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
             PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
-            Column {
-                SectionLabel(stringResource(R.string.lotus_beyond_practice))
-                HomeLink(stringResource(R.string.home_sandhya_title), stringResource(R.string.home_sandhya_subtitle), onSandhya)
-                if (state.user.profileType != ProfileType.INDIVIDUAL) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    HomeLink(stringResource(R.string.home_family_title), stringResource(R.string.home_family_subtitle), onFamily)
-                }
-            }
             SadhanaWisdomCard()
-            if (state.user.profileType == ProfileType.PARENT && state.childrenProgress.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SectionLabel(stringResource(R.string.children_progress_title))
-                    state.childrenProgress.forEach { ChildCard(it, onChildren) }
-                }
-            }
             Spacer(Modifier.height(12.dp))
         }
     }
@@ -166,30 +155,20 @@ private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, 
         colors = CardDefaults.cardColors(
             containerColor = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
             contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer)) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.width(8.dp))
-                Icon(painterResource(com.mantrasiddhi.R.drawable.arrow_forward), null, Modifier.size(20.dp))
+        Box(Modifier.fillMaxWidth().fillMaxHeight()) {
+            Image(painterResource(if (primary) com.mantrasiddhi.R.drawable.purashcharana_mala
+                else com.mantrasiddhi.R.drawable.gayatri_practice_book), contentDescription = null,
+                modifier = Modifier.matchParentSize().padding(start = 28.dp, top = 8.dp, end = 6.dp, bottom = 4.dp)
+                    .alpha(0.08f), contentScale = ContentScale.Fit, alignment = Alignment.BottomEnd)
+            Column(Modifier.fillMaxWidth().fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.width(8.dp))
+                    Icon(painterResource(com.mantrasiddhi.R.drawable.arrow_forward), null, Modifier.size(20.dp))
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(subtitle, style = MaterialTheme.typography.bodySmall)
             }
-            Spacer(Modifier.height(12.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeLink(title: String, subtitle: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = MaterialTheme.colorScheme.background) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(4.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Spacer(Modifier.width(16.dp))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

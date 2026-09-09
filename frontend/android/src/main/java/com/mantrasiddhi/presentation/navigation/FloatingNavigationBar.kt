@@ -32,20 +32,20 @@ import com.mantrasiddhi.R
 
 internal data class NavigationDestination(val screen: Screen, val icon: Int)
 
-internal fun navigationDestinations(isParent: Boolean) = buildList {
+internal fun navigationDestinations(showFamily: Boolean) = buildList {
     add(NavigationDestination(Screen.Home, R.drawable.nav_home))
     add(NavigationDestination(Screen.Practice, R.drawable.nav_practice))
     add(NavigationDestination(Screen.Recitation, R.drawable.nav_japa))
     add(NavigationDestination(Screen.Progress, R.drawable.nav_progress))
-    if (isParent) add(NavigationDestination(Screen.ChildProgress, R.drawable.nav_children))
+    if (showFamily) add(NavigationDestination(Screen.Family, R.drawable.nav_children))
     add(NavigationDestination(Screen.Settings, R.drawable.nav_settings))
 }
 
 @Composable
-fun MantraBottomBar(navController: NavHostController, isParent: Boolean) {
+fun MantraBottomBar(navController: NavHostController, showFamily: Boolean) {
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val destinations = remember(isParent) { navigationDestinations(isParent) }
+    val destinations = remember(showFamily) { navigationDestinations(showFamily) }
     FloatingNavigationBar(destinations, route, onNavigate = { screen ->
         if (route != screen.route) {
             navController.navigate(screen.route) {

@@ -58,8 +58,7 @@ import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 @Composable
 fun RecitationScreen(
     modifier: Modifier = Modifier,
-    viewModel: RecitationViewModel = hiltViewModel(),
-    onOpenGuide: () -> Unit = {}
+    viewModel: RecitationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -153,11 +152,6 @@ fun RecitationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder(
-                        {
-                            if (state.isListening) viewModel.stopRecitation()
-                            onOpenGuide()
-                        }, messageRes = R.string.guide_spoken_reminder)
                     MicButton(
                         isRecording = state.isListening,
                         isProcessing = false,

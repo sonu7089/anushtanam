@@ -70,10 +70,11 @@ fun SetTargetDialog(
     children: List<UserProfile>,
     onDismiss: () -> Unit,
     onConfirm: (count: Int, rewardType: RewardType, rewardDescription: String, targetUserId: Long?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialUserId: Long? = null
 ) {
     val context = LocalContext.current
-    var selectedUserId by remember { mutableStateOf<Long?>(currentUser.id) }
+    var selectedUserId by remember { mutableStateOf<Long?>(initialUserId ?: currentUser.id) }
     var selectedPresetCount by remember { mutableStateOf(108) }
     var isCustomCount by remember { mutableStateOf(false) }
     var customCountString by remember { mutableStateOf("") }

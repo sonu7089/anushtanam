@@ -46,19 +46,19 @@ class LotusUiTest {
         compose.runOnIdle { assertEquals(1, parent); assertEquals(1, child) }
     }
 
-    @Test fun homeKeepsEveryDestinationReachable() {
+    @Test fun homeKeepsPracticeDestinationsAndMovesFamilyOut() {
         val clicks = mutableListOf<String>()
         compose.setContent { AnushtanamTheme(false) {
             HomeContent(ReviewFixtures.home, { clicks += "japa" }, { clicks += "practice" },
-                { clicks += "targets" }, { clicks += "children" }, { clicks += "sandhya" },
-                { clicks += "family" }, { clicks += "purashcharana" })
+                { clicks += "targets" }, { clicks += "sandhya" }, { clicks += "purashcharana" })
         } }
         listOf(R.string.title_practice, R.string.title_recitation, R.string.home_active_target,
-            R.string.home_purashcharana_title, R.string.home_sandhya_title, R.string.home_family_title).forEach {
+            R.string.home_sandhya_title, R.string.home_purashcharana_title).forEach {
             compose.onNodeWithText(text(it)).performScrollTo().performClick()
         }
-        compose.onNodeWithText("Aarav").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(listOf("practice", "japa", "targets", "purashcharana", "sandhya", "family", "children"), clicks) }
+        compose.onNodeWithText("Aarav").assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.home_family_title)).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(listOf("practice", "japa", "targets", "sandhya", "purashcharana"), clicks) }
     }
 
     @Test fun preferencesKeepTheirStoredValuesAndSelectionSemantics() {
@@ -113,11 +113,11 @@ class LotusUiTest {
         compose.runOnIdle { assertEquals(destinations.map { it.screen.route }, visited) }
     }
 
-    @Test fun childNavigationHasFiveTabsWithoutTheParentDestination() {
+    @Test fun individualNavigationHasFiveTabsWithoutFamily() {
         compose.setContent { AnushtanamTheme(true) {
             FloatingNavigationBar(navigationDestinations(false), Screen.Home.route, {})
         } }
-        compose.onNodeWithContentDescription(text(R.string.title_child_progress)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(text(R.string.family_title)).assertDoesNotExist()
         compose.onAllNodes(isSelectable()).assertCountEquals(5)
     }
 
@@ -176,11 +176,19 @@ class LotusUiTest {
                 com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
             }
         } }
+        compose.onAllNodes(hasClickAction()).assertCountEquals(1)
         val notes = com.mantrasiddhi.presentation.content.SadhanaWisdom
         val first = notes.indexForDay(java.time.LocalDate.now().dayOfYear)
         repeat(notes.count + 1) { step ->
-            compose.onNodeWithText(text(notes.teachingAt(first + step).titleRes)).assertExists()
-            compose.onNodeWithText(text(R.string.home_wisdom_next)).performScrollTo().performClick()
+            val note = notes.teachingAt(first + step)
+            compose.onNodeWithText(text(note.titleRes)).assertExists()
+            compose.onNodeWithText(text(note.bodyRes)).assertExists()
+            compose.onNodeWithText("Show less").assertDoesNotExist()
+            when (step.mod(3)) {
+                0 -> compose.onNodeWithText(text(note.bodyRes)).performScrollTo().performClick()
+                1 -> compose.onNodeWithText(text(note.titleRes)).performScrollTo().performClick()
+                else -> compose.onNodeWithText(text(R.string.home_wisdom_next)).performScrollTo().performClick()
+            }
         }
     }
 }

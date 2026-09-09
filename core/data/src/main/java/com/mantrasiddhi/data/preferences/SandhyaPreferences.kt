@@ -32,7 +32,9 @@ import javax.inject.Singleton
 data class SandhyaSettings(
     val enabled: Boolean,
     val region: SandhyaRegion,
-    val userId: Long
+    val userId: Long,
+    val preparationEnabled: Boolean = true,
+    val eventEnabled: Boolean = true
 ) {
     /** Timezone for solar math: the region's zone, or the device zone if unset/invalid. */
     fun zone(): ZoneId = runCatching {
@@ -53,6 +55,9 @@ class SandhyaPreferences @Inject constructor(
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sandhya_prefs")
 
     private companion object {
+        val KEY_PREPARATION = booleanPreferencesKey("sandhya_preparation")
+        val KEY_EVENT = booleanPreferencesKey("sandhya_event")
+        val KEY_PERMISSION_ASKED = booleanPreferencesKey("sandhya_permission_asked")
         val KEY_ENABLED = booleanPreferencesKey("sandhya_enabled")
         val KEY_REGION_ID = stringPreferencesKey("sandhya_region_id")
         val KEY_REGION_NAME = stringPreferencesKey("sandhya_region_name")
@@ -77,8 +82,28 @@ class SandhyaPreferences @Inject constructor(
         SandhyaSettings(
             enabled = prefs[KEY_ENABLED] ?: false,
             region = region,
-            userId = prefs[KEY_USER_ID] ?: 0L
+            userId = prefs[KEY_USER_ID] ?: 0L,
+            preparationEnabled = prefs[KEY_PREPARATION] ?: true,
+            eventEnabled = prefs[KEY_EVENT] ?: true
         )
+    }
+
+    val permissionAsked = context.dataStore.data.map { it[KEY_PERMISSION_ASKED] ?: false }
+    suspend fun markPermissionAsked() { context.dataStore.edit { it[KEY_PERMISSION_ASKED] = true } }
+    suspend fun setStage(stage: com.mantrasiddhi.domain.model.SandhyaReminderStage, enabled: Boolean) {
+        context.dataStore.edit { it[if (stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.PREPARATION) KEY_PREPARATION else KEY_EVENT] = enabled }
+    }
+    private fun deliveryKey(userId: Long, period: SandhyaPeriod, stage: com.mantrasiddhi.domain.model.SandhyaReminderStage) =
+        longPreferencesKey("delivered_${userId}_${period.name}_${stage.name}")
+    suspend fun delivered(userId: Long, period: SandhyaPeriod, stage: com.mantrasiddhi.domain.model.SandhyaReminderStage): Long =
+        context.dataStore.data.first()[deliveryKey(userId, period, stage)] ?: 0L
+    suspend fun deliveredDate(userId: Long, period: SandhyaPeriod, stage: com.mantrasiddhi.domain.model.SandhyaReminderStage): String? =
+        context.dataStore.data.first()[stringPreferencesKey("delivery_date_${userId}_${period.name}_${stage.name}")]
+    suspend fun recordDelivery(userId: Long, period: SandhyaPeriod, stage: com.mantrasiddhi.domain.model.SandhyaReminderStage, event: Long, dateKey: String) {
+        context.dataStore.edit {
+            it[deliveryKey(userId, period, stage)] = event
+            it[stringPreferencesKey("delivery_date_${userId}_${period.name}_${stage.name}")] = dateKey
+        }
     }
 
     suspend fun current(): SandhyaSettings = settings.first()

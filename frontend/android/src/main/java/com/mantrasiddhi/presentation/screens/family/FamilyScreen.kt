@@ -66,7 +66,7 @@ import com.mantrasiddhi.presentation.components.ProgressRing
 @Composable
 fun FamilyScreen(
     viewModel: FamilyViewModel,
-    onBack: () -> Unit,
+    onOpenChildProgress: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -91,15 +91,7 @@ fun FamilyScreen(
         modifier = modifier,
         topBar = {
             LotusTopAppBar(
-                title = { Text(stringResource(R.string.family_title), fontWeight = FontWeight.Medium) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.auth_back)
-                        )
-                    }
-                }
+                title = { Text(stringResource(R.string.family_title), fontWeight = FontWeight.Medium) }
             )
         }
     ) { innerPadding ->
@@ -111,6 +103,10 @@ fun FamilyScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
+            onOpenChildProgress?.let {
+                FamilyProgressEntry(it)
+                Spacer(Modifier.height(20.dp))
+            }
             when (uiState.account?.role) {
                 AccountRole.PARENT -> ParentSection(
                     uiState = uiState,

@@ -100,7 +100,14 @@ class JapaCloudSync @Inject constructor(
         }
         val goals = read("japaGoals")
         val entries = read("japaEntries")
-        JapaReplicaMerger(database).merge(user.id, goals, entries) { auth.currentUser?.uid == uid }
+        val repaired = JapaReplicaMerger(database).merge(user.id, goals, entries) { auth.currentUser?.uid == uid }
+        if (repaired) {
+            database.withTransaction {
+                check(auth.currentUser?.uid == uid)
+                enqueue(user.id)
+            }
+            schedule()
+        }
     }
 }
 

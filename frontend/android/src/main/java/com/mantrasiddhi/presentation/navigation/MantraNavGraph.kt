@@ -52,7 +52,6 @@ import com.mantrasiddhi.presentation.screens.family.FamilyViewModel
 import com.mantrasiddhi.presentation.screens.home.HomeScreen
 import com.mantrasiddhi.presentation.screens.home.HomeViewModel
 import com.mantrasiddhi.presentation.screens.guide.PracticeGuideViewModel
-import com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder
 import com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet
 import com.mantrasiddhi.presentation.screens.login.LoginScreen
 import com.mantrasiddhi.presentation.screens.login.LoginViewModel
@@ -72,9 +71,11 @@ private val NavigationRouteOrder = mapOf(
     Screen.Practice.route to 2,
     Screen.Recitation.route to 3,
     Screen.Progress.route to 4,
-    Screen.ChildProgress.route to 5,
+    Screen.Family.route to 5,
+    Screen.ChildProgress.route to 9,
     Screen.Sandhya.route to 6,
     Screen.Settings.route to 7,
+    Screen.SandhyaSettings.route to 8,
     Screen.Targets.route to 8,
     // Purashcharana is a detail push from Home, like Targets, so it slides in from the
     // right of everything the bottom bar can reach.
@@ -87,7 +88,7 @@ private val BottomNavRoutes = setOf(
     Screen.Practice.route,
     Screen.Recitation.route,
     Screen.Progress.route,
-    Screen.ChildProgress.route,
+    Screen.Family.route,
     Screen.Settings.route
 )
 
@@ -119,7 +120,9 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.exitScreenTransit
 @Composable
 fun MantraApp(
     mainViewModel: MainViewModel,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    reminderTarget: SandhyaReminderTarget? = null,
+    onReminderHandled: () -> Unit = {}
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -127,6 +130,23 @@ fun MantraApp(
     // Activity scope shares the open guide across every entry point.
     val guideViewModel: PracticeGuideViewModel = hiltViewModel()
     val guide by guideViewModel.state.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val authRoutes = setOf(Screen.AuthGate.route, Screen.Welcome.route, Screen.ParentAuth.route, Screen.ChildAuth.route, Screen.Login.route)
+    LaunchedEffect(reminderTarget, currentUser?.id, currentRoute, guide.profileId) {
+        val target = reminderTarget ?: return@LaunchedEffect
+        val user = currentUser ?: return@LaunchedEffect
+        if (currentRoute == null || currentRoute in authRoutes) return@LaunchedEffect
+        if (target.userId != user.id) {
+            android.widget.Toast.makeText(context, com.mantrasiddhi.resources.R.string.reminder_wrong_profile, android.widget.Toast.LENGTH_LONG).show()
+            onReminderHandled()
+        } else if (target.stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.PREPARATION) {
+            if (guide.profileId != user.id) return@LaunchedEffect
+            guideViewModel.open()
+            onReminderHandled()
+        } else if (currentRoute != Screen.Sandhya.route) {
+            navController.navigate(Screen.Sandhya.route) { launchSingleTop = true }
+        }
+    }
 
 
     // Detail screens reached from Home (not bottom-nav tabs) hide the bar so it never
@@ -137,13 +157,14 @@ fun MantraApp(
         Screen.Welcome.route,
         Screen.ParentAuth.route,
         Screen.ChildAuth.route,
-        Screen.Family.route,
+        Screen.ChildProgress.route,
         Screen.Sandhya.route,
+        Screen.SandhyaSettings.route,
         Screen.Targets.route,
         Screen.Purashcharana.route
     )
     val showBottomBar = currentRoute != null && currentRoute !in detailRoutes
-    val isParent = currentUser?.profileType == ProfileType.PARENT
+    val showFamily = currentUser?.profileType?.let { it != ProfileType.INDIVIDUAL } == true
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -151,7 +172,7 @@ fun MantraApp(
             if (showBottomBar) {
                 MantraBottomBar(
                     navController = navController,
-                    isParent = isParent
+                    showFamily = showFamily
                 )
             }
         }
@@ -226,7 +247,9 @@ fun MantraApp(
                 val familyViewModel: FamilyViewModel = hiltViewModel()
                 FamilyScreen(
                     viewModel = familyViewModel,
-                    onBack = { navController.popBackStack() }
+                    onOpenChildProgress = if (currentUser?.profileType == ProfileType.PARENT) {
+                        { navController.navigate(Screen.ChildProgress.route) }
+                    } else null
                 )
             }
 
@@ -249,9 +272,7 @@ fun MantraApp(
                     onNavigateToRecitation = { navController.navigate(Screen.Recitation.route) },
                     onNavigateToPractice = { navController.navigate(Screen.Practice.route) },
                     onNavigateToTargets = { navController.navigate(Screen.Targets.route) },
-                    onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) },
                     onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) },
-                    onNavigateToFamily = { navController.navigate(Screen.Family.route) },
                     onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) },
                     onOpenGuide = { guideViewModel.open() }
                 )
@@ -264,12 +285,8 @@ fun MantraApp(
             }
 
             composable(Screen.Recitation.route) {
-                VoiceModelGate(fallbackHeader = {
-                    PracticeGuideReminder({ guideViewModel.open() },
-                        Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                        com.mantrasiddhi.resources.R.string.guide_spoken_reminder)
-                }) {
-                    RecitationScreen(onOpenGuide = { guideViewModel.open() })
+                VoiceModelGate {
+                    RecitationScreen()
                 }
             }
 
@@ -278,15 +295,26 @@ fun MantraApp(
             }
 
             composable(Screen.Targets.route) {
-                TargetsScreen()
+                TargetsScreen(
+                    onBack = { navController.popBackStack() },
+                    onContinueJapa = {
+                        navController.navigate(Screen.Recitation.route) {
+                            popUpTo(Screen.Targets.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
 
             composable(Screen.ChildProgress.route) {
-                ChildProgressScreen()
+                ChildProgressScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Screen.Sandhya.route) {
-                SandhyaScreen(viewModel = hiltViewModel(), onOpenGuide = { guideViewModel.open() })
+                SandhyaScreen(viewModel = hiltViewModel(), onOpenGuide = { guideViewModel.open() },
+                    onOpenSettings = { navController.navigate(Screen.SandhyaSettings.route) { launchSingleTop = true } },
+                    reminderTarget = reminderTarget?.takeIf { it.userId == currentUser?.id && it.stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.EVENT },
+                    onReminderHandled = onReminderHandled)
             }
 
             composable(Screen.Purashcharana.route) {
@@ -296,11 +324,15 @@ fun MantraApp(
                 )
             }
 
+            composable(Screen.SandhyaSettings.route) {
+                com.mantrasiddhi.presentation.screens.settings.SandhyaSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
             composable(Screen.Settings.route) {
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
                 SettingsScreen(
                     viewModel = settingsViewModel,
-                    onOpenGuide = { guideViewModel.open() },
+                    onOpenSandhyaSettings = { navController.navigate(Screen.SandhyaSettings.route) { launchSingleTop = true } },
                     onLogout = {
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }

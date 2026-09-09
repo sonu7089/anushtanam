@@ -1,5 +1,7 @@
 # Mentor feedback: implementation and verification
 
+MF-06 update, 9 September 2026: [implemented changes and verification](mf-06-implementation.md) reflect the app owner's revised Settings controls and notification destinations.
+
 Status: proposed engineering work; source baseline inspected 6 September 2026 and notification/Home integrations reviewed 7 September 2026. Start with the [overview](mentor-feedback-plan.md), [product specification](mentor-feedback-product-spec.md), and [remote publishing plan](remote-content-and-notifications.md).
 
 The paths below describe the current code; names explicitly marked “proposed” describe additions. This task did not run the app, reproduce the phone's reminder defect, or execute implementation tests.

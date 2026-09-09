@@ -69,7 +69,8 @@ import com.mantrasiddhi.presentation.screens.targets.components.TargetCard
 @Composable
 fun ChildProgressScreen(
     modifier: Modifier = Modifier,
-    viewModel: ChildProgressViewModel = hiltViewModel()
+    viewModel: ChildProgressViewModel = hiltViewModel(),
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -101,6 +102,11 @@ fun ChildProgressScreen(
     Scaffold(
         topBar = {
             LotusTopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.auth_back))
+                    }
+                },
                 title = {
                     Text(
                         text = stringResource(id = R.string.children_progress_title),

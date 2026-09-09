@@ -181,4 +181,90 @@ class JapaAccountingDatabaseTest {
             assertEquals(600L, db.japaDao().entries(7).single().quantity)
         } finally { db.close() }
     }
+    private fun atHour(hour: Int, day: Int = 7, zone: String = "Asia/Kolkata") =
+        java.time.LocalDate.of(2026, 9, day).atTime(hour, 0).atZone(java.time.ZoneId.of(zone)).toInstant().toEpochMilli()
+
+    @Test fun sameDayJapaCreditsALaterGoalOnceAndCorrectionsStayInSync() = runTest {
+        val db = db()
+        try {
+            val dao = db.japaDao()
+            val counts = db.sandhyaCountDao()
+            counts.save(draft(SandhyaPeriod.PRATAH, 108), atHour(7))
+            val audio = RecitationSessionEntity(userId = 7, mantraId = "gayatri", mode = "NORMAL",
+                overallScore = 0.9, wordScoresJson = "{}", transcription = "", isCorrect = true,
+                durationMs = 1000, createdAt = atHour(8))
+            val audioId = db.recitationDao().insert(audio)
+            dao.recordAudio(audioId, audio)
+            goals(db, target = 110)
+            dao.putTarget(dao.targets(7).single().copy(startedAtMillis = atHour(12)))
+            dao.project(7, atHour(12))
+            assertEquals(109, dao.targets(7).single().currentRecitationCount)
+            val allocated = dao.entries(7)
+            dao.project(7, atHour(13))
+            dao.recordAudio(audioId, audio)
+            assertEquals(allocated, dao.entries(7))
+            counts.save(draft(SandhyaPeriod.MADHYAHNA, 32), atHour(13))
+            val later = audio.copy(createdAt = atHour(14))
+            dao.recordAudio(db.recitationDao().insert(later), later)
+            assertEquals(110, dao.targets(7).single().currentRecitationCount)
+            assertTrue(dao.targets(7).single().isCompleted)
+            val changed = counts.save(draft(SandhyaPeriod.PRATAH, 58, revision = 1,
+                mode = SandhyaCountMode.EDIT), atHour(15))
+            assertTrue(changed.completionReversed)
+            assertEquals(92, dao.targets(7).single().currentRecitationCount)
+            val summary = GetJapaSummaryUseCase(JapaHistoryRepositoryImpl(db))(7).first()
+            assertEquals("92", summary.on(java.time.LocalDate.of(2026, 9, 7)).toString())
+            counts.save(draft(SandhyaPeriod.PRATAH, 10, date = "20260908"), atHour(7, 8))
+            assertEquals(102, dao.targets(7).single().currentRecitationCount)
+        } finally { db.close() }
+    }
+
+    @Test fun earlierDayCreditUsesRecordedTimezoneAndExcludesUnrelatedOrClaimedJapa() = runTest {
+        val db = db()
+        try {
+            val dao = db.japaDao()
+            val zone = "America/Los_Angeles"
+            val morning = atHour(8, zone = zone)
+            val entry = JapaEntryEntity("morning", 7, "gayatri", "20260907", zone,
+                "PRATAH", 108, 1, morning, null, null, "SANDHYA")
+            dao.putEntry(entry)
+            dao.putEntry(entry.copy(id = "yesterday", dateKey = "20260906", createdAtMillis = morning - 86_400_000))
+            dao.putEntry(entry.copy(id = "other-mantra", mantraId = "other"))
+            dao.putEntry(entry.copy(id = "other-profile", userId = 8))
+            dao.putEntry(entry.copy(id = "claimed", targetId = "older-goal"))
+            // Logged today, but performed yesterday.
+            dao.putEntry(entry.copy(id = "backdated", dateKey = "20260906"))
+            goals(db)
+            dao.putTarget(dao.targets(7).single().copy(startedAtMillis = atHour(20, zone = zone)))
+            dao.project(7, atHour(21, zone = zone))
+            assertEquals(108, dao.targets(7).single().currentRecitationCount)
+            assertEquals(1, dao.entries(7).count { it.targetId == "target" })
+            assertEquals("older-goal", dao.entry("claimed")!!.targetId)
+            assertNull(dao.entry("other-profile")!!.targetId)
+            db.targetDao().closePrevious(7, atHour(22, zone = zone))
+            db.targetDao().insert(dao.targets(7).single().copy(id = 0, stableId = "next-goal",
+                startedAtMillis = atHour(22, zone = zone), endedAtMillis = null, isActive = true,
+                currentRecitationCount = 0, baselineCount = 0))
+            dao.project(7, atHour(23, zone = zone))
+            assertEquals(0, dao.targets(7).first { it.stableId == "next-goal" }.currentRecitationCount)
+        } finally { db.close() }
+    }
+
+    @Test fun restoreRepairsEarlierDayAllocationAndStaleSnapshotsCannotRemoveCredit() = runTest {
+        val db = db()
+        try {
+            val entry = JapaEntryEntity("offline-morning", 7, "gayatri", "20260907", "Asia/Kolkata",
+                "PRATAH", 108, 1, atHour(7), null, null, "SANDHYA")
+            val goal = mapOf<String, Any?>("id" to "afternoon-goal", "kind" to "target", "mantraId" to "gayatri",
+                "startedAtMillis" to atHour(12), "targetCount" to 1000, "baselineCount" to 0,
+                "rewardType" to "OTHER", "rewardDescription" to "")
+            val merger = JapaReplicaMerger(db)
+            assertTrue(merger.merge(7, listOf(goal), listOf(entry.payload())) { true })
+            assertEquals(108, db.japaDao().targets(7).single().currentRecitationCount)
+            assertFalse(merger.merge(7, listOf(goal), listOf(entry.payload())) { true })
+            assertEquals("afternoon-goal", db.japaDao().entries(7).single().targetId)
+            assertEquals(108, db.japaDao().targets(7).single().currentRecitationCount)
+        } finally { db.close() }
+    }
+
 }

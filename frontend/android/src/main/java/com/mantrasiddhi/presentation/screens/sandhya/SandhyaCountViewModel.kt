@@ -66,6 +66,17 @@ class SandhyaCountViewModel @Inject constructor(
         }
     }
 
+    fun openFromReminder(period: SandhyaPeriod, date: LocalDate, ownerId: Long) {
+        if (currentUser.value?.id != ownerId) return
+        actions.trySend {
+            if (currentUser.value?.id != ownerId) return@trySend
+            val pending = repository.getDraft(ownerId)
+            if (pending != null && (pending.period != period || pending.dateKey != SandhyaDateKey.of(date))) {
+                _errors.emit(R.string.reminder_draft_pending)
+            } else open(period, date, SandhyaCountMode.RECORD)
+        }
+    }
+
     fun open(period: SandhyaPeriod, date: LocalDate, mode: SandhyaCountMode) {
         val userId = currentUser.value?.id ?: return
         actions.trySend {

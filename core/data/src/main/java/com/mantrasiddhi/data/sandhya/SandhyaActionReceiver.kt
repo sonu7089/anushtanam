@@ -43,6 +43,7 @@ class SandhyaActionReceiver : BroadcastReceiver() {
                     repo.logNotified(userId, period, eventMillis, dateKey)
                     repo.markObserved(userId, period, dateKey, System.currentTimeMillis())
                     entryPoint.notifier().cancel(period)
+                    entryPoint.scheduler().scheduleAll()
                 }
             } finally {
                 pending.finish()

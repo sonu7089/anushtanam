@@ -102,6 +102,19 @@ class GetDashboardStatsUseCaseTest {
         assertTrue(stats?.childrenProgress?.isEmpty() == true)
     }
 
+    @Test
+    fun `home keeps the latest completed goal visible until it is replaced`() = runTest {
+        val user = UserProfile(id = 1L, name = "Meera", profileType = ProfileType.INDIVIDUAL, avatarIndex = 0)
+        val completed = Target(userId = 1, setByUserId = 1, targetRecitationCount = 108,
+            currentRecitationCount = 108, isCompleted = true, startedAtMillis = 200)
+        val previous = completed.copy(stableId = "previous", startedAtMillis = 100, isActive = false)
+        coEvery { userRepository.getById(1L) } returns user
+        every { targetRepository.getAllForUser(1L) } returns flowOf(listOf(previous, completed))
+        every { recitationRepository.getSessionsForUser(1L) } returns flowOf(emptyList())
+        every { userRepository.getChildrenOf(1L) } returns flowOf(emptyList())
+        assertEquals(completed, getDashboardStatsUseCase(1L).first()!!.activeTarget)
+    }
+
     // --- the practice streak ----------------------------------------------------
 
     /** Millis at midday on the day [daysAgo] days before today, in the local zone. */

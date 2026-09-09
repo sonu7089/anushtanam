@@ -145,4 +145,29 @@ class SandhyaCountViewModelTest {
         assertEquals(SandhyaMinimums(), model.minimums.value)
         coVerify(exactly = 0) { repository.save(any()) }
     }
+    @Test fun reminderCannotOpenAnotherProfilesCount() = runTest(dispatcher) {
+        model.openFromReminder(SandhyaPeriod.SAYAM, LocalDate.of(2026, 9, 7), 8)
+        runCurrent()
+        assertNull(model.editor.value)
+        coVerify(exactly = 0) { repository.saveDraft(any()) }
+    }
+
+    @Test fun reminderPreservesAnUnfinishedCountForAnotherPeriod() = runTest(dispatcher) {
+        val pending = SandhyaCountDraft("pending", 7, "20260907", SandhyaPeriod.PRATAH, "Asia/Kolkata",
+            SandhyaCountMode.COUNTER, "57", null, 0, 1)
+        coEvery { repository.getDraft(7) } returns pending
+        model.openFromReminder(SandhyaPeriod.SAYAM, LocalDate.of(2026, 9, 7), 7)
+        runCurrent()
+        assertNull(model.editor.value)
+        coVerify(exactly = 0) { repository.saveDraft(any()) }
+    }
+
+    @Test fun reminderOpensMatchingDateAndPeriodWithoutSavingCount() = runTest(dispatcher) {
+        model.openFromReminder(SandhyaPeriod.SAYAM, LocalDate.of(2026, 9, 7), 7)
+        runCurrent()
+        assertEquals("20260907", model.editor.value!!.draft.dateKey)
+        assertEquals(SandhyaPeriod.SAYAM, model.editor.value!!.draft.period)
+        assertEquals(SandhyaCountMode.RECORD, model.editor.value!!.draft.mode)
+        coVerify(exactly = 0) { repository.save(any()) }
+    }
 }
