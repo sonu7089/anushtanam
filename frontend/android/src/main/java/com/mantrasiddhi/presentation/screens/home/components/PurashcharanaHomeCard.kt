@@ -7,6 +7,7 @@
 package com.mantrasiddhi.presentation.screens.home.components
 
 import com.mantrasiddhi.presentation.components.LotusCard
+import com.mantrasiddhi.presentation.components.IllustratedCardContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,17 +59,7 @@ fun PurashcharanaHomeCard(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PurashcharanaMala(modifier = Modifier.size(76.dp))
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+        IllustratedCardContent(artwork = { PurashcharanaMala(modifier = it) }) {
                 Text(
                     text = stringResource(id = R.string.home_purashcharana_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -80,13 +74,6 @@ fun PurashcharanaHomeCard(
                         text = stringResource(id = R.string.home_purashcharana_subtitle_open),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(id = R.string.home_purashcharana_cta),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
                     )
                 } else {
                     Text(
@@ -139,7 +126,18 @@ fun PurashcharanaHomeCard(
                         )
                     }
                 }
-            }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(id = R.string.home_purashcharana_cta),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                        tint = MaterialTheme.colorScheme.primary)
+                }
         }
     }
 }

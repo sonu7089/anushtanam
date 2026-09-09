@@ -149,7 +149,23 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                                 needsChildPin = true), { _, _ -> })
                         }
                         "child-id" -> ChildIdReveal("123456789012", false, {})
-                        "home" -> HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {})
+                        "home" -> {
+                            var guideVisible by remember { mutableStateOf(false) }
+                            var acknowledged by remember { mutableStateOf(false) }
+                            HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {}, {}, {},
+                                onOpenGuide = { guideVisible = true })
+                            if (guideVisible) com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet(
+                                acknowledged, false, false, { acknowledged = true; guideVisible = false },
+                                { guideVisible = false })
+                        }
+                        "practice-guide", "practice-guide-read" -> {
+                            var visible by remember { mutableStateOf(true) }
+                            ReviewPage(R.string.guide_title) {
+                                com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(false, { visible = true })
+                            }
+                            if (visible) com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet(
+                                page == "practice-guide-read", false, false, { visible = false }, { visible = false })
+                        }
                         "settings" -> SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH",
                             { onDarkChange(it == "DARK") }, {}, {})
                         "settings-google", "settings-link-google", "settings-child-google" -> {

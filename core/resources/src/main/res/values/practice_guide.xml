@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guide_title">Gayatri Mantra Practice Guide</string>
+    <string name="guide_home_message">Repeat the mantra in your mind, at a steady pace.</string>
+    <string name="guide_learn">Learn the three methods</string>
+    <string name="guide_review">Review the practice guide</string>
+    <string name="guide_how">How to practise</string>
+    <string name="guide_reminder">Repeat mentally, at a steady pace.</string>
+    <string name="guide_spoken_reminder">For mental japa, use the Sandhya counter.</string>
+    <string name="guide_before">Before you begin</string>
+    <string name="guide_intro">Take a moment to settle in. There are three ways to repeat the Gayatri mantra.</string>
+    <string name="guide_vaikhari">Vaikhari</string>
+    <string name="guide_vaikhari_label">Repeating aloud</string>
+    <string name="guide_vaikhari_body">You say the mantra out loud, so people nearby can hear it. This can help while you are learning the pronunciation.</string>
+    <string name="guide_upamsu">Upamsu</string>
+    <string name="guide_upamsu_label">Repeating softly</string>
+    <string name="guide_upamsu_body">Your lips and tongue move as you repeat the mantra very softly, so only you can hear it.</string>
+    <string name="guide_manasika">Manasika</string>
+    <string name="guide_manasika_label">Repeating in your mind</string>
+    <string name="guide_manasika_body">Repeat the mantra silently in your mind, without moving your lips, tongue or throat.</string>
+    <string name="guide_daily">For your daily japa</string>
+    <string name="guide_daily_body">Our mentor recommends mental repetition for daily Gayatri japa. Keep a steady pace, as in the reference audio. There is no need to hurry.</string>
+    <string name="guide_app_title">Practising with Anushtanam</string>
+    <string name="guide_app_body">In Sandhya, you can count mental or soft repetitions yourself, or record your count afterwards. You do not need the microphone.\n\nUse Practice to listen and learn the pronunciation. The Japa tab currently listens to spoken repetitions. Playing the reference audio does not add to your count.</string>
+    <string name="guide_acknowledge">I have read this</string>
+    <string name="guide_later">Continue for now</string>
+    <string name="guide_close">Close guide</string>
+    <string name="guide_save_error">We could not save that just now. Please try again, or come back later.</string>
+</resources>

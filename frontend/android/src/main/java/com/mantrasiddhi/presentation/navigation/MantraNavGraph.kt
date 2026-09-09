@@ -50,6 +50,9 @@ import com.mantrasiddhi.presentation.screens.family.FamilyScreen
 import com.mantrasiddhi.presentation.screens.family.FamilyViewModel
 import com.mantrasiddhi.presentation.screens.home.HomeScreen
 import com.mantrasiddhi.presentation.screens.home.HomeViewModel
+import com.mantrasiddhi.presentation.screens.guide.PracticeGuideViewModel
+import com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder
+import com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet
 import com.mantrasiddhi.presentation.screens.login.LoginScreen
 import com.mantrasiddhi.presentation.screens.login.LoginViewModel
 import com.mantrasiddhi.presentation.screens.practice.PracticeScreen
@@ -120,6 +123,14 @@ fun MantraApp(
     val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    // Activity scope shares acknowledgement and the open sheet across every entry point.
+    val guideViewModel: PracticeGuideViewModel = hiltViewModel()
+    val guide by guideViewModel.state.collectAsState()
+    LaunchedEffect(currentRoute, guide.profileId, guide.record) {
+        if (currentRoute == Screen.Recitation.route || currentRoute == Screen.Sandhya.route) {
+            guideViewModel.offerFirstUse()
+        }
+    }
 
     // Detail screens reached from Home (not bottom-nav tabs) hide the bar so it never
     // shows with nothing selected. Auth screens hide it too.
@@ -244,7 +255,9 @@ fun MantraApp(
                     onNavigateToChildProgress = { navController.navigate(Screen.ChildProgress.route) },
                     onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) },
                     onNavigateToFamily = { navController.navigate(Screen.Family.route) },
-                    onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) }
+                    onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) },
+                    onOpenGuide = { guideViewModel.open() },
+                    guideNeedsReview = guide.needsReview
                 )
             }
 
@@ -255,8 +268,13 @@ fun MantraApp(
             }
 
             composable(Screen.Recitation.route) {
-                VoiceModelGate {
-                    RecitationScreen()
+                VoiceModelGate(fallbackHeader = {
+                    PracticeGuideReminder(guide.needsReview, { guideViewModel.open() },
+                        Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        com.mantrasiddhi.resources.R.string.guide_spoken_reminder)
+                }) {
+                    RecitationScreen(onOpenGuide = { guideViewModel.open() },
+                        guideNeedsReview = guide.needsReview)
                 }
             }
 
@@ -273,7 +291,8 @@ fun MantraApp(
             }
 
             composable(Screen.Sandhya.route) {
-                SandhyaScreen(viewModel = hiltViewModel())
+                SandhyaScreen(viewModel = hiltViewModel(), onOpenGuide = { guideViewModel.open() },
+                    guideNeedsReview = guide.needsReview)
             }
 
             composable(Screen.Purashcharana.route) {
@@ -295,6 +314,10 @@ fun MantraApp(
                 )
             }
         }
+    }
+    if (guide.visible) {
+        PracticeGuideSheet(guide.record?.acknowledgedAt != null, guide.saving, guide.saveError,
+            guideViewModel::acknowledge, guideViewModel::dismiss)
     }
 }
 

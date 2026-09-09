@@ -13,6 +13,8 @@ This plan translates the mentor's feedback into changes to Anushtanam, based on 
 
 All checkboxes describe future work. Priority is a recommendation, not an assertion that the mentor assigned it.
 
+Implementation update, 9 September 2026: [MF-04 practice guide and verification](mf-04-implementation.md). The app owner placed its Home card between Your Goal and Purashcharana.
+
 ## Main product change
 
 Make daily Gayatri japa usable without speaking into the phone. A practitioner should be able to repeat mentally, record the actual number completed during each Sandhya, and see that number contribute to their eligible Gayatri goals and Purashcharana. Pronunciation learning remains available as a clearly identified practice activity.

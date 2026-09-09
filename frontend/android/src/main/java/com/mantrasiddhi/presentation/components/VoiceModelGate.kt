@@ -7,6 +7,7 @@
 package com.mantrasiddhi.presentation.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import com.mantrasiddhi.presentation.screens.voicemodel.VoiceModelViewModel
  */
 @Composable
 fun VoiceModelGate(
+    fallbackHeader: @Composable () -> Unit = {},
     content: @Composable () -> Unit
 ) {
     val viewModel: VoiceModelViewModel = hiltViewModel()
@@ -50,16 +52,24 @@ fun VoiceModelGate(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    when (val state = uiState) {
-        is VoiceModelUiState.Checking -> VoiceModelLoading()
-        is VoiceModelUiState.Ready -> content()
-        is VoiceModelUiState.NeedsModel -> VoiceModelScreen(
-            state = state.state,
-            download = state.download,
-            onDownloadClick = viewModel::startDownload,
-            onRetryClick = viewModel::refresh,
-            onTryClick = viewModel::tryListening
-        )
+    val state = uiState
+    if (state is VoiceModelUiState.Ready) {
+        content()
+    } else Column(Modifier.fillMaxSize()) {
+        fallbackHeader()
+        Box(Modifier.weight(1f)) {
+            when (state) {
+                is VoiceModelUiState.Checking -> VoiceModelLoading()
+                is VoiceModelUiState.Ready -> Unit
+                is VoiceModelUiState.NeedsModel -> VoiceModelScreen(
+                    state = state.state,
+                    download = state.download,
+                    onDownloadClick = viewModel::startDownload,
+                    onRetryClick = viewModel::refresh,
+                    onTryClick = viewModel::tryListening
+                )
+            }
+        }
     }
 }
 
