@@ -69,4 +69,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCloudSyncDao(db: MantraSiddhiDatabase): CloudSyncDao = db.cloudSyncDao()
+
+    @Provides
+    fun provideSandhyaCountDao(db: MantraSiddhiDatabase): com.mantrasiddhi.data.local.dao.SandhyaCountDao = db.sandhyaCountDao()
 }

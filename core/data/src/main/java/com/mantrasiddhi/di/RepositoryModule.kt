@@ -32,6 +32,12 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindSandhyaCountRepository(
+        impl: com.mantrasiddhi.data.repository.SandhyaCountRepositoryImpl
+    ): com.mantrasiddhi.domain.repository.SandhyaCountRepository
+
+    @Binds
+    @Singleton
     abstract fun bindUserRepository(
         impl: UserRepositoryImpl
     ): UserRepository

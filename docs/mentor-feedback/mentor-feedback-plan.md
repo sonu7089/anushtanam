@@ -23,7 +23,7 @@ The mentor's example should work end to end: **108 in Pratah + 32 in Madhyahnika
 
 | ID | Change | Priority | Origin | Definition of done |
 | --- | --- | --- | --- | --- |
-| MF-01 | Add actual Gayatri counts to every Sandhya period | P0 | Explicit mentor request | Wheel/stepper and direct entry support small counts and hundreds, including 600; history can be corrected. |
+| MF-01 | Add actual Gayatri counts to every Sandhya period | P0 | Explicit mentor request | Implemented locally: stepper, direct entry, counter, and corrections. [Details](mf-01-implementation.md). |
 | MF-02 | Credit Sandhya japa to Sankalpam and Purashcharana | P0 | Explicit mentor request | Each saved contribution updates applicable goals once, including after retries, edits, and device sync. |
 | MF-03 | Make mental japa a first-class flow with persistent guidance | P0 | Mentor guidance and app-owner follow-up | Japa works without microphone/voice-model requirements; a permanent Home guide and visible Japa/Sandhya reminder keep the teaching discoverable after onboarding. |
 | MF-04 | Explain Vaikhari, Upamsu, and Manasika before starting and later | P0 | Mentor request and app-owner follow-up | First-use guidance, a versioned acknowledgement, and a permanent guide work together; skipped guidance remains available with a gentle review prompt. |

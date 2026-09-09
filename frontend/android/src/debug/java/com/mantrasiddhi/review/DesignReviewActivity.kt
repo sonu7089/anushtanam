@@ -197,6 +197,14 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             SetTargetDialog(ReviewFixtures.parent, emptyList(), {}, { _, _, _, _ -> })
                         }
                         "sandhya" -> SandhyaScreen(hiltViewModel())
+                        "sandhya-counts", "sandhya-empty", "sandhya-entry", "sandhya-counter", "sandhya-draft" -> ReviewPage(R.string.title_sandhya) {
+                            SandhyaCountReview(page)
+                        }
+                        "settings-minimums" -> ReviewPage(R.string.settings_title) {
+                            var minimums by remember { mutableStateOf(SandhyaMinimums()) }
+                            com.mantrasiddhi.presentation.screens.settings.SandhyaMinimumSettings(
+                                minimums, { minimums = it }, initiallyEditing = true)
+                        }
                         "sandhya-complete" -> ReviewPage(R.string.title_sandhya) {
                             MetricsSection(ReviewFixtures.completedSandhya)
                         }

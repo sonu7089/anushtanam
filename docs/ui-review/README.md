@@ -1,5 +1,31 @@
 # Lotus UI review
 
+## Simplified Sandhya counts, 9 September 2026
+
+One filled “Start mental Japa” button per period, aligned dates and observance labels, a clearer draft card, and personal minimums in Settings. Counts now use “mantra” and “mantras.”
+
+| View | Light | Dark |
+| --- | --- | --- |
+| Period counts | [Open](sandhya-counts-light-simple-counts.png) | [Open](sandhya-counts-dark-simple-counts.png) |
+| Resume a draft | [Open](sandhya-draft-light-simple-counts.png) | [Open](sandhya-draft-dark-simple-counts.png) |
+| Minimum settings | [Open](settings-minimums-light-simple-counts.png) | [Open](settings-minimums-dark-simple-counts.png) |
+
+[Counter with editable number](sandhya-counter-light-simple-counts.png).
+
+At 320dp with 150% text: [periods](sandhya-counts-light-simple-counts-compact.png), [draft](sandhya-draft-light-simple-counts-compact.png), and [minimum settings](settings-minimums-light-simple-counts-compact.png).
+
+## MF-01: Sandhya counts
+
+The production count controls, with local sample data. Reviewed on API 37 in both themes and at 320dp with 150% text.
+
+| View | Light | Dark | Larger text |
+| --- | --- | --- | --- |
+| Period counts | [Open](sandhya-counts-light-mf-one.png) | [Open](sandhya-counts-dark-mf-one.png) | [Open](sandhya-counts-light-mf-one-compact.png) |
+| Edit total | [Open](sandhya-entry-light-mf-one.png) | [Open](sandhya-entry-dark-mf-one.png) | [Open](sandhya-entry-light-mf-one-compact.png) |
+| Paused counter | [Open](sandhya-counter-light-mf-one.png) | [Open](sandhya-counter-dark-mf-one.png) | [Open](sandhya-counter-light-mf-one-compact.png) |
+
+[Unrecorded counts](sandhya-empty-light-mf-one.png). [Implementation and test notes](../mentor-feedback/mf-01-implementation.md).
+
 ## Child Google sign-in and direct family linking
 
 The child sign-in page now offers Google. Family connects by QR or by ID and PIN. The QR screenshot uses an inactive local fixture, not a real invitation.

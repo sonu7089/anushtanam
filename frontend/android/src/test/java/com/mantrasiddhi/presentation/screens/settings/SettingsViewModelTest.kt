@@ -41,6 +41,7 @@ class SettingsViewModelTest {
     private lateinit var preferencesDataStore: UserPreferencesDataStore
     private lateinit var signOutUseCase: SignOutUseCase
     private lateinit var viewModel: SettingsViewModel
+    private val sandhyaPreferences = mockk<com.mantrasiddhi.data.preferences.SandhyaPreferences>(relaxed = true)
     private val users = mockk<com.mantrasiddhi.domain.repository.UserRepository>(relaxed = true)
     private val session = mockk<com.mantrasiddhi.domain.repository.SessionRepository>(relaxed = true)
 
@@ -76,7 +77,8 @@ class SettingsViewModelTest {
             preferencesDataStore,
             signOutUseCase,
             users,
-            session
+            session,
+            sandhyaPreferences
         )
     }
 
@@ -110,6 +112,22 @@ class SettingsViewModelTest {
         createViewModel()
         viewModel.setLanguageDisplay("DEVANAGARI")
         coVerify { preferencesDataStore.setLanguageDisplay("DEVANAGARI") }
+    }
+
+    @Test fun `minimums are saved for the active profile`() = runTest(testDispatcher) {
+        createViewModel()
+        val minimums = com.mantrasiddhi.domain.model.SandhyaMinimums(216, 54, 600)
+        viewModel.setSandhyaMinimums(minimums)
+        coVerify(exactly = 1) { sandhyaPreferences.setMinimums(testUser.id, minimums) }
+        assertEquals(false, viewModel.savingMinimums.value)
+    }
+
+    @Test fun `minimum save failure stays available for retry`() = runTest(testDispatcher) {
+        coEvery { sandhyaPreferences.setMinimums(any(), any()) } throws IllegalStateException("disk")
+        createViewModel()
+        viewModel.setSandhyaMinimums(com.mantrasiddhi.domain.model.SandhyaMinimums())
+        assertEquals(false, viewModel.savingMinimums.value)
+        assertEquals(true, viewModel.minimumsSaveError.value)
     }
 
     @Test

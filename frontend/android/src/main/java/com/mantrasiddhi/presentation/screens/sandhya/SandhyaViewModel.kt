@@ -14,6 +14,14 @@ import com.mantrasiddhi.data.location.LocationProvider
 import com.mantrasiddhi.data.preferences.SandhyaPreferences
 import com.mantrasiddhi.data.preferences.SandhyaSettings
 import com.mantrasiddhi.data.sandhya.SandhyaScheduler
+import com.mantrasiddhi.domain.model.SandhyaCount
+import com.mantrasiddhi.domain.model.SandhyaCountDraft
+import com.mantrasiddhi.domain.model.SandhyaMinimums
+import com.mantrasiddhi.domain.repository.SandhyaCountRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.delay
 import com.mantrasiddhi.domain.model.SandhyaLog
 import com.mantrasiddhi.domain.model.SandhyaPeriod
 import com.mantrasiddhi.domain.model.SandhyaRegion
@@ -58,27 +66,46 @@ class SandhyaViewModel @Inject constructor(
     private val logRepository: SandhyaLogRepository,
     private val locationProvider: LocationProvider,
     private val geocodingService: GeocodingService,
-    getCurrentUserUseCase: GetCurrentUserUseCase
+    private val countRepository: SandhyaCountRepository,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     /** Transient string-resource messages (e.g. location unavailable). */
     val messages: SharedFlow<Int> = _messages.asSharedFlow()
 
-    val uiState: StateFlow<SandhyaUiState> = preferences.settings
-        .flatMapLatest { settings ->
-            logRepository.observeLogs(settings.userId).map { logs -> buildState(settings, logs) }
+    private val selectedDate = MutableStateFlow<LocalDate?>(null)
+    private val clock = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(30_000)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SandhyaUiState())
+    }
+
+    val uiState: StateFlow<SandhyaUiState> = getCurrentUserUseCase().flatMapLatest { user ->
+        if (user == null) return@flatMapLatest kotlinx.coroutines.flow.flowOf(SandhyaUiState())
+        combine(preferences.settings, preferences.minimums(user.id)) { settings, minimums -> settings to minimums }
+            .flatMapLatest { (settings, minimums) ->
+                combine(logRepository.observeLogs(user.id), countRepository.observeCounts(user.id),
+                    countRepository.observeDraft(user.id), selectedDate, clock) { logs, counts, draft, date, _ ->
+                    buildState(settings, logs, counts, draft, date, minimums)
+                }
+            }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SandhyaUiState())
 
     init {
-        // Attribute Sandhya logs to the active profile, then clean up stale reminders.
         viewModelScope.launch {
-            val user = getCurrentUserUseCase().value
-                ?: getCurrentUserUseCase().filterNotNull().first()
-            preferences.setUserId(user.id)
-            val todayKey = SandhyaDateKey.of(LocalDate.now(preferences.current().zone()))
-            logRepository.sweepMissed(user.id, todayKey)
+            getCurrentUserUseCase().filterNotNull().collect { user ->
+                preferences.setUserId(user.id)
+                selectedDate.value = null
+                logRepository.sweepMissed(user.id, SandhyaDateKey.of(LocalDate.now(preferences.current().zone())))
+            }
+        }
+    }
+
+    fun selectDate(date: LocalDate?) {
+        viewModelScope.launch {
+            if (date == null || !date.isAfter(LocalDate.now(preferences.current().zone()))) selectedDate.value = date
         }
     }
 
@@ -166,9 +193,11 @@ class SandhyaViewModel @Inject constructor(
     /** Marks today's [period] as performed, creating the row if the cue hasn't fired. */
     fun markObservedToday(period: SandhyaPeriod) {
         viewModelScope.launch {
+            val userId = getCurrentUserUseCase().value?.id ?: return@launch
             val settings = preferences.current()
             val zone = settings.zone()
-            val today = LocalDate.now(zone)
+            val today = selectedDate.value ?: LocalDate.now(zone)
+            if (today != LocalDate.now(zone)) return@launch
             val dateKey = SandhyaDateKey.of(today)
             val epochs = SolarCalculator.computeEpochMillis(
                 today, settings.region.latitude, settings.region.longitude, zone
@@ -179,16 +208,16 @@ class SandhyaViewModel @Inject constructor(
                 SandhyaPeriod.SAYAM -> epochs.sunsetUtcMillis
             } ?: System.currentTimeMillis()
             // Ensure a row exists (no-op if already present), then flip it to OBSERVED.
-            logRepository.logNotified(settings.userId, period, eventMillis, dateKey)
-            logRepository.markObserved(settings.userId, period, dateKey, System.currentTimeMillis())
+            logRepository.logNotified(userId, period, eventMillis, dateKey)
+            logRepository.markObserved(userId, period, dateKey, System.currentTimeMillis())
         }
     }
 
     fun locationPermissionGranted(): Boolean = locationProvider.hasPermission()
 
-    private fun buildState(settings: SandhyaSettings, logs: List<SandhyaLog>): SandhyaUiState {
+    private fun buildState(settings: SandhyaSettings, logs: List<SandhyaLog>, counts: List<SandhyaCount>, draft: SandhyaCountDraft?, selected: LocalDate?, minimums: SandhyaMinimums): SandhyaUiState {
         val zone = settings.zone()
-        val today = LocalDate.now(zone)
+        val today = selected ?: LocalDate.now(zone)
         val todayKey = SandhyaDateKey.of(today)
         val observedTodayPeriods = logs
             .filter { it.dateKey == todayKey && it.status == SandhyaStatus.OBSERVED }
@@ -226,8 +255,14 @@ class SandhyaViewModel @Inject constructor(
             loading = false,
             enabled = settings.enabled,
             region = settings.region,
-            today = items,
-            adherence = GetSandhyaAdherenceUseCase.compute(logs, today, zone)
+            today = items.map { item -> item.copy(
+                count = counts.firstOrNull { it.dateKey == todayKey && it.period == item.period }?.quantity,
+                minimumCount = minimums[item.period]) },
+            date = today,
+            isToday = today == LocalDate.now(zone),
+            counts = counts,
+            draft = draft,
+            adherence = GetSandhyaAdherenceUseCase.compute(logs, LocalDate.now(zone), zone)
         )
     }
 

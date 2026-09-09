@@ -18,6 +18,10 @@ import com.mantrasiddhi.data.local.dao.SandhyaLogDao
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.dao.CloudSyncDao
+import com.mantrasiddhi.data.local.dao.SandhyaCountDao
+import com.mantrasiddhi.data.local.entity.SandhyaCountEntity
+import com.mantrasiddhi.data.local.entity.SandhyaCountChangeEntity
+import com.mantrasiddhi.data.local.entity.SandhyaCountDraftEntity
 import com.mantrasiddhi.data.local.entity.CloudSyncEntity
 import com.mantrasiddhi.data.local.entity.CloudSyncScheduleEntity
 import com.mantrasiddhi.data.local.entity.PurashcharanaEntity
@@ -38,9 +42,12 @@ import javax.inject.Provider
         SandhyaLogEntity::class,
         PurashcharanaEntity::class,
         CloudSyncEntity::class,
-        CloudSyncScheduleEntity::class
+        CloudSyncScheduleEntity::class,
+        SandhyaCountEntity::class,
+        SandhyaCountChangeEntity::class,
+        SandhyaCountDraftEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -51,6 +58,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
     abstract fun sandhyaLogDao(): SandhyaLogDao
     abstract fun purashcharanaDao(): PurashcharanaDao
     abstract fun cloudSyncDao(): CloudSyncDao
+    abstract fun sandhyaCountDao(): SandhyaCountDao
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
@@ -247,6 +255,17 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11: Migration = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // No backfill: an old observance says nothing about its japa quantity.
+                db.execSQL("CREATE TABLE IF NOT EXISTS `sandhya_counts` (`userId` INTEGER NOT NULL, `dateKey` TEXT NOT NULL, `period` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `revision` INTEGER NOT NULL, `zoneId` TEXT NOT NULL, PRIMARY KEY(`userId`, `dateKey`, `period`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `sandhya_count_changes` (`id` TEXT NOT NULL, `userId` INTEGER NOT NULL, `dateKey` TEXT NOT NULL, `period` TEXT NOT NULL, `zoneId` TEXT NOT NULL, `mode` TEXT NOT NULL, `previousQuantity` INTEGER, `quantity` INTEGER NOT NULL, `revision` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_sandhya_count_changes_userId_dateKey_period` ON `sandhya_count_changes` (`userId`, `dateKey`, `period`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `sandhya_count_drafts` (`id` TEXT NOT NULL, `userId` INTEGER NOT NULL, `dateKey` TEXT NOT NULL, `period` TEXT NOT NULL, `zoneId` TEXT NOT NULL, `mode` TEXT NOT NULL, `input` TEXT NOT NULL, `baseQuantity` INTEGER, `baseRevision` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_sandhya_count_drafts_userId` ON `sandhya_count_drafts` (`userId`)")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -256,7 +275,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1→v9 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v11 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -269,7 +288,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_6_7,
                 MIGRATION_7_8,
                 MIGRATION_8_9,
-                MIGRATION_9_10
+                MIGRATION_9_10,
+                MIGRATION_10_11
             )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

@@ -9,6 +9,13 @@ package com.mantrasiddhi.presentation.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.data.preferences.UserPreferencesDataStore
+import com.mantrasiddhi.data.preferences.SandhyaPreferences
+import com.mantrasiddhi.domain.model.SandhyaMinimums
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import com.mantrasiddhi.domain.model.UserProfile
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import com.mantrasiddhi.domain.usecase.SignOutUseCase
@@ -34,15 +41,37 @@ sealed class SettingsEvent {
  * ViewModel to manage app configuration and profile switching.
  */
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val preferencesDataStore: UserPreferencesDataStore,
     private val signOutUseCase: SignOutUseCase,
     private val users: UserRepository,
-    private val session: SessionRepository
+    private val session: SessionRepository,
+    private val sandhyaPreferences: SandhyaPreferences
 ) : ViewModel() {
 
     val currentUser: StateFlow<UserProfile?> = getCurrentUserUseCase()
+    val sandhyaMinimums = currentUser.flatMapLatest { user ->
+        if (user == null) flowOf(SandhyaMinimums()) else sandhyaPreferences.minimums(user.id)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SandhyaMinimums())
+    private val _savingMinimums = MutableStateFlow(false)
+    val savingMinimums = _savingMinimums.asStateFlow()
+    private val _minimumsSaveError = MutableStateFlow(false)
+    val minimumsSaveError = _minimumsSaveError.asStateFlow()
+
+    fun setSandhyaMinimums(minimums: SandhyaMinimums) {
+        val userId = currentUser.value?.id ?: return
+        if (_savingMinimums.value) return
+        _savingMinimums.value = true
+        _minimumsSaveError.value = false
+        viewModelScope.launch {
+            try { sandhyaPreferences.setMinimums(userId, minimums) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { _minimumsSaveError.value = true }
+            finally { _savingMinimums.value = false }
+        }
+    }
 
     val themeMode: StateFlow<String> = preferencesDataStore.themeModeFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SYSTEM")

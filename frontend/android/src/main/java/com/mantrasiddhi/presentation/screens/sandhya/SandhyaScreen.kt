@@ -18,6 +18,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +39,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.mantrasiddhi.domain.model.SandhyaCountMode
+import com.mantrasiddhi.domain.model.minimumJapa
+import com.mantrasiddhi.domain.util.SandhyaDateKey
+import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneOffset
+import java.math.BigInteger
+import java.text.NumberFormat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,10 +94,16 @@ import kotlin.math.roundToInt
 @Composable
 fun SandhyaScreen(
     viewModel: SandhyaViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    countViewModel: SandhyaCountViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val editor by countViewModel.editor.collectAsState()
+    val minimums by countViewModel.minimums.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var datePickerForDraft by remember { mutableStateOf(false) }
     var showRegionDialog by remember { mutableStateOf(false) }
 
     var notificationsGranted by remember {
@@ -120,8 +139,26 @@ fun SandhyaScreen(
         }
     }
 
+    LaunchedEffect(countViewModel) {
+        countViewModel.saved.collect { change ->
+            val result = snackbar.showSnackbar(
+                context.getString(if (change.quantity == 1L) R.string.sandhya_count_saved_one else R.string.sandhya_count_saved, countText(change.quantity),
+                    context.getString(periodNameRes(change.period))),
+                actionLabel = context.getString(R.string.sandhya_edit_total),
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                countViewModel.open(change.period, SandhyaDateKey.parse(change.dateKey), SandhyaCountMode.EDIT)
+            }
+        }
+    }
+    LaunchedEffect(countViewModel) {
+        countViewModel.errors.collect { snackbar.showSnackbar(context.getString(it)) }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             LotusTopAppBar(
                 title = {
@@ -149,6 +186,21 @@ fun SandhyaScreen(
                 PageIntro(stringResource(R.string.lotus_sandhya_intro),
                     stringResource(R.string.sandhya_intro), LotusArt.RIVER)
                 Spacer(Modifier.height(16.dp))
+
+                uiState.draft?.let { draft ->
+                    SandhyaDraftCard(draft, onResume = {
+                        countViewModel.open(draft.period, SandhyaDateKey.parse(draft.dateKey), draft.mode)
+                    })
+                    Spacer(Modifier.height(16.dp))
+                }
+                if (!uiState.loading) {
+                    TodayCard(today = uiState.today, onMarkDone = viewModel::markObservedToday,
+                        date = uiState.date, remindersEnabled = uiState.enabled && uiState.isToday,
+                        canMarkObserved = uiState.isToday,
+                        onSelectDate = { datePickerForDraft = false; showDatePicker = true },
+                        onRecord = { period, mode -> countViewModel.open(period, uiState.date, mode) })
+                    Spacer(Modifier.height(16.dp))
+                }
 
                 RegionCard(
                     regionName = uiState.region.displayName.ifBlank {
@@ -180,13 +232,49 @@ fun SandhyaScreen(
                 )
                 Spacer(Modifier.height(16.dp))
 
-                TodayCard(today = uiState.today, onMarkDone = viewModel::markObservedToday)
-                Spacer(Modifier.height(16.dp))
-
                 MetricsSection(adherence = uiState.adherence)
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+
+    editor?.let { state ->
+        SandhyaCountSheet(state, countViewModel::changeInput, countViewModel::step,
+            countViewModel::togglePause, countViewModel::save, countViewModel::discard,
+            countViewModel::dismiss, countViewModel::undo,
+            onChooseDate = { datePickerForDraft = true; showDatePicker = true },
+            minimumCount = minimums[state.draft.period])
+    }
+    if (showDatePicker) {
+        val draftDate = editor?.draft?.takeIf { datePickerForDraft }
+        val latestDate = LocalDate.now(runCatching { java.time.ZoneId.of(draftDate?.zoneId ?: uiState.region.zoneId) }
+            .getOrDefault(java.time.ZoneId.systemDefault()))
+        val picker = rememberDatePickerState(
+            initialSelectedDateMillis = (draftDate?.let { SandhyaDateKey.parse(it.dateKey) } ?: uiState.date)
+                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) =
+                    !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isAfter(latestDate)
+                override fun isSelectableYear(year: Int) = year <= latestDate.year
+            }
+        )
+        DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
+            TextButton(onClick = {
+                picker.selectedDateMillis?.let {
+                    val date = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                    if (draftDate != null) countViewModel.changeDate(date)
+                    else viewModel.selectDate(date.takeUnless { it == latestDate })
+                }
+                showDatePicker = false
+            }, enabled = picker.selectedDateMillis != null) { Text(stringResource(R.string.sandhya_show_date)) }
+        }, dismissButton = {
+            TextButton(onClick = {
+                if (draftDate != null) countViewModel.changeDate(latestDate) else viewModel.selectDate(null)
+                showDatePicker = false
+            }) {
+                Text(stringResource(R.string.sandhya_today))
+            }
+        }) { DatePicker(state = picker) }
     }
 
     if (showRegionDialog) {
@@ -275,14 +363,6 @@ private fun ReminderToggleCard(
                 Spacer(Modifier.width(12.dp))
                 Switch(checked = enabled, onCheckedChange = onToggle)
             }
-            if (enabled) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.sandhya_approx_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             if (notificationsBlocked) {
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -295,81 +375,93 @@ private fun ReminderToggleCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TodayCard(
+internal fun TodayCard(
     today: List<SandhyaTodayItem>,
-    onMarkDone: (SandhyaPeriod) -> Unit
+    onMarkDone: (SandhyaPeriod) -> Unit,
+    date: LocalDate = LocalDate.now(),
+    remindersEnabled: Boolean = false,
+    canMarkObserved: Boolean = true,
+    onSelectDate: () -> Unit = {},
+    onRecord: (SandhyaPeriod, SandhyaCountMode) -> Unit = { _, _ -> }
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
     LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-        Column(Modifier.padding(24.dp)) {
-            Text(
-                text = stringResource(R.string.sandhya_today_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(8.dp))
-            today.forEach { item ->
-                TodayRow(item = item, formatter = formatter, onMarkDone = onMarkDone)
-            }
-        }
-    }
-}
-
-@Composable
-private fun TodayRow(
-    item: SandhyaTodayItem,
-    formatter: DateTimeFormatter,
-    onMarkDone: (SandhyaPeriod) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(periodNameRes(item.period)),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            val timeText = item.eventTime?.let { time ->
-                "${stringResource(item.eventLabelRes)} · ${formatter.format(time)}"
-            } ?: stringResource(R.string.sandhya_polar_none)
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            item.reminderTime?.let { reminder ->
-                Text(
-                    text = stringResource(R.string.sandhya_reminder_at, formatter.format(reminder)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        if (item.observedToday) {
-            AssistChip(
-                onClick = {},
-                enabled = false,
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SandhyaHeaderRow(
+                title = {
+                    Column {
+                        Text(stringResource(R.string.sandhya_today_title), style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.testTag("sandhya-title"))
+                        val recorded = today.mapNotNull { it.count }
+                        if (recorded.isNotEmpty()) {
+                            val total = recorded.fold(BigInteger.ZERO) { sum, count -> sum + BigInteger.valueOf(count) }
+                            Text(mantraCountText(total), style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 },
-                label = { Text(stringResource(R.string.sandhya_status_done)) }
+                action = {
+                    TextButton(onClick = onSelectDate, contentPadding = PaddingValues(vertical = 12.dp)) {
+                        Text(practiceDateText(SandhyaDateKey.of(date)), Modifier.testTag("sandhya-date"))
+                    }
+                }
             )
-        } else if (item.eventTime != null) {
-            OutlinedButton(onClick = { onMarkDone(item.period) }) {
-                Text(stringResource(R.string.sandhya_status_mark))
+            today.forEachIndexed { index, item ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SandhyaHeaderRow(
+                        title = {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(stringResource(periodNameRes(item.period)), style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium, modifier = Modifier.testTag("period-${item.period.name}"))
+                                Text(item.eventTime?.let { "${stringResource(item.eventLabelRes)} · ${formatter.format(it)}" }
+                                    ?: stringResource(R.string.sandhya_polar_none),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (remindersEnabled) item.reminderTime?.let {
+                                    Text(stringResource(R.string.sandhya_reminder_at, formatter.format(it)),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        },
+                        action = {
+                            if (item.observedToday) {
+                                Row(Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp))
+                                    Text(stringResource(R.string.sandhya_observed), style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.testTag("observance-${item.period.name}"))
+                                }
+                            } else if (canMarkObserved) {
+                                TextButton(onClick = { onMarkDone(item.period) }, contentPadding = PaddingValues(vertical = 12.dp)) {
+                                    Text(stringResource(R.string.sandhya_mark_observed),
+                                        Modifier.testTag("observance-${item.period.name}"))
+                                }
+                            }
+                        }
+                    )
+                    SandhyaHeaderRow(
+                        title = {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(item.count?.let { mantraCountText(it) } ?: stringResource(R.string.sandhya_count_unknown),
+                                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                Text(stringResource(R.string.sandhya_minimum, countText(item.minimumCount)),
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                        action = {
+                            if (item.count != null) TextButton(onClick = { onRecord(item.period, SandhyaCountMode.EDIT) },
+                                contentPadding = PaddingValues(vertical = 12.dp)) {
+                                Text(stringResource(R.string.sandhya_edit_total))
+                            }
+                        }
+                    )
+                    FilledTonalButton(onClick = { onRecord(item.period, SandhyaCountMode.COUNTER) }) {
+                        Text(stringResource(R.string.sandhya_start_mental))
+                    }
+                }
             }
         }
     }
@@ -688,7 +780,7 @@ private fun RegionPickerDialog(
     )
 }
 
-private fun periodNameRes(period: SandhyaPeriod): Int = when (period) {
+internal fun periodNameRes(period: SandhyaPeriod): Int = when (period) {
     SandhyaPeriod.PRATAH -> R.string.sandhya_period_pratah
     SandhyaPeriod.MADHYAHNA -> R.string.sandhya_period_madhyahna
     SandhyaPeriod.SAYAM -> R.string.sandhya_period_sayam

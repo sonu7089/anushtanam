@@ -17,6 +17,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mantrasiddhi.domain.model.SandhyaRegion
 import com.mantrasiddhi.domain.model.SandhyaRegions
+import com.mantrasiddhi.domain.model.SandhyaMinimums
+import com.mantrasiddhi.domain.model.SandhyaPeriod
+import com.mantrasiddhi.domain.model.minimumJapa
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -79,6 +82,21 @@ class SandhyaPreferences @Inject constructor(
     }
 
     suspend fun current(): SandhyaSettings = settings.first()
+
+    fun minimums(userId: Long): Flow<SandhyaMinimums> = context.dataStore.data.map { prefs ->
+        fun value(period: SandhyaPeriod) = prefs[minimumKey(userId, period)] ?: period.minimumJapa
+        SandhyaMinimums(value(SandhyaPeriod.PRATAH), value(SandhyaPeriod.MADHYAHNA), value(SandhyaPeriod.SAYAM))
+    }
+
+    suspend fun setMinimums(userId: Long, minimums: SandhyaMinimums) {
+        require(userId > 0)
+        context.dataStore.edit { prefs ->
+            SandhyaPeriod.entries.forEach { prefs[minimumKey(userId, it)] = minimums[it] }
+        }
+    }
+
+    private fun minimumKey(userId: Long, period: SandhyaPeriod) =
+        longPreferencesKey("minimum_${userId}_${period.name}")
 
     suspend fun setEnabled(enabled: Boolean) {
         context.dataStore.edit { it[KEY_ENABLED] = enabled }

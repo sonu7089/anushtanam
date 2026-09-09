@@ -344,9 +344,9 @@
     <string name="goal_notif_reward_generic">a special reward</string>
 
     <!-- Period names -->
-    <string name="sandhya_period_pratah">Morning</string>
-    <string name="sandhya_period_madhyahna">Midday</string>
-    <string name="sandhya_period_sayam">Evening</string>
+    <string name="sandhya_period_pratah">Pratah</string>
+    <string name="sandhya_period_madhyahna">Madhyahnika</string>
+    <string name="sandhya_period_sayam">Sayam</string>
 
     <!-- Solar event labels -->
     <string name="sandhya_event_sunrise">Sunrise</string>
@@ -354,7 +354,7 @@
     <string name="sandhya_event_sunset">Sunset</string>
 
     <!-- Screen -->
-    <string name="sandhya_intro">Make time for prayer in the morning, at midday, and in the evening. Times follow the sun in your chosen location. Reminders arrive about five minutes before.</string>
+    <string name="sandhya_intro">A quiet moment, three times a day.</string>
     <string name="sandhya_enable_title">Daily reminders</string>
     <string name="sandhya_enable_desc">Notify me before sunrise, solar noon, and sunset.</string>
     <string name="sandhya_region_label">Region</string>
@@ -368,14 +368,13 @@
     <string name="sandhya_search_no_results">No places found. Try a different name.</string>
     <string name="sandhya_search_error">Search failed. Check your internet connection and try again.</string>
     <string name="sandhya_region_current">Current location</string>
-    <string name="sandhya_today_title">Today\'s timings</string>
+    <string name="sandhya_today_title">Your Sandhya</string>
     <string name="sandhya_reminder_at">Reminder %1$s</string>
     <string name="sandhya_status_done">Done ✓</string>
     <string name="sandhya_status_mark">Mark done</string>
     <string name="sandhya_status_missed">Missed</string>
     <string name="sandhya_status_upcoming">Upcoming</string>
     <string name="sandhya_polar_none">Not applicable at this latitude today</string>
-    <string name="sandhya_approx_note">Reminders may arrive a few minutes early or late.</string>
 
     <!-- Permissions -->
     <string name="sandhya_notif_perm_title">Allow notifications</string>
@@ -385,7 +384,7 @@
 
     <!-- Metrics -->
     <string name="sandhya_metrics_title">Your routine</string>
-    <string name="sandhya_metrics_empty">Turn on reminders and mark your prayers done to see your routine here.</string>
+    <string name="sandhya_metrics_empty">Mark your prayers observed to see your routine here.</string>
     <string name="sandhya_adherence_label">Prayers completed</string>
     <string name="sandhya_total_observed">%1$d prayers completed</string>
     <string name="sandhya_streak_full_label">All three prayers</string>
@@ -727,4 +726,44 @@
     <string name="family_link_wait">There have been a few attempts. Please wait a little before trying again.</string>
     <string name="family_link_wrong_account">Please return to your own account and try again.</string>
     <string name="family_link_unavailable">We could not connect you just now. Please try again in a moment.</string>
+
+    <!-- Sandhya Gayatri counts -->
+    <string name="sandhya_mental_japa">Mental japa</string>
+    <string name="sandhya_start_mental">Start mental Japa</string>
+    <string name="sandhya_record_count">Record count</string>
+    <string name="sandhya_add_more">Add more</string>
+    <string name="sandhya_edit_total">Edit total</string>
+    <string name="sandhya_count_context">%1$s · %2$s</string>
+    <string name="sandhya_gayatri_count">Mantra count</string>
+    <string name="sandhya_minimum">Minimum %1$s</string>
+    <string name="sandhya_count_unknown">Count not recorded</string>
+    <string name="sandhya_period_count">%1$s mantras</string>
+    <string name="sandhya_day_total">%1$s mantras</string>
+    <string name="sandhya_observed">Observed</string>
+    <string name="sandhya_mark_observed">Mark observed</string>
+    <string name="sandhya_count_increase">Add one</string>
+    <string name="sandhya_count_decrease">Subtract one</string>
+    <string name="sandhya_count_invalid">Enter a whole number, 0 or more.</string>
+    <string name="sandhya_count_too_large">This count is too large.</string>
+    <string name="sandhya_already_recorded">Already recorded: %1$s</string>
+    <string name="sandhya_new_total">Period total: %1$s</string>
+    <string name="sandhya_count_save">Save count</string>
+    <string name="sandhya_count_saving">Saving…</string>
+    <string name="sandhya_discard_draft">Discard draft</string>
+    <string name="sandhya_count_history">Count history</string>
+    <string name="sandhya_count_change">%1$s → %2$s</string>
+    <string name="sandhya_count_resume">Resume</string>
+    <string name="sandhya_count_undo">Undo</string>
+    <string name="sandhya_tap_each">Tap once for each japa</string>
+    <string name="sandhya_count_saved">%1$s mantras saved for %2$s on this phone</string>
+    <string name="sandhya_count_save_error">Could not save. Please try again.</string>
+    <string name="sandhya_count_changed">This count changed. Review the total and save again.</string>
+    <string name="sandhya_unfinished_count">Continue your japa</string>
+    <string name="sandhya_show_date">Show date</string>
+    <string name="sandhya_today">Today</string>
+    <string name="sandhya_one_mantra">%1$s mantra</string>
+    <string name="sandhya_count_saved_one">%1$s mantra saved for %2$s on this phone</string>
+    <string name="sandhya_minimum_settings">Minimum mantras for Sandhya Vandan</string>
+    <string name="sandhya_minimum_save">Save</string>
+    <string name="sandhya_edit_count">Edit count</string>
 </resources>
