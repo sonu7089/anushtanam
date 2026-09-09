@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Cloud authentication over Firebase Auth + a Firestore `users` mirror.
  *
- * Parents use a real email + password. Children have no email: they use a
- * display name + a 6-digit PIN, and are issued a unique 12-digit ID that both
- * serves as their login username and as the code a parent enters to link.
+ * Adults and children can use their own Google account. Adults can also use
+ * email and password; children can use their unique 12-digit ID and 6-digit PIN.
  */
 interface AuthRepository {
     /** Reflects the Firebase Auth state; null when signed out. */
@@ -23,9 +22,17 @@ interface AuthRepository {
     suspend fun signUpParent(email: String, password: String, displayName: String): Result<AuthAccount>
     suspend fun signInParent(email: String, password: String): Result<AuthAccount>
 
+    suspend fun signInWithGoogle(idToken: String, newAccountRole: com.mantrasiddhi.domain.model.AccountRole): Result<AuthAccount>
+    /** Links to this authenticated UID. Never switches accounts on a collision. */
+    suspend fun linkGoogle(idToken: String, expectedUid: String): Result<AuthAccount>
+    suspend fun refreshAccount(): Result<AuthAccount>
+
     /** Creates a child account, generating a unique 12-digit ID. PIN must be 6 digits. */
     suspend fun signUpChild(displayName: String, pin: String): Result<AuthAccount>
     suspend fun signInChild(code: String, pin: String): Result<AuthAccount>
+
+    /** Adds ID/PIN sign-in to a Google child account without changing its UID. */
+    suspend fun completeChildGoogleSetup(pin: String, expectedUid: String): Result<AuthAccount>
 
     suspend fun signOut()
     suspend fun sendParentPasswordReset(email: String): Result<Unit>

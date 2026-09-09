@@ -102,14 +102,13 @@ Use a large, readable numeric total with a roll-up wheel or stepper and a numeri
 
 ### 3.1 Show the methods before japa and keep them visible in the app
 
-Use a short “Before you begin” panel before a first-time practitioner starts from Home, Sandhya, the Japa tab, a reminder, or the widget. MF-03 also requires permanent placement after onboarding: a Home “Gayatri practice guide” card and a compact, visible teaching reminder in Japa and Sandhya. A Settings/Help link alone is insufficient. Keep the full comparison one tap away through “How to practise.”
+App-owner update, 9 September 2026: the guide opens on request. Remove the “I have read this” system, reading-status storage, automatic first-use display, and review prompts. Keep the teaching easy to find, with simple English and expandable sections.
 
-- [ ] The permanent Home guide shows a short message such as “Gayatri japa: repeat mentally at a steady pace” with “Learn the three methods.” It remains available regardless of the rotating or remotely published teaching.
-- [ ] The Japa and Sandhya pages show a compact reminder near the start action. Users can collapse the longer explanation, but the guide entry remains visible.
-- [ ] Store `guidanceVersion`, `openedAt`, and `acknowledgedAt` per profile; acknowledgement requires an explicit “I have read this” action. Opening or auto-displaying the panel must not set acknowledgement.
-- [ ] If dismissed without acknowledgement, show a gentle “Review the practice guide” prompt on Home and near the next Japa start. Do not block counting or repeatedly open an intrusive modal.
-- [ ] Resurface materially revised guidance for existing users and make it available offline. An optional sync of acknowledgement can carry it to another phone, but the guide is visible on every phone regardless.
-- [ ] Do not claim that an impression or acknowledgement proves understanding. Developer reporting of individual acknowledgements is not required; any later aggregate reporting must distinguish shown, opened, and acknowledged.
+- [ ] Keep the permanent Home guide card and the visible “How to practise” entry in Japa and Sandhya. Add the same guide under Help in Settings.
+- [ ] Keep daily mental-japa advice visible at the top. Offer expandable sections for the three methods, the mentor-supplied verse, and all six cautions.
+- [ ] Make the full guide available offline. A rotating or remote teaching must not replace it.
+- [ ] Opening and closing the guide must not store a reading status or block counting.
+- [ ] Use warm, simple English without em dashes. Preserve the Sanskrit verse, transliteration and mentor-supplied attribution.
 
 Draft primary message:
 
@@ -132,7 +131,7 @@ The mentor describes a progression from external audible practice toward interna
 - [ ] Demonstrate the reference pace at normal speed; do not encourage faster completion. Any slower learning aid must be identified as a learning aid, not the recommended daily-japa pace.
 - [ ] Put learning scores in the learning experience; avoid grading a silent session as incorrect because no speech was heard.
 
-Acceptance: a user dismisses onboarding, later finds the permanent Home card and Japa/Sandhya reminder, opens the full three-method guide offline, and acknowledges the current version. The reminder to review clears while the permanent guide stays available. A new remote Home teaching must not hide or replace it.
+Acceptance: a user opens the guide from Home, Japa, Sandhya or Settings Help, reads and expands sections offline, closes it, and returns whenever they wish. There are no acknowledgement buttons, review prompts or automatic pop-ups. A new remote Home teaching must not hide or replace it.
 
 ### 3.2 Supplied verse and the six cautions
 

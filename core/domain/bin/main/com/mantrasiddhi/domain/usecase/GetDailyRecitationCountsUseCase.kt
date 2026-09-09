@@ -20,7 +20,8 @@ import javax.inject.Inject
 data class DailyCount(
     val dayLabel: String,
     val dateMillis: Long,
-    val count: Int
+    val count: Int,
+    val performedJapa: String? = null
 )
 
 /**

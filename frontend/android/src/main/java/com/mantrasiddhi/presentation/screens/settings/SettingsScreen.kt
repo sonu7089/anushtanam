@@ -19,7 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.mantrasiddhi.presentation.screens.auth.*
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier: Modifier = Modifier,
+    onOpenGuide: () -> Unit = {}) {
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
@@ -48,7 +49,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
                 googleViewModel::retryProfile, googleViewModel::continueWithProfile, googleViewModel::refreshProfile)
         }, signOutEnabled = !googleState.busy,
         minimums = minimums, onMinimumsSave = viewModel::setSandhyaMinimums,
-        savingMinimums = savingMinimums, minimumsSaveError = minimumsSaveError)
+        savingMinimums = savingMinimums, minimumsSaveError = minimumsSaveError, onOpenGuide = onOpenGuide)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -61,7 +62,8 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     minimums: SandhyaMinimums = SandhyaMinimums(),
     onMinimumsSave: (SandhyaMinimums) -> Unit = {},
     savingMinimums: Boolean = false,
-    minimumsSaveError: Boolean = false) {
+    minimumsSaveError: Boolean = false,
+    onOpenGuide: () -> Unit = {}) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -118,6 +120,10 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
             }
             key(user?.id) {
                 SandhyaMinimumSettings(minimums, onMinimumsSave, savingMinimums, minimumsSaveError)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(stringResource(R.string.guide_help))
+                com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
             }
             Column {
                 SectionLabel(stringResource(R.string.settings_about_anushtanam))

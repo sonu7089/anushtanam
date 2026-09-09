@@ -46,7 +46,7 @@ class PurashcharanaSyncReconcileTest {
         currentJapaCount = current,
         startedAtMillis = startedAtMillis,
         completedAtMillis = completedAtMillis,
-        isActive = true
+        isActive = true, stableId = "same-vow"
     )
 
     /** A mirrored record as PurashcharanaSyncRepository returns it: local ids zeroed. */
@@ -67,7 +67,7 @@ class PurashcharanaSyncReconcileTest {
         currentJapaCount = current,
         startedAtMillis = startedAtMillis,
         completedAtMillis = completedAtMillis,
-        isActive = isActive
+        isActive = isActive, stableId = "same-vow"
     )
 
     private fun resolve(local: Purashcharana?, remote: Purashcharana?) =

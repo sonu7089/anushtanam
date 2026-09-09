@@ -37,6 +37,11 @@ class EnrollPurashcharanaUseCaseTest {
     private val syncRepository: PurashcharanaSyncRepository = mockk(relaxed = true)
     private val useCase = EnrollPurashcharanaUseCase(repository, syncRepository, gayatri)
 
+    init {
+        coEvery { repository.getActive(userId) } returns null
+        coEvery { repository.adoptRemote(any(), any()) } returns Result.success(Unit)
+    }
+
     /** The row `enroll` inserts: always zero japa, always started now. */
     private fun freshlyEnrolled(startedAtMillis: Long = 1_700_000_000_000L) = Purashcharana(
         id = 3L,

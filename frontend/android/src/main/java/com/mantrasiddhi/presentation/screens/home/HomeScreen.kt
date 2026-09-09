@@ -33,8 +33,7 @@ fun HomeScreen(
     onNavigateToFamily: () -> Unit = {},
     onNavigateToPurashcharana: () -> Unit = {},
     modifier: Modifier = Modifier,
-    onOpenGuide: () -> Unit = {},
-    guideNeedsReview: Boolean = false
+    onOpenGuide: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     when (val state = uiState) {
@@ -46,7 +45,7 @@ fun HomeScreen(
         }
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToChildProgress, onNavigateToSandhya,
-            onNavigateToFamily, onNavigateToPurashcharana, modifier, onOpenGuide, guideNeedsReview)
+            onNavigateToFamily, onNavigateToPurashcharana, modifier, onOpenGuide)
     }
 }
 
@@ -57,7 +56,7 @@ internal fun HomeContent(
     onRecitation: () -> Unit, onPractice: () -> Unit, onTargets: () -> Unit,
     onChildren: () -> Unit, onSandhya: () -> Unit, onFamily: () -> Unit,
     onPurashcharana: () -> Unit, modifier: Modifier = Modifier,
-    onOpenGuide: () -> Unit = {}, guideNeedsReview: Boolean = false
+    onOpenGuide: () -> Unit = {}
 ) {
     Scaffold(modifier = modifier, topBar = {
         LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
@@ -139,7 +138,7 @@ internal fun HomeContent(
                     }
                 }
             }
-            com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(guideNeedsReview, onOpenGuide)
+            com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
             PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
             Column {
                 SectionLabel(stringResource(R.string.lotus_beyond_practice))

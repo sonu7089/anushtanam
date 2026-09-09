@@ -17,7 +17,13 @@ data class Target(
     val currentRecitationCount: Int = 0,
     val rewardType: RewardType = RewardType.OTHER,
     val rewardDescription: String = "",
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val stableId: String = java.util.UUID.randomUUID().toString(),
+    val mantraId: String = "gayatri",
+    val startedAtMillis: Long = System.currentTimeMillis(),
+    val endedAtMillis: Long? = null,
+    val isActive: Boolean = true,
+    val baselineCount: Long = currentRecitationCount.toLong()
 ) {
     /** True when a specific reward has been described (blank + OTHER means "no reward set"). */
     val hasReward: Boolean

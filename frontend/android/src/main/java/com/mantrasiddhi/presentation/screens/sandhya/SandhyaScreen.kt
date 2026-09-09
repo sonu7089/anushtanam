@@ -96,8 +96,7 @@ fun SandhyaScreen(
     viewModel: SandhyaViewModel,
     modifier: Modifier = Modifier,
     countViewModel: SandhyaCountViewModel = hiltViewModel(),
-    onOpenGuide: () -> Unit = {},
-    guideNeedsReview: Boolean = false
+    onOpenGuide: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -197,7 +196,7 @@ fun SandhyaScreen(
                     stringResource(R.string.sandhya_intro), LotusArt.RIVER)
                 Spacer(Modifier.height(16.dp))
 
-                com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder(guideNeedsReview, onOpenGuide)
+                com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder(onOpenGuide)
                 Spacer(Modifier.height(16.dp))
                 uiState.draft?.let { draft ->
                     SandhyaDraftCard(draft, onResume = {

@@ -40,26 +40,18 @@ class EnrollPurashcharanaUseCase @Inject constructor(
     @ActiveMantra private val mantra: Mantra
 ) {
     suspend operator fun invoke(userId: Long): Result<Purashcharana> {
+        if (purashcharanaRepository.getActive(userId) != null) {
+            return Result.failure(IllegalStateException("You already have a Purashcharana in progress."))
+        }
+        // Resume an existing vow before creating any new identity or queued enrollment.
+        val remote = runCatching { purashcharanaSyncRepository.fetchMirrored() }.getOrNull()
+        if (remote != null && remote.isActive && remote.mantraId == mantra.id &&
+            remote.mantraAksharaCount == mantra.aksharaCount && remote.targetJapaCount > 0) {
+            return purashcharanaRepository.adoptRemote(userId, remote).map { remote.copy(userId = userId) }
+        }
         val result = purashcharanaRepository.enroll(userId, mantra.id, mantra.aksharaCount)
-        val fresh = result.getOrNull() ?: return result
-        runCatching {
-            // Enrolling is the ONE moment that produces a local count of zero, so it is the
-            // one moment this device can be behind the cloud by an entire sadhana: a sadhak
-            // who signs in offline (the login reconcile is skipped) and then takes the
-            // sankalpa afresh has a Room row at 0 while the mirror still holds years of
-            // japa. The transactional write can no longer lower the cloud, but the LOCAL row
-            // would still read 0 and count up from there, so adopt the mirror here too —
-            // the same pure decision the login reconcile uses.
-            val remote = purashcharanaSyncRepository.fetchMirrored()
-            when (val action = PurashcharanaReconciler.resolve(fresh, remote)) {
-                is PurashcharanaReconcileAction.RaiseLocal ->
-                    purashcharanaRepository.adoptRemote(userId, action.merged)
-                // Nothing to adopt — no mirror, a withdrawn one, or a different vow. The day
-                // the sankalpa was taken is the one fact that cannot be recovered if this
-                // device is lost, so it goes up at once rather than waiting for the throttle.
-                else ->
-                    purashcharanaSyncRepository.mirror(userId, fresh, immediate = true)
-            }
+        result.getOrNull()?.let { fresh ->
+            runCatching { purashcharanaSyncRepository.mirror(userId, fresh, immediate = true) }
         }
         return result
     }
@@ -206,7 +198,8 @@ object PurashcharanaReconciler {
         // first because two mantras can share an akshara count and would otherwise look
         // like the same sankalpa. The local one — the vow the sadhak is actually reciting
         // on this device — wins, and the next mirror overwrites the cloud with it.
-        if (remote.mantraId != local.mantraId ||
+        if (remote.stableId != local.stableId ||
+            remote.mantraId != local.mantraId ||
             remote.mantraAksharaCount != local.mantraAksharaCount ||
             remote.targetJapaCount != local.targetJapaCount
         ) {

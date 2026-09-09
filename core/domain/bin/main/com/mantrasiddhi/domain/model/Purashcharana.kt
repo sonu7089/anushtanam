@@ -67,9 +67,7 @@ enum class PurashcharanaStage {
  * every akshara in it. For the Gayatri (24 aksharas) that is 24,00,000 japa, which is a
  * multi-year sadhana — every field here is sized and phrased for that horizon.
  *
- * [currentJapaCount] only ever moves through verified NORMAL-mode recitations. There is
- * deliberately no way to add japa by hand: a count the sadhak typed in would make the
- * whole sankalpa meaningless, so the app would rather under-count than over-count.
+ * Counts include recorded japa and accepted NORMAL recitations. Learning scores stay separate.
  *
  * A completed Purashcharana keeps [isActive] true and simply carries a
  * [completedAtMillis]; the UI decides what to show from [isCompleted]. [isActive] is
@@ -91,7 +89,10 @@ data class Purashcharana(
     val startedAtMillis: Long,
     /** Set the moment the target count is reached; `null` while still in progress. */
     val completedAtMillis: Long? = null,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val stableId: String = java.util.UUID.randomUUID().toString(),
+    val endedAtMillis: Long? = null,
+    val baselineCount: Long = currentJapaCount
 ) {
 
     /** Fraction of the sankalpa completed, in `0f..1f`. */

@@ -28,8 +28,8 @@ The mentor's example should work end to end: **108 in Pratah + 32 in Madhyahnika
 | MF-01 | Add actual Gayatri counts to every Sandhya period | P0 | Explicit mentor request | Implemented locally: stepper, direct entry, counter, and corrections. [Details](mf-01-implementation.md). |
 | MF-02 | Credit Sandhya japa to Sankalpam and Purashcharana | P0 | Explicit mentor request | Implemented locally with goal accounting, corrections, and revision-based sync. Firebase rules deployment confirmed by the app owner. [Details](mf-02-implementation.md). |
 | MF-03 | Make mental japa a first-class flow with persistent guidance | P0 | Mentor guidance and app-owner follow-up | Japa works without microphone/voice-model requirements; a permanent Home guide and visible Japa/Sandhya reminder keep the teaching discoverable after onboarding. |
-| MF-04 | Explain Vaikhari, Upamsu, and Manasika before starting and later | P0 | Mentor request and app-owner follow-up | First-use guidance, a versioned acknowledgement, and a permanent guide work together; skipped guidance remains available with a gentle review prompt. |
-| MF-05 | Include the supplied verse and six cautions | P1 | Explicit mentor request | Sanskrit, transliteration, attribution, and contextual explanation are accessible; interpretation conflicts are reviewed with the mentor. |
+| MF-04 | Explain Vaikhari, Upamsu, and Manasika before starting and later | P0 | Mentor request and app-owner follow-up | App-owner update, 9 September: guide opens on request, with permanent entry points and no acknowledgement or review prompts. See MF-05. |
+| MF-05 | Include the supplied verse and six cautions | P1 | Explicit mentor request | Implemented 9 September: expandable verse and six cautions, simple English and Settings Help access; acknowledgement system removed at app-owner request. Mentor editorial review remains a release item. [Details](mf-05-implementation.md). |
 | MF-06 | Remind 15 minutes before and at Sandhya, with setup inside Sandhya | P0 | Mentor request, reported defect, and app-owner follow-up | A Sandhya reminder-setup panel handles permissions/settings; both preparation and event-time reminders are scheduled and verified on real devices. |
 | MF-07 | Add Google sign-in and profile photo | P1 | Explicit mentor request | Sign-in, account linking, name/photo fallback, sign-out, and existing-account preservation work. |
 | MF-08 | Make saved japa recoverable across devices | P1; correctness foundation is P0 | Mentor's easy-sync request | New count records and corrections survive sync and restore; the app states what is and is not backed up. |
@@ -75,7 +75,7 @@ The reminder defect has **not** been reproduced on the mentor's device in this t
 - [ ] Agree on the guidance copy and count-allocation defaults below.
 - [ ] Implement a durable quantity-based count model, corrections, and account ownership.
 - [ ] Add Sandhya count entry, mental japa, draft recovery, and goal projections.
-- [ ] Show the three japa methods before first use and through a permanent Home guide/Japa/Sandhya reminder; track acknowledgement without treating it as proof of understanding.
+- [ ] Keep the three japa methods in the guide, available on request from Home, Japa, Sandhya and Settings Help. Do not track acknowledgement.
 - [ ] Implement Sandhya reminder setup with permissions/settings, preparation and event-time reminders, diagnostics, and occurrence-specific navigation.
 - [ ] Extend or version the existing signed-in sync path before uploading the new counts; do not pass editable quantities through the current monotonic Purashcharana merge unchanged.
 - [ ] Pass count, migration, reminder, accessibility, and offline acceptance tests.
@@ -126,7 +126,7 @@ These are review items for implementation, not reasons to delay writing this pla
 | May past entries be added or corrected? | Yes, with the actual practice date, a revision history, and no automatic allocation to a vow that began later. | Catch-up logging and existing-goal attribution must be predictable. |
 | Can users change minima or lead time? | Ship mentor minima and a 15-minute reminder default; keep personal targets distinct and make customization a later option. | Avoid expanding the first release unnecessarily. |
 | Should the event-time reminder appear after Sandhya is marked observed? | Suppress it for an explicitly observed occurrence; otherwise both stages are enabled by default when the user enables Sandhya reminders. | Avoid a redundant prompt after completion; a count alone does not imply observance. |
-| How do we know the guidance was seen? | Keep a permanent guide, surface unacknowledged versions, and record an explicit “I have read this” action per profile/version. | Display, opening, and acknowledgement are different; none establishes actual understanding. |
+| How do we know the guidance was seen? | App-owner decision, 9 September: keep the guide freely available and remove reading-status tracking and acknowledgement. | Display, opening, and acknowledgement are different; none establishes actual understanding. |
 | Who can publish remote teachings, and how often? | Explicit developer/editor roles with publisher-controlled sends; optional teaching notifications default to at most one per day with quiet hours. | Roles, editorial review, and frequency are product defaults to confirm, not reasons to block this plan. |
 
 ## Scope and review standard

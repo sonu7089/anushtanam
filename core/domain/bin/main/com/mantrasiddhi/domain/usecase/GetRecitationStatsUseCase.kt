@@ -21,7 +21,8 @@ data class RecitationOverviewStats(
     val totalCorrectRecitations: Int,
     val averageAccuracy: Double,
     val currentStreak: Int,
-    val bestSessionScore: Double
+    val bestSessionScore: Double,
+    val performedJapa: String? = null
 )
 
 /**

@@ -59,8 +59,7 @@ import com.mantrasiddhi.presentation.screens.targets.components.SetTargetDialog
 fun RecitationScreen(
     modifier: Modifier = Modifier,
     viewModel: RecitationViewModel = hiltViewModel(),
-    onOpenGuide: () -> Unit = {},
-    guideNeedsReview: Boolean = false
+    onOpenGuide: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -155,7 +154,7 @@ fun RecitationScreen(
                     )
 
                     com.mantrasiddhi.presentation.screens.guide.PracticeGuideReminder(
-                        guideNeedsReview, {
+                        {
                             if (state.isListening) viewModel.stopRecitation()
                             onOpenGuide()
                         }, messageRes = R.string.guide_spoken_reminder)

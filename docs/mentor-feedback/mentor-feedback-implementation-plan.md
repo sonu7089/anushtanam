@@ -229,7 +229,7 @@ These are future implementation checks, not results of this documentation task. 
 | Delivery defect | Background, removed from recents, process absent, screen off, idle/battery saver, offline, multiple days without opening; explicit force-stop documented separately | Mentor's phone or equivalent |
 | Google auth | New account, existing linked account, collision recovery, cancel, offline, token expiry, missing photo, role mapping, sign-out/switch | ViewModel + integration/device |
 | Widget | Correct target/mantra, cold/warm launch, draft resume, refresh after edit, no target, completed/removed target, offline, stale owner, resize | Instrumentation + launcher review |
-| Teaching/accessibility | Guidance at first entry and permanent Home/Japa/Sandhya placement; dismiss then revisit; explicit acknowledgement per version; offline availability; remote cards cannot hide it; all six cautions; large text and TalkBack | Content review + UI |
+| Teaching/accessibility | Guide on request from Home/Japa/Sandhya/Settings Help; close then revisit; expandable sections without acknowledgement; offline availability; remote cards cannot hide it; all six cautions; large text and TalkBack | Content review + UI |
 | Remote publishing | Authorized/unauthorized publish, draft isolation, schedule/expiry, revision/unpublish, cache/fallback, no APK update, unchanged permanent guide | Backend rules + UI/integration |
 | Developer push | Test audience, opt-out/quiet hours, token rotation/multiple devices, foreground/background/cold tap, duplicate send/receive, expiry/cancellation, no accidental send on content edit | Backend + real devices |
 

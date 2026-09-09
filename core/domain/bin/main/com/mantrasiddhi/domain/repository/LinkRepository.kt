@@ -19,6 +19,14 @@ interface LinkRepository {
      */
     suspend fun requestLink(childCode: String): Result<Unit>
 
+    /** Verifies the child's credentials without changing the parent's session. */
+    suspend fun linkWithPin(childCode: String, pin: String): Result<Unit>
+
+    /** Child creates a short-lived, single-use invitation. It contains no login credentials. */
+    suspend fun createQrInvite(): Result<com.mantrasiddhi.domain.model.FamilyQrInvite>
+    suspend fun linkWithQr(payload: String): Result<Unit>
+    fun observeQrInvite(token: String): Flow<com.mantrasiddhi.domain.model.FamilyQrInvite?>
+
     /** Child action stream: link requests awaiting this child's approval. */
     fun pendingRequestsForChild(): Flow<List<ParentChildLink>>
 

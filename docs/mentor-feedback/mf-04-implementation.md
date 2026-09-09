@@ -2,6 +2,8 @@
 
 Implemented 9 September 2026.
 
+Superseded in part by [MF-05](mf-05-implementation.md): the app owner requested removal of acknowledgement, reading-status storage, automatic first-use display and review prompts. The behaviour and verification below describe the original MF-04 implementation.
+
 The permanent Home card sits between Your Goal and Purashcharana, as requested by the app owner. It uses a dedicated open-book and mala illustration, with the existing card surfaces, typography, and colours. The same illustration appears inside the guide. All new copy uses simple English without em dashes.
 
 ## Behaviour
