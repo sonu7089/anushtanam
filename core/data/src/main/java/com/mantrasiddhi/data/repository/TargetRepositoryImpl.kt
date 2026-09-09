@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.data.repository
 
+import androidx.room.withTransaction
+import com.mantrasiddhi.data.local.MantraSiddhiDatabase
 import com.mantrasiddhi.data.local.dao.TargetDao
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.domain.model.Target
@@ -20,11 +22,21 @@ import javax.inject.Inject
 
 class TargetRepositoryImpl @Inject constructor(
     private val targetDao: TargetDao,
+    private val database: MantraSiddhiDatabase,
+    private val sync: com.mantrasiddhi.data.sync.JapaCloudSync,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : TargetRepository {
 
     override suspend fun create(target: Target): Long = withContext(ioDispatcher) {
-        targetDao.insert(TargetEntity.fromDomain(target))
+        val result = database.withTransaction {
+            targetDao.getByStableId(target.userId, target.stableId)?.let { return@withTransaction it.id }
+            targetDao.closePrevious(target.userId, target.startedAtMillis)
+            val id = targetDao.insert(TargetEntity.fromDomain(target))
+            sync.enqueue(target.userId, database.japaDao().entries(target.userId))
+            id
+        }
+        sync.schedule()
+        result
     }
 
     override suspend fun update(target: Target) = withContext(ioDispatcher) {
@@ -42,6 +54,11 @@ class TargetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(targetId: Long) = withContext(ioDispatcher) {
-        targetDao.deleteById(targetId)
+        database.withTransaction {
+            val target = targetDao.getById(targetId)?.userId
+            targetDao.deleteById(targetId)
+            if (target != null) sync.enqueue(target, database.japaDao().entries(target))
+        }
+        sync.schedule()
     }
 }

@@ -51,6 +51,9 @@ class ProgressViewModelTest {
     private lateinit var getAxisTrendsUseCase: GetAxisTrendsUseCase
     private lateinit var progressSyncRepository: ProgressSyncRepository
 
+    private val japa = mockk<com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase> {
+        every { this@mockk.invoke(any()) } returns flowOf(com.mantrasiddhi.domain.usecase.JapaSummary(mapOf(java.time.LocalDate.now() to java.math.BigInteger.valueOf(740))))
+    }
     private lateinit var viewModel: ProgressViewModel
 
     private val testUser = UserProfile(
@@ -91,7 +94,7 @@ class ProgressViewModelTest {
             getAccuracyTrendUseCase,
             getSessionsForUserUseCase,
             getAxisTrendsUseCase,
-            progressSyncRepository
+            progressSyncRepository, japa
         )
 
         assertTrue(viewModel.uiState.value is ProgressUiState.Loading)
@@ -122,7 +125,7 @@ class ProgressViewModelTest {
             getAccuracyTrendUseCase,
             getSessionsForUserUseCase,
             getAxisTrendsUseCase,
-            progressSyncRepository
+            progressSyncRepository, japa
         )
 
         val job = launch {
@@ -133,7 +136,7 @@ class ProgressViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is ProgressUiState.Success)
         val successState = state as ProgressUiState.Success
-        assertEquals(overview, successState.overviewStats)
+        assertEquals(overview.copy(performedJapa = "740"), successState.overviewStats)
         assertTrue(successState.dailyCounts.isEmpty())
         assertTrue(successState.accuracyTrend.isEmpty())
         assertTrue(successState.sessions.isEmpty())
@@ -176,7 +179,7 @@ class ProgressViewModelTest {
             getAccuracyTrendUseCase,
             getSessionsForUserUseCase,
             getAxisTrendsUseCase,
-            progressSyncRepository
+            progressSyncRepository, japa
         )
 
         val job = launch {
@@ -198,7 +201,8 @@ class ProgressViewModelTest {
         // Charts are rebuilt from the summary: a 7-day zero-filled window with
         // today's entry carrying the cloud values.
         assertEquals(7, successState.dailyCounts.size)
-        assertEquals(3, successState.dailyCounts.last().count)
+        assertEquals(740, successState.dailyCounts.last().count)
+        assertEquals("740", successState.overviewStats.performedJapa)
         assertEquals(7, successState.accuracyTrend.size)
         assertEquals(0.8, successState.accuracyTrend.last().averageScore, 1e-9)
 

@@ -125,7 +125,7 @@ class EvaluateRecitationUseCaseTest {
         // Then
         assertTrue(evaluation.isCorrect)
         coVerify(exactly = 1) { recitationRepository.saveSession(any()) }
-        coVerify(exactly = 1) { incrementTargetUseCase(1L) }
+        coVerify(exactly = 0) { incrementTargetUseCase(1L) } // Goal credit now commits with saveSession.
     }
 
     @Test

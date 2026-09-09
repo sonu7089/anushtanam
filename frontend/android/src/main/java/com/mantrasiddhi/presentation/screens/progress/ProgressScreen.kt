@@ -222,8 +222,8 @@ private fun OverviewTab(state: ProgressUiState.Success) {
         AdaptivePair(first = { cardModifier ->
             StatCard(
                 title = stringResource(R.string.progress_total_recitations),
-                value = stats.totalCorrectRecitations.toString(),
-                subtitle = stringResource(R.string.progress_out_of_attempts, stats.totalSessions),
+                value = stats.performedJapa ?: stats.totalCorrectRecitations.toString(),
+                subtitle = stringResource(R.string.japa_history_note),
                 icon = Icons.Default.Star,
                 modifier = cardModifier
             )

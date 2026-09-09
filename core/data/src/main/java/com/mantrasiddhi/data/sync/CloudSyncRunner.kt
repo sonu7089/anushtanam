@@ -31,7 +31,8 @@ class CloudSyncRunner @Inject constructor(
     private val auth: FirebaseAuth,
     private val network: CloudSyncNetwork,
     private val transport: CloudSyncTransport,
-    private val clock: CloudSyncClock
+    private val clock: CloudSyncClock,
+    private val japaSync: JapaCloudSync
 ) {
     private val lock = Mutex()
 
@@ -46,7 +47,10 @@ class CloudSyncRunner @Inject constructor(
             val batch = dao.pending(uid)
             if (batch.isNotEmpty() && auth.currentUser?.uid == uid && network.isConnected()) {
                 val acknowledged = withTimeoutOrNull(20_000L) { transport.deliver(batch); true } == true
-                if (acknowledged) dao.acknowledgeBatch(batch.map { it.id })
+                if (acknowledged) {
+                    dao.acknowledgeBatch(batch.map { it.id })
+                    withTimeoutOrNull(20_000L) { japaSync.restore(uid) }
+                }
             }
         } catch (cancelled: CancellationException) {
             throw cancelled

@@ -7,6 +7,8 @@
 package com.mantrasiddhi.data.local
 
 import android.content.Context
+import com.mantrasiddhi.data.local.entity.JapaEntryEntity
+import com.mantrasiddhi.data.local.dao.JapaDao
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -45,13 +47,15 @@ import javax.inject.Provider
         CloudSyncScheduleEntity::class,
         SandhyaCountEntity::class,
         SandhyaCountChangeEntity::class,
-        SandhyaCountDraftEntity::class
+        SandhyaCountDraftEntity::class,
+        JapaEntryEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
 
+    abstract fun japaDao(): JapaDao
     abstract fun userDao(): UserDao
     abstract fun targetDao(): TargetDao
     abstract fun recitationDao(): RecitationDao
@@ -266,6 +270,34 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12: Migration = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (table in listOf("targets", "purashcharana")) {
+                    db.execSQL("ALTER TABLE $table ADD COLUMN stableId TEXT NOT NULL DEFAULT ''")
+                    db.execSQL("ALTER TABLE $table ADD COLUMN endedAtMillis INTEGER")
+                    db.execSQL("ALTER TABLE $table ADD COLUMN baselineCount INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("UPDATE $table SET stableId = lower(hex(randomblob(16)))")
+                }
+                db.execSQL("UPDATE targets SET stableId = 'legacy-target' WHERE isCompleted = 0")
+                db.execSQL("UPDATE purashcharana SET stableId = 'legacy-vow-' || startedAtMillis")
+                db.execSQL("ALTER TABLE targets ADD COLUMN mantraId TEXT NOT NULL DEFAULT 'gayatri'")
+                db.execSQL("ALTER TABLE targets ADD COLUMN startedAtMillis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE targets ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1")
+                // The former target schema did not record enrollment. Do not invent old eligibility.
+                db.execSQL("UPDATE targets SET baselineCount = currentRecitationCount, startedAtMillis = ${System.currentTimeMillis()}, isActive = CASE WHEN isCompleted = 1 THEN 0 ELSE 1 END, endedAtMillis = CASE WHEN isCompleted = 1 THEN ${System.currentTimeMillis()} ELSE NULL END")
+                db.execSQL("UPDATE purashcharana SET baselineCount = currentJapaCount, endedAtMillis = CASE WHEN isActive = 0 THEN ${System.currentTimeMillis()} ELSE NULL END")
+                for (column in listOf("targetCompleted", "vowCompleted", "completionReversed", "milestonesCrossed")) {
+                    db.execSQL("ALTER TABLE sandhya_count_changes ADD COLUMN $column INTEGER NOT NULL DEFAULT 0")
+                }
+                db.execSQL("CREATE TABLE IF NOT EXISTS japa_entries (id TEXT NOT NULL, userId INTEGER NOT NULL, mantraId TEXT NOT NULL, dateKey TEXT NOT NULL, zoneId TEXT NOT NULL, period TEXT, quantity INTEGER NOT NULL, revision INTEGER NOT NULL, createdAtMillis INTEGER NOT NULL, targetId TEXT, vowId TEXT, source TEXT NOT NULL, sessionId INTEGER, updatedAtMillis INTEGER NOT NULL, operationId TEXT NOT NULL, PRIMARY KEY(id))")
+                db.execSQL("CREATE INDEX index_japa_entries_userId_dateKey_period ON japa_entries(userId, dateKey, period)")
+                db.execSQL("CREATE INDEX index_japa_entries_targetId ON japa_entries(targetId)")
+                db.execSQL("CREATE INDEX index_japa_entries_vowId ON japa_entries(vowId)")
+                // Existing MF-01 history stays editable, without importing it into a later vow.
+                db.execSQL("INSERT INTO japa_entries SELECT 'legacy-sandhya:' || userId || ':' || dateKey || ':' || period, userId, 'gayatri', dateKey, zoneId, period, quantity, 1, 0, NULL, NULL, 'SANDHYA', NULL, 0, 'legacy-sandhya:' || userId || ':' || dateKey || ':' || period FROM sandhya_counts")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -275,7 +307,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MantraSiddhiDatabase::class.java,
                 DATABASE_NAME
             )
-            // Contiguous v1 to v11 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v12 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -289,7 +321,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_7_8,
                 MIGRATION_8_9,
                 MIGRATION_9_10,
-                MIGRATION_10_11
+                MIGRATION_10_11,
+                MIGRATION_11_12
             )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

@@ -28,7 +28,9 @@ interface UserDao {
     @Query("SELECT EXISTS(SELECT 1 FROM recitation_sessions WHERE userId = :id) OR " +
         "EXISTS(SELECT 1 FROM targets WHERE userId = :id) OR " +
         "EXISTS(SELECT 1 FROM purashcharana WHERE userId = :id) OR " +
-        "EXISTS(SELECT 1 FROM sandhya_logs WHERE userId = :id)")
+        "EXISTS(SELECT 1 FROM sandhya_logs WHERE userId = :id) OR " +
+        "EXISTS(SELECT 1 FROM sandhya_counts WHERE userId = :id) OR " +
+        "EXISTS(SELECT 1 FROM sandhya_count_drafts WHERE userId = :id)")
     suspend fun hasPractice(id: Long): Boolean
 
     @Query("SELECT * FROM user_profiles WHERE parentId = :parentId")

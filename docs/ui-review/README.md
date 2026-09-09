@@ -144,3 +144,13 @@ The streak sits at the right edge of the daily count, wrapping below it on compa
 | Settings with Google | [Open](settings-google-light-spacing.png) | [Open](settings-google-dark-spacing.png) | [Open](settings-google-light-spacing-compact.png) |
 
 [Settings with bottom navigation](settings-light-spacing.png). The compact Home capture is scrolled to show the full streak.
+
+
+## MF-02 count accounting
+
+The existing layout and artwork are unchanged. The count sheet explains goal eligibility, and Progress explains what its japa total includes.
+
+| Screen | Light | Dark |
+| --- | --- | --- |
+| Correct a Sandhya count | [Open](sandhya-entry-light-mf-two.png) | [Open](sandhya-entry-dark-mf-two.png) |
+| Japa total on Progress | [Open](progress-light-mf-two.png) | |

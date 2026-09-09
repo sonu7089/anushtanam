@@ -485,7 +485,7 @@
     <string name="purashcharana_gayatri_note">The 24 syllables belong to the main Gayatri verse. Om and the opening words Bhur, Bhuvah, and Svah are not included in this calculation.</string>
     <string name="purashcharana_take_sankalpa">Begin this commitment</string>
     <string name="purashcharana_sankalpa_dialog_title">Begin your Purashcharana?</string>
-    <string name="purashcharana_sankalpa_dialog_body">This sets a goal of 24,00,000 Gayatri recitations, with no time limit. Only recitations heard and accepted by the app count. You can set the commitment aside at any time and keep your recorded progress.</string>
+    <string name="purashcharana_sankalpa_dialog_body">This sets a goal of 24,00,000 Gayatri recitations, with no time limit. Your recorded Gayatri japa counts towards this goal. Pronunciation practice is kept separate. You can set the commitment aside at any time and keep your recorded progress.</string>
     <string name="purashcharana_sankalpa_dialog_confirm">Yes, begin</string>
     <string name="purashcharana_sankalpa_dialog_cancel">Not yet</string>
     <string name="purashcharana_enrolled_snack">Your Purashcharana has begun.</string>
@@ -512,7 +512,7 @@
     <string name="purashcharana_niyama_body">Choose a regular time and a comfortable place where you can recite without rushing. A manageable daily count is easier to keep. Follow the guidance of your teacher or tradition as you settle into the practice.</string>
 
     <string name="purashcharana_counting_title">How the count is kept</string>
-    <string name="purashcharana_counting_body">The app counts recitations it hears and accepts. Counts cannot be entered by hand. While you are signed in, your progress is linked to your account so you can return to it on another phone.</string>
+    <string name="purashcharana_counting_body">Record your Gayatri japa after each Sandhya, or use the counter as you practise. Each repetition counts once towards the goals you had at that time. You can correct a saved count whenever you need to. When you are signed in, saved japa is backed up when this phone connects to the internet.</string>
 
     <string name="purashcharana_withdraw">Set this commitment aside</string>
     <string name="purashcharana_withdraw_dialog_title">Set this commitment aside?</string>
@@ -522,7 +522,7 @@
     <string name="purashcharana_withdrawn_snack">Commitment set aside. Your recitations are saved.</string>
 
     <string name="purashcharana_complete_title">Purnahuti</string>
-    <string name="purashcharana_complete_body">You have completed 24,00,000 counted recitations. Your Purashcharana is complete. Take a moment to honour the time and care you have given it.</string>
+    <string name="purashcharana_complete_body">Your japa count goal is complete. Take a moment to honour the time and care you have given it. Follow your teacher’s guidance for any further observances.</string>
     <string name="purashcharana_back">Back</string>
     <string name="purashcharana_error_format">Something went wrong: %1$s</string>
 
@@ -766,4 +766,10 @@
     <string name="sandhya_minimum_settings">Minimum mantras for Sandhya Vandan</string>
     <string name="sandhya_minimum_save">Save</string>
     <string name="sandhya_edit_count">Edit count</string>
+    <string name="japa_history_note">Recorded japa and accepted recitations, counted once</string>
+    <string name="japa_completion_corrected">Your correction has updated the goal. There is a little more japa to go.</string>
+    <string name="japa_target_complete">You have reached your Sankalpam count. Take a moment to enjoy this step.</string>
+    <string name="japa_vow_complete">You have reached your japa count goal. Follow your teacher’s guidance for any further observances.</string>
+    <string name="japa_milestones_crossed">You have passed %1$d milestones on your path.</string>
+    <string name="japa_family_note">Recorded japa adds to your own goals. Goals set by a parent still use accepted recitations.</string>
 </resources>

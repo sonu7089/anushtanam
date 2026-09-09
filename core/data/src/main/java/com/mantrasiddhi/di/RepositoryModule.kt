@@ -29,6 +29,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindJapaHistoryRepository(impl: com.mantrasiddhi.data.repository.JapaHistoryRepositoryImpl): com.mantrasiddhi.domain.repository.JapaHistoryRepository
+
 
     @Binds
     @Singleton

@@ -141,9 +141,17 @@ fun SandhyaScreen(
 
     LaunchedEffect(countViewModel) {
         countViewModel.saved.collect { change ->
+            val feedback = change.feedback
+            val note = when {
+                feedback.completionReversed -> context.getString(R.string.japa_completion_corrected)
+                feedback.purashcharanaCompleted -> context.getString(R.string.japa_vow_complete)
+                feedback.targetCompleted -> context.getString(R.string.japa_target_complete)
+                feedback.milestonesCrossed > 0 -> context.getString(R.string.japa_milestones_crossed, feedback.milestonesCrossed)
+                else -> ""
+            }
             val result = snackbar.showSnackbar(
                 context.getString(if (change.quantity == 1L) R.string.sandhya_count_saved_one else R.string.sandhya_count_saved, countText(change.quantity),
-                    context.getString(periodNameRes(change.period))),
+                    context.getString(periodNameRes(change.period))) + if (note.isEmpty()) "" else ". $note",
                 actionLabel = context.getString(R.string.sandhya_edit_total),
                 duration = SnackbarDuration.Long
             )

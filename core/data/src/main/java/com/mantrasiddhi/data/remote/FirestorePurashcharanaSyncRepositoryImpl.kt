@@ -45,6 +45,7 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
     ): Result<Unit> = runCatching {
         val uid = uidForOwnProfile(localUserId) ?: return@runCatching
         outbox.enqueue(uid, SyncKind.PURASHCHARANA, mapOf(
+            "stableId" to sankalpa.stableId, "baselineCount" to sankalpa.baselineCount,
             FirebaseContract.FIELD_MANTRA_ID to sankalpa.mantraId,
             FirebaseContract.FIELD_AKSHARA_COUNT to sankalpa.mantraAksharaCount,
             FirebaseContract.FIELD_TARGET_JAPA_COUNT to sankalpa.targetJapaCount,
@@ -88,7 +89,9 @@ class FirestorePurashcharanaSyncRepositoryImpl @Inject constructor(
             startedAtMillis = startedAtMillis,
             completedAtMillis = snap.getLong(FirebaseContract.FIELD_COMPLETED_AT),
             // Older docs predate the field; absent means the sankalpa was never withdrawn.
-            isActive = snap.getBoolean(FirebaseContract.FIELD_IS_ACTIVE) != false
+            isActive = snap.getBoolean(FirebaseContract.FIELD_IS_ACTIVE) != false,
+            stableId = snap.getString("stableId") ?: "legacy-vow-$startedAtMillis",
+            baselineCount = snap.getLong("baselineCount") ?: snap.getLong(FirebaseContract.FIELD_CURRENT_JAPA_COUNT) ?: 0
         )
     }.getOrNull()
 

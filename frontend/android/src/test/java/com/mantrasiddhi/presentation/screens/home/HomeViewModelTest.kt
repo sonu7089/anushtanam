@@ -40,6 +40,9 @@ class HomeViewModelTest {
     private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
     private lateinit var getDashboardStatsUseCase: GetDashboardStatsUseCase
     private lateinit var getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase
+    private val japa = mockk<com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase> {
+        every { this@mockk.invoke(any()) } returns flowOf(com.mantrasiddhi.domain.usecase.JapaSummary())
+    }
     private lateinit var viewModel: HomeViewModel
 
     private val testUser = UserProfile(
@@ -69,7 +72,7 @@ class HomeViewModelTest {
     @Test
     fun `should_initiallyEmitLoadingState_when_created`() = runTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
         assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
 
@@ -86,7 +89,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(stats)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Success)
@@ -102,7 +105,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(null)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Error)

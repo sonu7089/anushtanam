@@ -193,6 +193,37 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Editable japa is private to its owner and never writes parent-assigned rewards.
+    match /users/{uid}/japaEntries/{entryId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.id == entryId && request.resource.data.quantity is int &&
+        request.resource.data.quantity >= 0 && request.resource.data.revision is int &&
+        request.resource.data.revision > 0 && request.resource.data.mantraId is string &&
+        request.resource.data.operationId is string &&
+        (!exists(/databases/$(database)/documents/users/$(uid)/japaEntries/$(entryId)) ||
+          (request.resource.data.revision >= resource.data.revision &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'revision', 'updatedAtMillis', 'operationId'])));
+      allow delete: if false;
+      match /revisions/{operationId} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow create: if isSignedIn() && request.auth.uid == uid &&
+          request.resource.data.operationId == operationId;
+        allow update: if isSignedIn() && request.auth.uid == uid && request.resource.data == resource.data;
+        allow delete: if false;
+      }
+    }
+    match /users/{uid}/japaGoals/{goalId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.id == goalId && request.resource.data.kind in ['target', 'vow'] &&
+        request.resource.data.baselineCount is int && request.resource.data.baselineCount >= 0 &&
+        request.resource.data.targetCount is int && request.resource.data.targetCount > 0 &&
+        (!exists(/databases/$(database)/documents/users/$(uid)/japaGoals/$(goalId)) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['endedAtMillis']));
+      allow delete: if false;
+    }
+
     // --- selfTargets/{uid} -----------------------------------------------------
     // One doc mirroring the user's ACTIVE self-set recitation target so it can be
     // restored after a reinstall / device switch. Strictly private: only the owner

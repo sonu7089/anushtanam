@@ -27,7 +27,8 @@ sealed interface HomeUiState {
          * could not be loaded. The dashboard must survive a failure in this one card, so
          * the Home card simply falls back to its "not enrolled" invitation.
          */
-        val purashcharana: Purashcharana? = null
+        val purashcharana: Purashcharana? = null,
+        val todayJapa: String? = null
     ) : HomeUiState
 
     /**

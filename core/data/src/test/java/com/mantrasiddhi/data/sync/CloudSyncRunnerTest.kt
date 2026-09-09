@@ -41,7 +41,7 @@ class CloudSyncRunnerTest {
         }
         coEvery { dao.acknowledgeBatch(any()) } answers { rows.removeAll { it.id in firstArg<List<Long>>() }; Unit }
         coEvery { transport.deliver(any()) } returns Unit
-        return CloudSyncRunner(dao, auth, network, transport, clock)
+        return CloudSyncRunner(dao, auth, network, transport, clock, mockk(relaxed = true))
     }
 
     @Test fun `does not upload before one minute then drains one batch`() = runTest {

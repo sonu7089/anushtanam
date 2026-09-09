@@ -101,7 +101,7 @@ class TargetsViewModel @Inject constructor(
                         flowOf(emptyList())
                     }
                     combine(targetsFlow, childrenFlow) { targets, children ->
-                        val active = targets.firstOrNull { !it.isCompleted }
+                        val active = targets.firstOrNull { it.isActive && !it.isCompleted }
                         val completed = targets.filter { it.isCompleted }
                         TargetsUiState.Success(
                             currentUser = user,

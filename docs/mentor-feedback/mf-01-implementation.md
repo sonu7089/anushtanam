@@ -13,7 +13,7 @@ Implemented 8 September 2026. Simplified 9 September 2026 following app-owner fe
 
 Room v11 adds `sandhya_counts`, `sandhya_count_changes`, and `sandhya_count_drafts`. Counts use `Long`; the day summary handles totals beyond one `Long`. Each operation keeps its profile, date, period, timezone, previous total, and stable ID. No audio sessions or scores are created.
 
-Goal credit remains MF-02. Cloud backup and restore remain MF-08. These counts are saved locally; the save message says so. Reminder scheduling remains MF-06.
+Goal credit and new-entry sync are implemented in [MF-02](mf-02-implementation.md). The broader backup and restore interface remains MF-08. These counts are saved locally; the save message says so. Reminder scheduling remains MF-06.
 
 ## Verification
 

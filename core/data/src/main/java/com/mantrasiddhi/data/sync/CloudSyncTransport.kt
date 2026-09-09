@@ -12,13 +12,23 @@ import javax.inject.Inject
 /** A minute's changes and their retry checkpoints commit in one server transaction. */
 class CloudSyncTransport @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val japaSync: JapaCloudSync
 ) {
     suspend fun deliver(events: List<CloudSyncEntity>) {
         if (events.isEmpty()) return
         val uid = events.first().uid
         require(events.all { it.uid == uid } && events.zipWithNext().all { (a, b) -> a.id < b.id })
         check(auth.currentUser?.uid == uid)
+        val japaEvents = events.filter { it.kind == SyncKind.JAPA_ENTRY || it.kind == SyncKind.JAPA_GOAL }
+        val legacy = events.filterNot { it in japaEvents }
+        if (legacy.isNotEmpty()) deliverLegacy(legacy)
+        // Complete pre-cutover writes before establishing the legacy baseline once.
+        for (event in japaEvents) japaSync.deliver(uid, event.kind, CloudSyncPolicy.decode(event.payload))
+    }
+
+    private suspend fun deliverLegacy(events: List<CloudSyncEntity>) {
+        val uid = events.first().uid
         val payloads = events.associate { it.id to CloudSyncPolicy.decode(it.payload) }
         fun document(collection: String) = firestore.collection(collection).document(uid)
         val account = document(F.COLLECTION_USERS)

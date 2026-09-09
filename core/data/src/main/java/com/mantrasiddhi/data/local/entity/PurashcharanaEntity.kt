@@ -34,7 +34,10 @@ data class PurashcharanaEntity(
     val currentJapaCount: Long,
     val startedAtMillis: Long,
     val completedAtMillis: Long?,
-    val isActive: Boolean
+    val isActive: Boolean,
+    @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString(),
+    val endedAtMillis: Long? = null,
+    @ColumnInfo(defaultValue = "0") val baselineCount: Long = currentJapaCount
 ) {
     fun toDomain(): Purashcharana {
         return Purashcharana(
@@ -46,7 +49,7 @@ data class PurashcharanaEntity(
             currentJapaCount = currentJapaCount,
             startedAtMillis = startedAtMillis,
             completedAtMillis = completedAtMillis,
-            isActive = isActive
+            isActive = isActive, stableId = stableId, endedAtMillis = endedAtMillis, baselineCount = baselineCount
         )
     }
 
@@ -68,7 +71,7 @@ data class PurashcharanaEntity(
                 currentJapaCount = domain.currentJapaCount,
                 startedAtMillis = domain.startedAtMillis,
                 completedAtMillis = domain.completedAtMillis,
-                isActive = domain.isActive
+                isActive = domain.isActive, stableId = domain.stableId, endedAtMillis = domain.endedAtMillis, baselineCount = domain.baselineCount
             )
         }
     }

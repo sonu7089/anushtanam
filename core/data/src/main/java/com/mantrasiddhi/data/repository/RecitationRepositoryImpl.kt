@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.data.repository
 
+import androidx.room.withTransaction
+import com.mantrasiddhi.data.local.MantraSiddhiDatabase
 import com.mantrasiddhi.data.local.dao.RecitationDao
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.domain.model.RecitationSession
@@ -21,11 +23,22 @@ import javax.inject.Inject
 
 class RecitationRepositoryImpl @Inject constructor(
     private val recitationDao: RecitationDao,
+    private val database: MantraSiddhiDatabase,
+    private val sync: com.mantrasiddhi.data.sync.JapaCloudSync,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : RecitationRepository {
 
     override suspend fun saveSession(session: RecitationSession): Long = withContext(ioDispatcher) {
-        recitationDao.insert(RecitationSessionEntity.fromDomain(session))
+        val result = database.withTransaction {
+            val before = database.japaDao().entries(session.userId)
+            val row = RecitationSessionEntity.fromDomain(session)
+            val id = recitationDao.insert(row)
+            database.japaDao().recordAudio(id, row)
+            if (session.isCorrect && session.mode == com.mantrasiddhi.domain.model.RecitationMode.NORMAL) sync.enqueue(session.userId, before)
+            id
+        }
+        sync.schedule()
+        result
     }
 
     override fun getSessionsForUser(userId: Long): Flow<List<RecitationSession>> {

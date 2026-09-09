@@ -54,7 +54,8 @@ class SyncSignedInUserUseCase @Inject constructor(
     private val purashcharanaRepository: PurashcharanaRepository,
     private val purashcharanaSyncRepository: PurashcharanaSyncRepository,
     private val auth: FirebaseAuth,
-    private val sandhyaScheduler: SandhyaScheduler
+    private val sandhyaScheduler: SandhyaScheduler,
+    private val japaSync: com.mantrasiddhi.data.sync.JapaCloudSync
 ) {
     private val mutex = Mutex()
 
@@ -180,6 +181,12 @@ class SyncSignedInUserUseCase @Inject constructor(
             }
         } }
 
+        currentCoroutineContext().ensureActive()
+        check(auth.currentUser?.uid == account.uid)
+        withTimeoutOrNull(10_000) { runCatching { japaSync.restore(account.uid) } }
+        if (importId != null) {
+            japaSync.importOwnedProfile(localId)
+        }
         currentCoroutineContext().ensureActive()
         check(auth.currentUser?.uid == account.uid)
         localId

@@ -1,5 +1,6 @@
 package com.mantrasiddhi.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -28,10 +29,15 @@ data class SandhyaCountChangeEntity(
     val previousQuantity: Long?,
     val quantity: Long,
     val revision: Long,
-    val createdAtMillis: Long
+    val createdAtMillis: Long,
+    @ColumnInfo(defaultValue = "0") val targetCompleted: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val vowCompleted: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val completionReversed: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val milestonesCrossed: Int = 0
 ) {
     fun toDomain() = SandhyaCountChange(id, userId, dateKey, SandhyaPeriod.valueOf(period), zoneId,
-        SandhyaCountMode.valueOf(mode), previousQuantity, quantity, revision, createdAtMillis)
+        SandhyaCountMode.valueOf(mode), previousQuantity, quantity, revision, createdAtMillis,
+        JapaGoalFeedback(targetCompleted, vowCompleted, completionReversed, milestonesCrossed))
 }
 
 @Entity(tableName = "sandhya_count_drafts", indices = [Index(value = ["userId"], unique = true)])

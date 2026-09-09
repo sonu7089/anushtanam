@@ -30,7 +30,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getDashboardStatsUseCase: GetDashboardStatsUseCase,
-    private val getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase
+    private val getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase,
+    private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -52,12 +53,14 @@ class HomeViewModel @Inject constructor(
                         // stats arrive instead of waiting on the sankalpa query.
                         getActivePurashcharanaUseCase(user.id)
                             .catch { emit(null) }
-                            .onStart { emit(null) }
-                    ) { stats, purashcharana ->
+                            .onStart { emit(null) },
+                        getJapaSummary(user.id)
+                    ) { stats, purashcharana, japa ->
                         if (stats != null) {
                             HomeUiState.Success(
                                 user = stats.user,
                                 todayCount = stats.todayRecitationCount,
+                                todayJapa = japa.on(java.time.LocalDate.now()).toString(),
                                 activeTarget = stats.activeTarget,
                                 streakDays = stats.streakDays,
                                 childrenProgress = stats.childrenProgress,

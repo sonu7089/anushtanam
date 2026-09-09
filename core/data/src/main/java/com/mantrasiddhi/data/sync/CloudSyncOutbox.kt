@@ -13,6 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 object SyncKind {
+    const val JAPA_ENTRY = "japa_entry"
+    const val JAPA_GOAL = "japa_goal"
     const val PROGRESS = "progress"
     const val TARGET_CREATE = "target_create"
     const val TARGET_INCREMENT = "target_increment"
@@ -31,13 +33,19 @@ class CloudSyncOutbox @Inject constructor(
     @Volatile private var identity: String? = null
 
     suspend fun enqueue(uid: String, kind: String, payload: Map<String, Any?>) = withContext(Dispatchers.IO) {
-        require(uid.isNotBlank())
-        dao.enqueue(CloudSyncEntity(uid = uid, streamId = streamId(), kind = kind,
-            payload = JSONObject(payload).toString(), createdAtMs = System.currentTimeMillis()))
+        enqueueInTransaction(uid, kind, payload)
         // The outbox survives a scheduler failure and is recovered on application start.
         runCatching { scheduler.schedule() }
         Unit
     }
+
+    suspend fun enqueueInTransaction(uid: String, kind: String, payload: Map<String, Any?>) {
+        require(uid.isNotBlank())
+        dao.enqueue(CloudSyncEntity(uid = uid, streamId = streamId(), kind = kind,
+            payload = JSONObject(payload).toString(), createdAtMs = System.currentTimeMillis()))
+    }
+
+    suspend fun schedule() { runCatching { scheduler.schedule() } }
 
     @Synchronized
     private fun streamId(): String {

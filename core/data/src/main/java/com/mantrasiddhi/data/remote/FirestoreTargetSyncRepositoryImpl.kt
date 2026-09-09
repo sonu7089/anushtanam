@@ -50,6 +50,8 @@ class FirestoreTargetSyncRepositoryImpl @Inject constructor(
         val uid = uidForOwnProfile(localUserId) ?: return@runCatching
         outbox.enqueue(uid, SyncKind.TARGET_CREATE,
             mapOf(
+                "stableId" to target.stableId, "mantraId" to target.mantraId,
+                "startedAtMillis" to target.startedAtMillis, "baselineCount" to target.baselineCount,
                 FirebaseContract.FIELD_TARGET_COUNT to target.targetRecitationCount.toLong(),
                 FirebaseContract.FIELD_CURRENT_COUNT to target.currentRecitationCount.toLong(),
                 FirebaseContract.FIELD_REWARD_TYPE to target.rewardType.name,
@@ -88,7 +90,11 @@ class FirestoreTargetSyncRepositoryImpl @Inject constructor(
             currentRecitationCount = (snap.getLong(FirebaseContract.FIELD_CURRENT_COUNT) ?: 0L).toInt(),
             rewardType = RewardType.fromName(snap.getString(FirebaseContract.FIELD_REWARD_TYPE)),
             rewardDescription = snap.getString(FirebaseContract.FIELD_REWARD_DESCRIPTION) ?: "",
-            isCompleted = false
+            isCompleted = false,
+            stableId = snap.getString("stableId") ?: "legacy-target",
+            mantraId = snap.getString("mantraId") ?: "gayatri",
+            startedAtMillis = snap.getLong("startedAtMillis") ?: System.currentTimeMillis(),
+            baselineCount = snap.getLong("baselineCount") ?: snap.getLong(FirebaseContract.FIELD_CURRENT_COUNT) ?: 0
         ).takeIf { it.targetRecitationCount > 0 }
     }.getOrNull()
 }

@@ -188,6 +188,8 @@ internal fun SandhyaCountSheet(
                     }
                 }
             }
+            Text(stringResource(R.string.japa_family_note), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
             editor.errorRes?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall) }
             Button(onClick = onSave, enabled = enabled && valid,

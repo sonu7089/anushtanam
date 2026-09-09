@@ -83,14 +83,14 @@ fun DailyBarChart(
             val chartWidth = width - paddingLeft - paddingRight
             val chartHeight = height - paddingTop - paddingBottom
 
-            val maxVal = maxOf(5, data.maxOf { it.count })
+            val maxVal = maxOf(5.0, data.maxOf { it.performedJapa?.toDoubleOrNull() ?: it.count.toDouble() })
 
             // Draw Y Grid lines & Labels
             val yLines = 4
             for (i in 0..yLines) {
                 val ratio = i.toFloat() / yLines
                 val y = paddingTop + chartHeight * (1 - ratio)
-                val gridVal = (maxVal * ratio).toInt()
+                val gridVal = java.math.BigDecimal.valueOf(maxVal * ratio).toBigInteger()
 
                 // Draw grid line
                 drawLine(
@@ -119,7 +119,7 @@ fun DailyBarChart(
             val barWidth = (chartWidth - (barSpacing * (barCount - 1))) / barCount
 
             data.forEachIndexed { index, item ->
-                val ratio = item.count.toFloat() / maxVal
+                val ratio = ((item.performedJapa?.toDoubleOrNull() ?: item.count.toDouble()) / maxVal).toFloat()
                 val animRatio = ratio * animatedProgress.value
                 val barHeight = chartHeight * animRatio
 
@@ -139,12 +139,12 @@ fun DailyBarChart(
                 // Draw count above bar
                 if (item.count > 0) {
                     val countLayout = textMeasurer.measure(
-                        text = item.count.toString(),
+                        text = item.performedJapa ?: item.count.toString(),
                         style = countStyle
                     )
                     drawText(
                         textMeasurer = textMeasurer,
-                        text = item.count.toString(),
+                        text = item.performedJapa ?: item.count.toString(),
                         topLeft = Offset(x + (barWidth - countLayout.size.width) / 2, y - countLayout.size.height - 4f),
                         style = countStyle
                     )

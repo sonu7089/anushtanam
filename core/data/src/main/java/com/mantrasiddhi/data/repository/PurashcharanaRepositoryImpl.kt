@@ -6,6 +6,9 @@
  */
 package com.mantrasiddhi.data.repository
 
+import androidx.room.withTransaction
+import com.mantrasiddhi.data.local.MantraSiddhiDatabase
+import com.mantrasiddhi.data.sync.JapaCloudSync
 import com.mantrasiddhi.data.local.dao.PurashcharanaDao
 import com.mantrasiddhi.data.local.entity.PurashcharanaEntity
 import com.mantrasiddhi.domain.model.Purashcharana
@@ -23,6 +26,8 @@ import javax.inject.Singleton
 @Singleton
 class PurashcharanaRepositoryImpl @Inject constructor(
     private val purashcharanaDao: PurashcharanaDao,
+    private val database: MantraSiddhiDatabase,
+    private val sync: JapaCloudSync,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : PurashcharanaRepository {
 
@@ -54,7 +59,14 @@ class PurashcharanaRepositoryImpl @Inject constructor(
                     completedAtMillis = null,
                     isActive = true
                 )
-                entity.copy(id = purashcharanaDao.insert(entity)).toDomain()
+                val result = database.withTransaction {
+                    check(purashcharanaDao.getActiveForUser(userId) == null)
+                    val row = entity.copy(id = purashcharanaDao.insert(entity))
+                    sync.enqueue(userId, database.japaDao().entries(userId))
+                    row.toDomain()
+                }
+                sync.schedule()
+                result
             }
         }
 
@@ -74,7 +86,13 @@ class PurashcharanaRepositoryImpl @Inject constructor(
         }
 
     override suspend fun withdraw(userId: Long): Result<Unit> = withContext(ioDispatcher) {
-        runCatching { purashcharanaDao.deactivateForUser(userId) }
+        runCatching {
+            database.withTransaction {
+                purashcharanaDao.deactivateForUser(userId)
+                sync.enqueue(userId, database.japaDao().entries(userId))
+            }
+            sync.schedule()
+        }
     }
 
     override suspend fun adoptRemote(userId: Long, sankalpa: Purashcharana): Result<Unit> =
@@ -84,6 +102,7 @@ class PurashcharanaRepositoryImpl @Inject constructor(
                 // has already decided this sankalpa is the one being carried forward.
                 val restored = sankalpa.copy(userId = userId, isActive = true)
                 val existing = purashcharanaDao.getActiveForUser(userId)
+                if (existing != null && database.japaDao().entries(userId).any { it.vowId == existing.stableId }) return@runCatching Unit
                 if (existing == null) {
                     purashcharanaDao.insert(PurashcharanaEntity.fromDomain(restored.copy(id = 0L)))
                 } else {

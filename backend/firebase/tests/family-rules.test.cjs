@@ -160,3 +160,30 @@ test('Google child can atomically reserve a child ID; other owners cannot take i
   await assertFails(setDoc(doc(user('child2'), 'childCodes/234567890123'), { uid: 'child2' }));
   await assertFails(getDocs(collection(user('parent'), 'childCodes')));
 });
+
+
+test('japa entries are private and corrections cannot move them to another goal', async () => {
+  const owner = user('individual');
+  const path = 'users/individual/japaEntries/entry-one';
+  const entry = { id: 'entry-one', quantity: 600, revision: 1, mantraId: 'gayatri',
+    operationId: 'save-one', updatedAtMillis: 10, targetId: 'goal-one' };
+  await assertSucceeds(setDoc(doc(owner, path), entry));
+  await assertFails(getDoc(doc(user('parent'), path)));
+  await assertFails(setDoc(doc(user('child'), path), entry));
+  await assertSucceeds(updateDoc(doc(owner, path), { quantity: 500, revision: 2, operationId: 'edit-one', updatedAtMillis: 20 }));
+  await assertFails(updateDoc(doc(owner, path), { quantity: 600, revision: 1 }));
+  await assertFails(updateDoc(doc(owner, path), { targetId: 'later-goal', revision: 3 }));
+  await assertFails(updateDoc(doc(owner, path), { quantity: -1, revision: 3 }));
+  await assertFails(deleteDoc(doc(owner, path)));
+  assert.equal((await getDoc(doc(owner, path))).data().quantity, 500);
+});
+
+test('a japa goal baseline is established once and history cannot be erased', async () => {
+  const owner = user('individual');
+  const ref = doc(owner, 'users/individual/japaGoals/goal-one');
+  await assertSucceeds(setDoc(ref, { id: 'goal-one', kind: 'target', baselineCount: 32, targetCount: 108, endedAtMillis: null }));
+  await assertFails(updateDoc(ref, { baselineCount: 64 }));
+  await assertSucceeds(updateDoc(ref, { endedAtMillis: 100 }));
+  await assertFails(getDoc(doc(user('parent'), 'users/individual/japaGoals/goal-one')));
+  await assertFails(deleteDoc(ref));
+});

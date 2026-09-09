@@ -64,6 +64,6 @@ interface PurashcharanaDao {
     suspend fun markCompleted(userId: Long, completedAtMillis: Long)
 
     /** Withdrawal: deactivate rather than delete, so the japa already done is not erased. */
-    @Query("UPDATE purashcharana SET isActive = 0 WHERE userId = :userId AND isActive = 1")
-    suspend fun deactivateForUser(userId: Long)
+    @Query("UPDATE purashcharana SET isActive = 0, endedAtMillis = :now WHERE userId = :userId AND isActive = 1")
+    suspend fun deactivateForUser(userId: Long, now: Long = System.currentTimeMillis())
 }

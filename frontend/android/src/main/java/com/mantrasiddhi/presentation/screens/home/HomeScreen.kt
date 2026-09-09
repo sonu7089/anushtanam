@@ -76,7 +76,7 @@ internal fun HomeContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
+                        Text(state.todayJapa ?: state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
                         Spacer(Modifier.width(12.dp))
                         Text(stringResource(R.string.lotus_japa_completed), modifier = Modifier.widthIn(max = 132.dp),
                             style = MaterialTheme.typography.bodySmall,

@@ -19,15 +19,24 @@ interface TargetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(target: TargetEntity): Long
 
+    @Query("SELECT * FROM targets WHERE userId = :userId AND stableId = :stableId LIMIT 1")
+    suspend fun getByStableId(userId: Long, stableId: String): TargetEntity?
+
+    @Query("SELECT * FROM targets WHERE id = :id")
+    suspend fun getById(id: Long): TargetEntity?
+
     @Update
     suspend fun update(target: TargetEntity)
 
-    @Query("SELECT * FROM targets WHERE userId = :userId AND isCompleted = 0 LIMIT 1")
+    @Query("SELECT * FROM targets WHERE userId = :userId AND isCompleted = 0 AND isActive = 1 ORDER BY startedAtMillis DESC, stableId DESC LIMIT 1")
     suspend fun getActiveForUser(userId: Long): TargetEntity?
 
     @Query("SELECT * FROM targets WHERE userId = :userId")
     fun getAllForUser(userId: Long): Flow<List<TargetEntity>>
 
-    @Query("DELETE FROM targets WHERE id = :id")
-    suspend fun deleteById(id: Long)
+    @Query("UPDATE targets SET isActive = 0, endedAtMillis = :now WHERE id = :id")
+    suspend fun deleteById(id: Long, now: Long = System.currentTimeMillis())
+
+    @Query("UPDATE targets SET isActive = 0, endedAtMillis = :now WHERE userId = :userId AND isActive = 1")
+    suspend fun closePrevious(userId: Long, now: Long)
 }

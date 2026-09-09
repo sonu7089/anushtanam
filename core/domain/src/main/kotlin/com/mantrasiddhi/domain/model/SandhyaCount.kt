@@ -66,7 +66,8 @@ data class SandhyaCountChange(
     val previousQuantity: Long?,
     val quantity: Long,
     val revision: Long,
-    val createdAtMillis: Long
+    val createdAtMillis: Long,
+    val feedback: JapaGoalFeedback = JapaGoalFeedback()
 )
 
 class SandhyaCountConflict : IllegalStateException("The saved count has changed")

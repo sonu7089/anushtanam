@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.RewardType
@@ -20,7 +21,13 @@ data class TargetEntity(
     val currentRecitationCount: Int,
     val rewardType: String,
     val rewardDescription: String,
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+    @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString(),
+    @ColumnInfo(defaultValue = "'gayatri'") val mantraId: String = "gayatri",
+    @ColumnInfo(defaultValue = "0") val startedAtMillis: Long = System.currentTimeMillis(),
+    val endedAtMillis: Long? = null,
+    @ColumnInfo(defaultValue = "1") val isActive: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val baselineCount: Long = currentRecitationCount.toLong()
 ) {
     fun toDomain(): Target {
         return Target(
@@ -31,7 +38,8 @@ data class TargetEntity(
             currentRecitationCount = currentRecitationCount,
             rewardType = RewardType.fromName(rewardType),
             rewardDescription = rewardDescription,
-            isCompleted = isCompleted
+            isCompleted = isCompleted, stableId = stableId, mantraId = mantraId,
+            startedAtMillis = startedAtMillis, endedAtMillis = endedAtMillis, isActive = isActive, baselineCount = baselineCount
         )
     }
 
@@ -45,7 +53,8 @@ data class TargetEntity(
                 currentRecitationCount = domain.currentRecitationCount,
                 rewardType = domain.rewardType.name,
                 rewardDescription = domain.rewardDescription,
-                isCompleted = domain.isCompleted
+                isCompleted = domain.isCompleted, stableId = domain.stableId, mantraId = domain.mantraId,
+                startedAtMillis = domain.startedAtMillis, endedAtMillis = domain.endedAtMillis, isActive = domain.isActive, baselineCount = domain.baselineCount
             )
         }
     }

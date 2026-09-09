@@ -72,7 +72,7 @@ class CloudSyncTransportTest {
             firstArg<Transaction.Function<Unit>>().apply(transaction)
             completedTask(Unit)
         }
-        return CloudSyncTransport(firestore, auth)
+        return CloudSyncTransport(firestore, auth, mockk(relaxed = true))
     }
 
     private fun event(id: Long, kind: String, payload: Map<String, Any?> = emptyMap()) =

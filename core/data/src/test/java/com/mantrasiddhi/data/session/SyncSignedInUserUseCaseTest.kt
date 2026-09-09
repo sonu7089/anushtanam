@@ -22,7 +22,7 @@ class SyncSignedInUserUseCaseTest {
     private val sync = SyncSignedInUserUseCase(users, session, preferences,
         mockk<SandhyaPreferences>(relaxed = true), mockk<TargetRepository>(relaxed = true),
         mockk<TargetSyncRepository>(relaxed = true), mockk<PurashcharanaRepository>(relaxed = true),
-        mockk<PurashcharanaSyncRepository>(relaxed = true), auth, mockk<SandhyaScheduler>(relaxed = true))
+        mockk<PurashcharanaSyncRepository>(relaxed = true), auth, mockk<SandhyaScheduler>(relaxed = true), mockk(relaxed = true))
 
     init {
         every { auth.currentUser } returns mockk { every { uid } returns "owner" }

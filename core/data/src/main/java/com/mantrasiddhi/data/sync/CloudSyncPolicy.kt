@@ -47,6 +47,7 @@ object CloudSyncPolicy {
 
     fun purashcharana(remote: Map<String, Any?>, local: Map<String, Any?>): Map<String, Any?> {
         val same = remote.isNotEmpty() && remote[F.FIELD_IS_ACTIVE] != false &&
+            (remote["stableId"] == null || local["stableId"] == null || remote["stableId"] == local["stableId"]) &&
             (remote[F.FIELD_MANTRA_ID] ?: "gayatri") == local[F.FIELD_MANTRA_ID] &&
             remote.long(F.FIELD_AKSHARA_COUNT) == local.long(F.FIELD_AKSHARA_COUNT) &&
             remote.long(F.FIELD_TARGET_JAPA_COUNT) == local.long(F.FIELD_TARGET_JAPA_COUNT)

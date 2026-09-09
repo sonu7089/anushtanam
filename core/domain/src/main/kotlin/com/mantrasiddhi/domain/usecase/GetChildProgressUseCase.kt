@@ -36,7 +36,7 @@ class GetChildProgressUseCase @Inject constructor(
             flow {
                 val childProfile = userRepository.getById(childId)
                 if (childProfile != null) {
-                    val activeTarget = targets.firstOrNull { !it.isCompleted }
+                    val activeTarget = targets.firstOrNull { it.isActive && !it.isCompleted }
                     val totalRecitations = sessions.count { it.isCorrect }
                     emit(
                         ChildProgress(

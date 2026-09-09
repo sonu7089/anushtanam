@@ -67,7 +67,8 @@ class ProgressViewModel @Inject constructor(
     private val getAccuracyTrendUseCase: GetAccuracyTrendUseCase,
     private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
     private val getAxisTrendsUseCase: GetAxisTrendsUseCase,
-    private val progressSyncRepository: ProgressSyncRepository
+    private val progressSyncRepository: ProgressSyncRepository,
+    private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase
 ) : ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -78,11 +79,15 @@ class ProgressViewModel @Inject constructor(
             } else {
                 combine(
                     combineCore(user.id),
-                    combineTrends(user.id)
-                ) { core, trends ->
+                    combineTrends(user.id),
+                    getJapaSummary(user.id)
+                ) { core, trends, japa ->
                     ProgressUiState.Success(
-                        overviewStats = core.stats,
-                        dailyCounts = core.dailyCounts,
+                        overviewStats = core.stats.copy(performedJapa = japa.lifetime.toString()),
+                        dailyCounts = core.dailyCounts.map { day ->
+                            val count = japa.on(java.time.Instant.ofEpochMilli(day.dateMillis).atZone(ZoneId.systemDefault()).toLocalDate())
+                            day.copy(count = count.min(java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong())).toInt(), performedJapa = count.toString())
+                        },
                         accuracyTrend = core.accuracyTrend,
                         sessions = trends.sessions,
                         axisTrends = trends.axisTrends

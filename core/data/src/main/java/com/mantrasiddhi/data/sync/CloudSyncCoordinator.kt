@@ -17,7 +17,8 @@ class CloudSyncCoordinator @Inject constructor(
     private val auth: FirebaseAuth,
     private val dao: CloudSyncDao,
     private val runner: CloudSyncRunner,
-    private val scheduler: CloudSyncScheduler
+    private val scheduler: CloudSyncScheduler,
+    private val japaSync: JapaCloudSync
 ) : Application.ActivityLifecycleCallbacks {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val foreground = MutableStateFlow(false)
@@ -30,6 +31,16 @@ class CloudSyncCoordinator @Inject constructor(
         started = true
         application.registerActivityLifecycleCallbacks(this)
         auth.addAuthStateListener { uid.value = it.currentUser?.uid }
+        scope.launch {
+            combine(uid, foreground) { account, visible -> account.takeIf { visible } }
+                .distinctUntilChanged().collectLatest { account ->
+                    if (account != null) {
+                        // Profile association may still be finishing when auth first emits.
+                        delay(1500)
+                        runCatching { withTimeout(20_000) { japaSync.restore(account) } }
+                    }
+                }
+        }
         scope.launch {
             combine(dao.pendingAccounts(), uid, foreground) { pending, account, visible ->
                 (account != null && account in pending) to visible
