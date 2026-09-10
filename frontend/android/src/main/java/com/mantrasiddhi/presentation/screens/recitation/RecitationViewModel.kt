@@ -156,7 +156,8 @@ class RecitationViewModel @Inject constructor(
     private val feedbackStringProvider: FeedbackStringProvider,
     private val incrementActiveCloudGoalUseCase: IncrementActiveCloudGoalUseCase,
     private val flushPurashcharanaSyncUseCase: FlushPurashcharanaSyncUseCase,
-    private val clock: RecitationClock = RecitationClock()
+    private val clock: RecitationClock = RecitationClock(),
+    private val teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RecitationUiState>(RecitationUiState.Loading)
@@ -170,6 +171,10 @@ class RecitationViewModel @Inject constructor(
     private var recentSessionsList = emptyList<RecitationSession>()
 
     private var isListeningLoopActive = false
+        set(value) {
+            field = value
+            teachingNotifications?.setPracticing(value)
+        }
     private var listeningJob: Job? = null
     private val cloudGoalMutex = Mutex()
 
@@ -658,6 +663,7 @@ class RecitationViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        teachingNotifications?.setPracticing(false)
         super.onCleared()
         listeningJob?.cancel()
         segmentQueue.close()

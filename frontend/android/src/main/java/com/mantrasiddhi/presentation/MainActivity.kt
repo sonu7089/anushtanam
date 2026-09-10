@@ -24,6 +24,24 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @javax.inject.Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
+    private var messageId by mutableStateOf<String?>(null)
+    private val notificationPermission = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted -> teachingNotifications.permissionResult(granted) }
+
+    private fun readMessage(intent: Intent): String? {
+        val uri = intent.data ?: return null
+        return uri.lastPathSegment?.takeIf {
+            uri.scheme == "anushtanam" && uri.host == "messages" &&
+                com.mantrasiddhi.domain.model.TeachingDeliveryPolicy.validId(it)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        teachingNotifications.refreshPermission()
+    }
 
     private var reminderTarget by mutableStateOf<SandhyaReminderTarget?>(null)
 
@@ -31,10 +49,12 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         reminderTarget = SandhyaReminderTarget.from(intent)
+        messageId = readMessage(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("reminderHandled", reminderTarget == null)
+        outState.putBoolean("messageHandled", messageId == null)
         super.onSaveInstanceState(outState)
     }
 
@@ -43,6 +63,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        if (savedInstanceState?.getBoolean("messageHandled") != true) messageId = readMessage(intent)
+        if (teachingNotifications.needsFirstRequest()) {
+            teachingNotifications.markPermissionAsked()
+            if (teachingNotifications.hasPermission()) teachingNotifications.refreshPermission()
+            else notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
         if (savedInstanceState?.getBoolean("reminderHandled") != true) reminderTarget = SandhyaReminderTarget.from(intent)
         setContent {
             val themeMode by mainViewModel.themeMode.collectAsState(initial = "SYSTEM")
@@ -53,7 +79,8 @@ class MainActivity : ComponentActivity() {
             }
             AnushtanamTheme(darkTheme = darkTheme) {
                 MantraApp(mainViewModel = mainViewModel, reminderTarget = reminderTarget,
-                    onReminderHandled = { reminderTarget = null; intent.action = null; intent.data = null })
+                    onReminderHandled = { reminderTarget = null; intent.action = null; intent.data = null },
+                    messageId = messageId, onMessageHandled = { messageId = null; intent.data = null })
             }
         }
     }

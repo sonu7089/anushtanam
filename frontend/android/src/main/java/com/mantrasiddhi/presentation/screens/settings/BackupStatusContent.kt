@@ -21,17 +21,25 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
     onResolve: (BackupReview, Boolean) -> Unit = { _, _ -> }, onSyncNow: () -> Unit = {}) {
     var reviewing by remember { mutableStateOf(false) }
     LotusCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp).semantics { liveRegion = LiveRegionMode.Polite },
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(when {
+                        state.localOnly -> R.string.backup_local
+                        state.syncing -> R.string.backup_syncing_description
+                        state.attention -> R.string.backup_attention
+                        state.waiting -> R.string.backup_waiting
+                        else -> R.string.backup_current
+                    }), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (!state.localOnly) {
                     val syncLabel = stringResource(if (state.syncing) R.string.backup_syncing else R.string.backup_sync_now)
                     OutlinedIconButton(onClick = onSyncNow,
                         enabled = state.waiting && state.manualReady && !state.syncing,
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = syncLabel }) {
+                        modifier = Modifier.padding(top = 4.dp).size(48.dp).semantics { contentDescription = syncLabel }) {
                         if (state.syncing) {
                             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -42,13 +50,6 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
                     }
                 }
             }
-            Text(stringResource(when {
-                state.localOnly -> R.string.backup_local
-                state.syncing -> R.string.backup_syncing_description
-                state.attention -> R.string.backup_attention
-                state.waiting -> R.string.backup_waiting
-                else -> R.string.backup_current
-            }), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (state.lastSuccess > 0) {
                 Text(stringResource(R.string.backup_last_saved,
                     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(state.lastSuccess))),

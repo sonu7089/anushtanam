@@ -49,6 +49,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
                 googleViewModel::retryProfile, googleViewModel::continueWithProfile, googleViewModel::refreshProfile)
         }, signOutEnabled = !googleState.busy,
         onOpenSandhyaSettings = onOpenSandhyaSettings,
+        messagesContent = { com.mantrasiddhi.presentation.screens.messages.MessageNotificationSetting() },
         backupContent = { BackupStatusContent(backupState, backupSaving, backupFailed,
             backupViewModel::resolve, backupViewModel::syncNow) })
 }
@@ -61,7 +62,8 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     accountContent: @Composable () -> Unit = {},
     signOutEnabled: Boolean = true,
     onOpenSandhyaSettings: () -> Unit = {},
-    backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) }) {
+    backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) },
+    messagesContent: @Composable () -> Unit = {}) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -117,9 +119,12 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                 }
             }
             SandhyaSettingsEntry(onOpenSandhyaSettings)
-            backupContent()
-            OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text(stringResource(R.string.settings_switch_profile))
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                messagesContent()
+                backupContent()
+                OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    Text(stringResource(R.string.settings_switch_profile))
+                }
             }
             Spacer(Modifier.height(8.dp))
         }

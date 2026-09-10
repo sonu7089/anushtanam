@@ -33,7 +33,8 @@ fun HomeScreen(
     onNavigateToSandhya: () -> Unit = {},
     onNavigateToPurashcharana: () -> Unit = {},
     modifier: Modifier = Modifier,
-    onOpenGuide: () -> Unit = {}
+    onOpenGuide: () -> Unit = {},
+    onMessages: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     when (val state = uiState) {
@@ -45,7 +46,7 @@ fun HomeScreen(
         }
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToSandhya,
-            onNavigateToPurashcharana, modifier, onOpenGuide)
+            onNavigateToPurashcharana, modifier, onOpenGuide, onMessages)
     }
 }
 
@@ -56,7 +57,8 @@ internal fun HomeContent(
     onRecitation: () -> Unit, onPractice: () -> Unit, onTargets: () -> Unit,
     onSandhya: () -> Unit,
     onPurashcharana: () -> Unit, modifier: Modifier = Modifier,
-    onOpenGuide: () -> Unit = {}
+    onOpenGuide: () -> Unit = {},
+    onMessages: () -> Unit = {}
 ) {
     Scaffold(modifier = modifier, topBar = {
         LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
@@ -144,6 +146,7 @@ internal fun HomeContent(
             com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
             PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
             SadhanaWisdomCard()
+            com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry(onMessages)
             Spacer(Modifier.height(12.dp))
         }
     }

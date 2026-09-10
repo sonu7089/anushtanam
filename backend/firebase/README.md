@@ -133,3 +133,9 @@ Gayatri, which is the work of years. Held only in Room, that number dies with a 
   never lowers a local count.
 
 MF-08 supersedes the earlier aggregate-only backup scope. Complete saved performance now syncs through the private practice records described above.
+
+## Teachings and messages
+
+MF-10 adds the protected `adminMessages` callable, the `tickMessages` scheduler, and the `deleteMessageInstallations` user-deletion trigger. The website publishing area is hosted separately by the app owner. See [the website integration guide](../../docs/mentor-feedback/mf-10-website-guide.md) for exact request shapes, roles, staging setup, and delivery semantics. Deploy the new Firestore indexes as well as the rules. No production send is part of local verification.
+
+Deployment update, 10 September 2026: Blaze is enabled and the message rules, indexes, and all three message functions are deployed to `anushtanam-shastralife`. The live scheduler runs every 30 minutes. See [the deployment record](../../docs/mentor-feedback/mf-10-firebase-deployment.md) for verification and update commands. The function dependencies are locked and use the Node.js 22 deployment runtime.

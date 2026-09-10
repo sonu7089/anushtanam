@@ -9,11 +9,29 @@ rules_version = '2';
 //   - Child: own Google account, with a synthetic email for ID and PIN sign-in.
 //     The 12-digit ID and PIN can also verify a direct family link.
 //
-// A signed-out user can do nothing (every rule requires request.auth != null, and no
-// rule grants public access).
+// Account data requires authentication. MF-10 adds a public projection containing
+// only generic teachings; publishing and campaign records remain private.
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Generic teachings are public. Drafts, audiences and send history stay private.
+    match /publishedContent/{contentId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /messageInstallations/{installationId} {
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create, update: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        (!exists(/databases/$(database)/documents/messageInstallations/$(installationId)) || resource.data.uid == request.auth.uid) &&
+        request.resource.data.keys().hasOnly(['uid', 'token', 'enabled', 'schemaVersion', 'locale', 'appVersion', 'updatedAt']) &&
+        request.resource.data.token is string && request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 4096 &&
+        request.resource.data.enabled is bool && request.resource.data.schemaVersion == 1 &&
+        request.resource.data.locale == 'en' && request.resource.data.appVersion is int &&
+        request.resource.data.updatedAt == request.time;
+    }
+    // No client grants for contentDrafts, campaigns, messagePublicationJobs,
+    // messageTestDevices, messageControls or messageAudit. Admin SDK only.
 
     // --- helpers ---------------------------------------------------------------
 

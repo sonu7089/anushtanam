@@ -25,9 +25,11 @@ class MantraSiddhiApplication : Application() {
     @Inject lateinit var sandhyaScheduler: SandhyaScheduler
     @Inject lateinit var goalNotifier: GoalNotifier
     @Inject lateinit var cloudSyncCoordinator: CloudSyncCoordinator
+    @Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
 
     override fun onCreate() {
         super.onCreate()
+        teachingNotifications.start()
         cloudSyncCoordinator.start(this)
         // Create the reminder channel up front so users can tune it in system settings.
         sandhyaNotifier.ensureChannel()

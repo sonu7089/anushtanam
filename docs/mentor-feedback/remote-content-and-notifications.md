@@ -1,5 +1,7 @@
 # Remote notifications and Home content — MF-10 and MF-11
 
+**10 September 2026 update:** MF-10 now has Android and backend source code. The owner will build the website publishing page separately using [the website guide](mf-10-website-guide.md). The accepted app preference starts on when Android notification permission is granted and is off after permission is declined. It sits above Backup & Sync. There are no quiet hours or daily sending limit. Received messages wait during japa. Home opens the message list from below “A moment to reflect.” These decisions replace the earlier proposed opt-in, quiet-hours, frequency-limit, and internally built admin-page requirements below. See [implementation and verification](mf-10-implementation.md) for scope and rollout status.
+
 Prepared: 7 September 2026. Status: proposed work requested by the app owner. This document adds **Release C**, a required P1 stage, to the [change plan](mentor-feedback-plan.md). [Product requirements](mentor-feedback-product-spec.md) and [implementation work packages](mentor-feedback-implementation-plan.md) refer to this specification. Optional improvements move to Release D.
 
 ## 1. Intended outcome and current foundation

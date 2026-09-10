@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    { "collectionGroup": "publishedContent", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "pinned", "order": "DESCENDING" },
+      { "fieldPath": "publishedAt", "order": "DESCENDING" }
+    ] },
+    { "collectionGroup": "campaigns", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "state", "order": "ASCENDING" },
+      { "fieldPath": "sendAt", "order": "ASCENDING" }
+    ] }
+  ],
+  "fieldOverrides": []
+}

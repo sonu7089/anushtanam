@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mantrasiddhi.R
 
-enum class LotusArt { LOTUS, RITUAL, EMBLEM, RIVER, DIYA, JASMINE, FAMILY }
+enum class LotusArt { LOTUS, RITUAL, EMBLEM, RIVER, DIYA, JASMINE, FAMILY, MESSAGES }
 
 /** Decorative bitmap art: excluded from accessibility announcements. */
 @Composable
@@ -39,6 +39,7 @@ fun LotusArtwork(art: LotusArt = LotusArt.LOTUS, modifier: Modifier = Modifier) 
         LotusArt.DIYA -> R.drawable.diya_cutout
         LotusArt.JASMINE -> R.drawable.jasmine_sprig
         LotusArt.FAMILY -> R.drawable.family_hands
+        LotusArt.MESSAGES -> R.drawable.messages_morning_notes
     }), contentDescription = null,
         contentScale = if (art in listOf(LotusArt.EMBLEM, LotusArt.DIYA, LotusArt.JASMINE)) ContentScale.Fit else ContentScale.Crop,
         alignment = Alignment.CenterEnd, modifier = modifier)
@@ -68,7 +69,8 @@ fun AmbientArtwork(art: LotusArt, modifier: Modifier = Modifier) {
 /** The scene and heading share one canvas; the reading area ends on an opaque surface. */
 @Composable
 fun PageIntro(title: String, description: String, art: LotusArt = LotusArt.LOTUS,
-              modifier: Modifier = Modifier, eyebrow: String? = null) {
+              modifier: Modifier = Modifier, eyebrow: String? = null,
+              titleAction: @Composable () -> Unit = {}) {
     Box(modifier.fillMaxWidth()) {
       AmbientArtwork(art, Modifier.fillMaxWidth().height(248.dp))
       Column(Modifier.fillMaxWidth().padding(top = 218.dp)) {
@@ -77,7 +79,12 @@ fun PageIntro(title: String, description: String, art: LotusArt = LotusArt.LOTUS
                 color = MaterialTheme.colorScheme.secondary, letterSpacing = 1.sp)
             Spacer(Modifier.height(8.dp))
         }
-        Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            titleAction()
+        }
         Spacer(Modifier.height(8.dp))
         Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))

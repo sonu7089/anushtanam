@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="messages_title">Teachings and messages</string>
+    <string name="messages_page_title">Messages</string>
+    <string name="messages_home_description">A few words to return to, whenever you need them.</string>
+    <string name="messages_open">Read messages</string>
+    <string name="messages_read">Read message</string>
+    <string name="messages_intro">For your practice, and the quiet moments in between.</string>
+    <string name="messages_notification_description">Teachings, words of encouragement, and news from Anushtanam.</string>
+    <string name="messages_setting_body">Receive a note when we share something new. We will wait until your japa ends.</string>
+    <string name="messages_permission_off">Notifications are off on this phone. You can still read every message from Home.</string>
+    <string name="messages_empty_title">A little space for you</string>
+    <string name="messages_empty_body">There are no messages here yet. When we share a teaching or a note, you will find it here.</string>
+    <string name="messages_fallback">Take a moment to settle. Let your next repetition begin with care.</string>
+    <string name="messages_offline">We could not check for new messages. Saved messages are still here for you.</string>
+    <string name="messages_offline_empty">We could not load the messages. Please try again in some time.</string>
+    <string name="messages_refresh">Refresh</string>
+    <string name="messages_refreshing">Refreshing messages</string>
+    <string name="messages_more">Read earlier messages</string>
+    <string name="messages_unavailable_title">This message is no longer here</string>
+    <string name="messages_unavailable_body">It may have been updated or removed. Go back to see the other messages.</string>
+    <string name="messages_offline_title">Let us try that again</string>
+    <string name="messages_offline_body">We could not open this message. Please go back and try again in some time.</string>
+    <string name="messages_back">Back</string>
+    <string name="messages_from">From Anushtanam</string>
+    <string name="messages_featured">A note to keep close</string>
+</resources>

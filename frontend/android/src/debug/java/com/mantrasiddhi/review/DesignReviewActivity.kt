@@ -129,6 +129,32 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                                 JapaCountedPulse(pulse)
                             }
                         }
+                        "messages", "messages-phone", "message-detail", "messages-empty", "messages-offline" -> {
+                            val note = TeachingMessage("begin-with-care", 1, "Begin with care",
+                                "You do not have to hurry through your practice. Give this moment your attention.",
+                                "Some days, the mind settles easily. On other days, it wanders.\n\nWhen you notice it wandering, return gently to the mantra. There is no need to be hard on yourself.\n\nTake your time. Let the next repetition begin with care.",
+                                "Anushtanam", 1788998400000, Long.MAX_VALUE, "river", true)
+                            val phoneNote = note.copy(id = "phone-note", title = "A small note for you",
+                                summary = "Your test message is here. Take a quiet moment to read it.",
+                                art = "jasmine", pinned = false)
+                            com.mantrasiddhi.presentation.screens.messages.MessagesContent(
+                                com.mantrasiddhi.presentation.screens.messages.MessagesState(
+                                    items = when (page) {
+                                        "messages" -> listOf(note, phoneNote)
+                                        "messages-phone" -> listOf(phoneNote)
+                                        else -> emptyList()
+                                    }, loading = false,
+                                    detail = if (page == "message-detail") note else null,
+                                    offline = page == "messages-offline"), page == "message-detail", {}, {}, {}, {})
+                        }
+                        "home-messages" -> ReviewPage(R.string.title_home) {
+                            com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
+                            com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry({})
+                        }
+                        "settings-messages" -> SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH",
+                            {}, {}, {}, messagesContent = {
+                                com.mantrasiddhi.presentation.screens.messages.MessageNotificationSetting()
+                            })
                         "reflection" -> ReviewPage(R.string.title_home) {
                             com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
                         }

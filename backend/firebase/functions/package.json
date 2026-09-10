@@ -1,8 +1,8 @@
 {
   "name": "anushtanam-functions",
-  "description": "Cloud Functions for Anushtanam Phase B (goal push notifications)",
+  "description": "Cloud Functions for Anushtanam messages and goal notifications",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {

@@ -16,6 +16,7 @@ const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
+Object.assign(exports, require("./messages"));
 
 const REWARD_EMOJI = {
   MONEY: "\u{1F4B0}",

@@ -1,0 +1,147 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const policy = require('../functions/message-policy');
+
+// Exercise the exported handlers without a real provider or production credentials.
+function harness() {
+  const records = new Map();
+  const sends = [];
+  let failure = null;
+  let nextId = 0;
+  class HttpsError extends Error { constructor(code, message) { super(message); this.code = code; } }
+  function snapshot(path) {
+    return { id: path.split('/').at(-1), exists: records.has(path), ref: reference(path), data: () => records.get(path) };
+  }
+  function put(path, data, merge = false) {
+    const target = merge ? { ...records.get(path) } : {};
+    for (const [key, value] of Object.entries(data)) {
+      target[key] = value && value.increment !== undefined ? (target[key] || 0) + value.increment : value;
+    }
+    records.set(path, target);
+  }
+  function reference(path) {
+    return { path, id: path.split('/').at(-1), get: async () => snapshot(path),
+      set: async data => put(path, data), update: async data => put(path, data, true),
+      delete: async () => records.delete(path), collection: name => query(`${path}/${name}`) };
+  }
+  function query(path, filters = [], ordering = [], count = Infinity, cursor = null) {
+    return { doc: id => reference(`${path}/${id || `auto-${++nextId}`}`),
+      where: (key, op, value) => query(path, [...filters, [key, op, value]], ordering, count, cursor),
+      orderBy: (key, direction = 'asc') => query(path, filters, [...ordering, [key, direction]], count, cursor),
+      limit: n => query(path, filters, ordering, n, cursor),
+      startAfter: id => query(path, filters, ordering, count, id),
+      get: async () => {
+        let docs = [...records.keys()].filter(key => key.startsWith(path + '/') && key.split('/').length === path.split('/').length + 1)
+          .map(snapshot).filter(d => filters.every(([key, op, value]) => {
+            const field = d.data()[key];
+            return op === 'in' ? value.includes(field) : op === '<=' ? field <= value : field === value;
+          }));
+        for (const [key, dir] of [...ordering].reverse()) docs.sort((a, b) => {
+          const av = key === '__name__' ? a.id : a.data()[key];
+          const bv = key === '__name__' ? b.id : b.data()[key];
+          return (av < bv ? -1 : av > bv ? 1 : 0) * (dir === 'desc' ? -1 : 1);
+        });
+        if (cursor) docs = docs.filter(d => d.id > cursor);
+        docs = docs.slice(0, count);
+        return { docs, size: docs.length };
+      } };
+  }
+  const firestore = { collection: query, doc: reference,
+    runTransaction: async block => block({ get: ref => ref.get(), set: (ref, data) => put(ref.path, data),
+      create: (ref, data) => { assert.equal(records.has(ref.path), false); put(ref.path, data); },
+      update: (ref, data) => put(ref.path, data, true), delete: ref => records.delete(ref.path) }) };
+  const exported = {};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../functions/messages'), 'utf8'), {
+    exports: exported, Date, Intl, Set, console,
+    require: name => {
+      if (name === 'firebase-functions/v2/https') return { onCall: (_, fn) => fn, HttpsError };
+      if (name === 'firebase-functions/v2/scheduler') return { onSchedule: (_, fn) => fn };
+      if (name === 'firebase-functions/v2/firestore') return { onDocumentDeleted: (_, fn) => fn };
+      if (name === 'firebase-admin/firestore') return { getFirestore: () => firestore,
+        FieldValue: { increment: n => ({ increment: n }) }, FieldPath: { documentId: () => '__name__' } };
+      if (name === 'firebase-admin/messaging') return { getMessaging: () => ({ send: async message => {
+        sends.push(message);
+        if (failure) throw failure;
+        return 'provider-accepted';
+      } }) };
+      if (name === './message-policy') return policy;
+      return require(name);
+    }
+  });
+  const call = (data, role = 'publisher') => exported.adminMessages({ data,
+    auth: role ? { uid: 'admin', token: { messageRole: role } } : null });
+  return { records, sends, call, tick: exported.tickMessages, fail: value => { failure = value; } };
+}
+const content = { locale: 'en', type: 'message', title: 'Begin with care', summary: 'Take your time.', body: 'A quiet moment for you.' };
+async function prepare(h) {
+  await h.call({ op: 'saveDraft', contentId: 'note', expectedRevision: 0, content });
+  const now = Date.now();
+  await h.call({ op: 'publish', contentId: 'note', revision: 1, startsAt: now - 1000, expiresAt: now + 60000, timezone: 'Asia/Kolkata' });
+  const campaign = { op: 'createCampaign', campaignId: 'send-1', contentId: 'note', revision: 1,
+    audience: 'test', sendAt: now, expiresAt: now + 50000, timezone: 'Asia/Kolkata' };
+  h.records.set('messageInstallations/test-phone', { token: 'test-token', enabled: true, schemaVersion: 1, locale: 'en', updatedAt: { toMillis: () => now } });
+  h.records.set('messageInstallations/general-phone', { token: 'general-token', enabled: true, schemaVersion: 1, locale: 'en', updatedAt: { toMillis: () => now } });
+  h.records.set('messageTestDevices/test-phone', { label: 'Test phone' });
+  return campaign;
+}
+test('a normal account and an editor cannot publish or send', async () => {
+  const h = harness();
+  await assert.rejects(h.call({ op: 'saveDraft', contentId: 'note', content }, null), e => e.code === 'permission-denied');
+  for (const role of ['PARENT', 'reader', 'editor']) {
+    await assert.rejects(h.call({ op: 'publish' }, role), e => e.code === 'permission-denied');
+    await assert.rejects(h.call({ op: 'createCampaign' }, role), e => e.code === 'permission-denied');
+  }
+});
+test('draft edits are versioned, reject lost updates, and never send automatically', async () => {
+  const h = harness();
+  await prepare(h);
+  await h.call({ op: 'saveDraft', contentId: 'note', expectedRevision: 1, content: { ...content, title: 'A fresh beginning' } });
+  await assert.rejects(h.call({ op: 'saveDraft', contentId: 'note', expectedRevision: 1, content }), e => e.code === 'aborted');
+  assert.equal(h.records.get('contentDrafts/note/revisions/1').title, 'Begin with care');
+  assert.equal(h.records.get('publishedContent/note').revision, 1);
+  await h.tick();
+  assert.equal(h.sends.length, 0);
+});
+test('retrying createCampaign is idempotent and test sends stay isolated', async () => {
+  const h = harness(); const request = await prepare(h);
+  await h.call(request); await h.call(request);
+  await assert.rejects(h.call({ ...request, audience: 'all' }), e => e.code === 'already-exists');
+  await h.tick(); await h.tick();
+  assert.equal(h.sends.length, 1);
+  assert.equal(h.sends[0].token, 'test-token');
+  assert.equal(h.sends[0].notification, undefined);
+  assert.equal(h.sends[0].android.priority, 'normal');
+  assert.equal(h.records.get('campaigns/send-1').accepted, 1);
+  assert.equal(h.records.get('campaigns/send-1').state, 'complete');
+});
+test('pause, cancellation, opt-out and unpublish stop work that has not been sent', async () => {
+  for (const action of ['pause', 'cancelCampaign', 'unpublish', 'opt-out']) {
+    const h = harness(); await h.call(await prepare(h));
+    if (action === 'opt-out') h.records.get('messageInstallations/test-phone').enabled = false;
+    else await h.call({ op: action, paused: true, campaignId: 'send-1', contentId: 'note' });
+    await h.tick();
+    assert.equal(h.sends.length, 0, action);
+  }
+});
+test('transient failure retries the same campaign and retires an invalid token', async () => {
+  const h = harness(); await h.call(await prepare(h));
+  h.fail({ code: 'messaging/server-unavailable' }); await h.tick();
+  assert.equal(h.records.get('campaigns/send-1/dispatch/test-phone').state, 'retry');
+  h.fail({ code: 'messaging/registration-token-not-registered' }); await h.tick();
+  assert.equal(h.records.has('messageInstallations/test-phone'), false);
+  assert.equal(h.records.get('campaigns/send-1/dispatch/test-phone').state, 'failed');
+  assert.equal(h.records.get('campaigns/send-1').failed, 1);
+});
+test('scheduled publication waits for its date and expires automatically', async () => {
+  const h = harness();
+  await h.call({ op: 'saveDraft', contentId: 'note', expectedRevision: 0, content });
+  await h.call({ op: 'publish', contentId: 'note', revision: 1, startsAt: Date.now() + 60000,
+    expiresAt: Date.now() + 120000, timezone: 'Asia/Kolkata' });
+  await h.tick(); assert.equal(h.records.has('publishedContent/note'), false);
+  h.records.get('messagePublicationJobs/note').dueAt = Date.now() - 1;
+  await h.tick(); assert.equal(h.records.has('publishedContent/note'), true);
+  h.records.get('publishedContent/note').expiresAt = Date.now() - 1;
+  await h.tick(); assert.equal(h.records.has('publishedContent/note'), false);
+});

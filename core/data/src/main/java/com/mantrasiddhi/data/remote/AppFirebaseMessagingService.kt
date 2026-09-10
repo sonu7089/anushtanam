@@ -28,8 +28,14 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject lateinit var goalNotifier: GoalNotifier
     @Inject lateinit var firestore: FirebaseFirestore
+    @Inject lateinit var teachings: com.mantrasiddhi.data.messages.TeachingNotifications
 
     override fun onMessageReceived(message: RemoteMessage) {
+        if (message.data["kind"] == "teaching") {
+            teachings.receive(message.data)
+            return
+        }
+        if (message.data.containsKey("kind")) return
         goalNotifier.ensureChannel()
         val title = message.notification?.title
             ?: message.data["title"]
@@ -41,6 +47,7 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
+        teachings.register(token)
         // Persist directly (the service may run without an active ViewModel scope).
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
         firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)

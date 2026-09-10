@@ -122,7 +122,9 @@ fun MantraApp(
     mainViewModel: MainViewModel,
     navController: NavHostController = rememberNavController(),
     reminderTarget: SandhyaReminderTarget? = null,
-    onReminderHandled: () -> Unit = {}
+    onReminderHandled: () -> Unit = {},
+    messageId: String? = null,
+    onMessageHandled: () -> Unit = {}
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -132,6 +134,12 @@ fun MantraApp(
     val guide by guideViewModel.state.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val authRoutes = setOf(Screen.AuthGate.route, Screen.Welcome.route, Screen.ParentAuth.route, Screen.ChildAuth.route, Screen.Login.route)
+    LaunchedEffect(messageId, currentRoute) {
+        if (messageId != null && currentRoute != null && currentRoute !in authRoutes) {
+            navController.navigate("messages/$messageId") { launchSingleTop = true }
+            onMessageHandled()
+        }
+    }
     LaunchedEffect(reminderTarget, currentUser?.id, currentRoute, guide.profileId) {
         val target = reminderTarget ?: return@LaunchedEffect
         val user = currentUser ?: return@LaunchedEffect
@@ -152,6 +160,7 @@ fun MantraApp(
     // Detail screens reached from Home (not bottom-nav tabs) hide the bar so it never
     // shows with nothing selected. Auth screens hide it too.
     val detailRoutes = setOf(
+        "messages", "messages/{contentId}",
         Screen.Login.route,
         Screen.AuthGate.route,
         Screen.Welcome.route,
@@ -274,8 +283,21 @@ fun MantraApp(
                     onNavigateToTargets = { navController.navigate(Screen.Targets.route) },
                     onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) },
                     onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) },
-                    onOpenGuide = { guideViewModel.open() }
+                    onOpenGuide = { guideViewModel.open() },
+                    onMessages = { navController.navigate("messages") }
                 )
+            }
+
+            composable("messages") {
+                com.mantrasiddhi.presentation.screens.messages.MessagesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpen = { navController.navigate("messages/$it") })
+            }
+            composable("messages/{contentId}") { entry ->
+                com.mantrasiddhi.presentation.screens.messages.MessagesScreen(
+                    contentId = entry.arguments?.getString("contentId"),
+                    onBack = { navController.popBackStack() },
+                    onOpen = { navController.navigate("messages/$it") })
             }
 
             composable(Screen.Practice.route) {
