@@ -1,3 +1,11 @@
+## MF-08: Backup and Sync, 10 September 2026
+
+Latest icon update: [light](settings-backup-icon-light.png), [dark](settings-backup-icon-dark.png). A circular arrows button beside the title replaces the visible Sync now label. It retains a 48dp touch target and screen reader label, and shows progress during sync. All three Settings backup UI checks pass.
+
+Sync now follow-up: [waiting light](settings-backup-waiting-light-manual-sync.png), [waiting dark](settings-backup-waiting-dark-manual-sync.png), [up to date](settings-backup-idle-light-manual-sync.png). The button uses the existing outlined style, is enabled only for pending work outside the cooldown, and sits within the card above Sign out.
+
+The status card replaces About Anushtanam and sits immediately above Sign out. It uses existing Lotus cards and theme colors. There are no upload controls. [Light](settings-backup-light-mf-eight.png), [dark](settings-backup-dark-mf-eight.png), and [conflict review](settings-backup-conflict-light-mf-eight.png). These previews use local example data, not live backup status.
+
 # Lotus UI review
 
 ## Sandhya settings page, 9 September 2026

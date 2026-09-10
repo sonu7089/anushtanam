@@ -16,9 +16,10 @@ import javax.inject.Singleton
 class CloudSyncCoordinator @Inject constructor(
     private val auth: FirebaseAuth,
     private val dao: CloudSyncDao,
-    private val runner: CloudSyncRunner,
+    private val requests: CloudSyncRequests,
     private val scheduler: CloudSyncScheduler,
-    private val japaSync: JapaCloudSync
+    private val japaSync: JapaCloudSync,
+    private val database: com.mantrasiddhi.data.local.MantraSiddhiDatabase
 ) : Application.ActivityLifecycleCallbacks {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val foreground = MutableStateFlow(false)
@@ -31,32 +32,47 @@ class CloudSyncCoordinator @Inject constructor(
         started = true
         application.registerActivityLifecycleCallbacks(this)
         auth.addAuthStateListener { uid.value = it.currentUser?.uid }
+        val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1,
+            onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
+        database.invalidationTracker.addObserver(object : androidx.room.InvalidationTracker.Observer(
+            "recitation_sessions", "sandhya_logs", "sandhya_count_changes", "japa_entries", "targets", "purashcharana") {
+            override fun onInvalidated(tables: Set<String>) { changes.tryEmit(Unit) }
+        })
+        scope.launch {
+            @OptIn(FlowPreview::class)
+            changes.debounce(750).collect {
+                val account = auth.currentUser?.uid ?: return@collect
+                try { japaSync.capture(account) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (failure: Exception) { japaSync.markFailure(account); scheduler.schedule() }
+            }
+        }
         scope.launch {
             combine(uid, foreground) { account, visible -> account.takeIf { visible } }
                 .distinctUntilChanged().collectLatest { account ->
-                    if (account != null) {
-                        // Profile association may still be finishing when auth first emits.
-                        delay(1500)
-                        runCatching { withTimeout(20_000) { japaSync.restore(account) } }
-                    }
+                    if (account == null) return@collectLatest
+                    delay(1500)
+                    try {
+                        // Local recovery after process removal. Neither call contacts Firebase.
+                        japaSync.capture(account)
+                        japaSync.requestRecovery(account)
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { japaSync.markFailure(account); scheduler.schedule() }
                 }
         }
         scope.launch {
-            combine(dao.pendingAccounts(), uid, foreground) { pending, account, visible ->
-                (account != null && account in pending) to visible
-            }.distinctUntilChanged().collectLatest { (pending, visible) ->
-                if (!pending) { scheduler.cancelIdle(); return@collectLatest }
+            combine(dao.pendingAccounts(), database.backupDao().pendingRestoreAccounts(), uid, foreground) {
+                uploads, restores, account, visible ->
+                account?.takeIf { it in uploads || it in restores } to visible
+            }.distinctUntilChanged().collectLatest { (account, visible) ->
+                if (account == null) { scheduler.cancelIdle(); return@collectLatest }
                 scheduler.schedule()
-                if (visible) while (isActive) {
-                    val account = auth.currentUser?.uid ?: break
-                    val due = dao.nextAttemptAt(account) ?: break
+                if (visible) while (isActive && auth.currentUser?.uid == account) {
+                    val due = dao.nextAttemptAt(account) ?: 0L
                     delay((due - System.currentTimeMillis()).coerceIn(1L, CloudSyncRunner.INTERVAL_MS))
-                    try { runner.runPending() }
-                    catch (cancelled: CancellationException) { throw cancelled }
-                    catch (failure: Exception) {
-                        Log.w("CloudSync", "Sync check will retry in one minute", failure)
-                        delay(CloudSyncRunner.INTERVAL_MS)
-                    }
+                    if (!dao.hasPending(account) && !japaSync.needsRestore(account)) break
+                    // Leaving the app cancels this wait, not the actual sync request.
+                    requests.request(account).join()
                 }
             }
         }

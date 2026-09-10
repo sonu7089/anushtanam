@@ -9,7 +9,8 @@ import com.mantrasiddhi.data.local.dao.CloudSyncDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,28 +37,65 @@ class CloudSyncRunner @Inject constructor(
 ) {
     private val lock = Mutex()
 
-    /** Returns whether the current account still has pending work. */
-    suspend fun runPending(): Boolean = lock.withLock {
-        val uid = auth.currentUser?.uid ?: return@withLock false
-        if (!dao.hasPending(uid)) return@withLock false
-        val now = clock.nowMs()
-        if (dao.claim(uid, now, now + INTERVAL_MS) == 0) return@withLock true
-        if (!network.isConnected()) return@withLock true
+    private val _activeUid = MutableStateFlow<String?>(null)
+    val activeUid = _activeUid.asStateFlow()
+
+    suspend fun runPending(): Boolean = run(manual = false, expectedUid = auth.currentUser?.uid)
+    suspend fun syncNow(uid: String): Boolean = run(manual = true, expectedUid = uid)
+
+    /** Concurrent triggers do not queue more network attempts behind the active one. */
+    private suspend fun run(manual: Boolean, expectedUid: String?): Boolean {
+        if (!lock.tryLock()) return true
         try {
-            val batch = dao.pending(uid)
-            if (batch.isNotEmpty() && auth.currentUser?.uid == uid && network.isConnected()) {
-                val acknowledged = withTimeoutOrNull(20_000L) { transport.deliver(batch); true } == true
-                if (acknowledged) {
-                    dao.acknowledgeBatch(batch.map { it.id })
-                    withTimeoutOrNull(20_000L) { japaSync.restore(uid) }
+            val uid = auth.currentUser?.uid ?: return false
+            if (uid != expectedUid) return false
+            _activeUid.value = uid
+            japaSync.capture(uid)
+            val pending = dao.hasPending(uid)
+            if (!pending && !japaSync.needsRestore(uid)) return false
+            val now = clock.nowMs()
+            if (!dao.claimSyncAttempt(uid, now, manual)) return true
+            if (!network.isConnected()) return true
+            try {
+                if (pending) {
+                    // Persist the follow-up before any acknowledgement can empty the queue.
+                    japaSync.markRestorePending(uid)
+                    val batch = dao.pending(uid)
+                    if (batch.isNotEmpty() && auth.currentUser?.uid == uid) {
+                        val acknowledged = withTimeoutOrNull(20_000L) {
+                            val backupKinds = setOf(SyncKind.JAPA_ENTRY, SyncKind.JAPA_GOAL,
+                                SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION)
+                            val legacy = batch.filter { it.kind !in backupKinds }
+                            if (legacy.isNotEmpty()) {
+                                transport.deliver(legacy)
+                                dao.acknowledgeBatch(legacy.map { it.id })
+                            }
+                            // A slow connection can still make durable progress through a large history.
+                            for (event in batch.filter { it.kind in backupKinds }) {
+                                transport.deliver(listOf(event))
+                                dao.acknowledgeBatch(listOf(event.id))
+                            }
+                            true
+                        } == true
+                        if (!acknowledged) { japaSync.markFailure(uid); return true }
+                    }
                 }
+                if (!dao.hasPending(uid) && auth.currentUser?.uid == uid) {
+                    val restored = withTimeoutOrNull(45_000L) { japaSync.restore(uid); true } == true
+                    if (!restored) { japaSync.markFailure(uid); return true }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                japaSync.markFailure(uid)
+                Log.w("CloudSync", "Pending cloud changes retained for retry", failure)
+                return auth.currentUser?.uid == uid
             }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (failure: Exception) {
-            Log.w("CloudSync", "Pending cloud changes retained for retry", failure)
+            return auth.currentUser?.uid == uid && (dao.hasPending(uid) || japaSync.needsRestore(uid))
+        } finally {
+            _activeUid.value = null
+            lock.unlock()
         }
-        auth.currentUser?.uid == uid && dao.hasPending(uid)
     }
 
     companion object { const val INTERVAL_MS = 60_000L }

@@ -92,4 +92,27 @@ class CloudSyncDatabaseTest {
             }
         }
     }
+
+    @Test fun manualAndAutomaticAttemptsShareAPersistedAccountCooldown() = runTest {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val name = "cloud-sync-manual-cooldown"
+        context.deleteDatabase(name)
+        try {
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+                val dao = db.cloudSyncDao()
+                dao.enqueue(event())
+                assertFalse(dao.claimSyncAttempt("owner", 1000, manual = false))
+                assertTrue(dao.claimSyncAttempt("owner", 1000, manual = true))
+                assertFalse(dao.claimSyncAttempt("owner", 1000, manual = true))
+            }
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+                val dao = db.cloudSyncDao()
+                assertEquals(1000L, dao.lastAttemptAt("owner"))
+                assertFalse(dao.claimSyncAttempt("owner", 60_999, manual = true))
+                assertFalse(dao.claimSyncAttempt("owner", 60_999, manual = false))
+                assertTrue(dao.claimSyncAttempt("owner", 61_000, manual = true))
+                assertTrue(dao.claimSyncAttempt("another-owner", 1000, manual = true))
+            }
+        } finally { context.deleteDatabase(name) }
+    }
 }

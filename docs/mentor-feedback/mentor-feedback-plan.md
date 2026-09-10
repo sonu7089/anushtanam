@@ -1,3 +1,5 @@
+MF-08 update, 10 September 2026: [automatic backup and recovery implementation](mf-08-implementation.md).
+
 # Mentor feedback: app change plan
 
 Prepared: 6 September 2026. Updated: 7 September 2026 with the app owner's follow-up. Status: proposed work; app behavior has not been changed by this documentation task.

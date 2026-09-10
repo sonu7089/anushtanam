@@ -31,10 +31,12 @@ class RecitationRepositoryImpl @Inject constructor(
     override suspend fun saveSession(session: RecitationSession): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {
             val before = database.japaDao().entries(session.userId)
-            val row = RecitationSessionEntity.fromDomain(session)
+            val old = if (session.id > 0) database.backupDao().sessionByLocalId(session.id) else null
+            val row = RecitationSessionEntity.fromDomain(session).let { if (old == null) it else it.copy(stableId = old.stableId) }
             val id = recitationDao.insert(row)
             database.japaDao().recordAudio(id, row)
             if (session.isCorrect && session.mode == com.mantrasiddhi.domain.model.RecitationMode.NORMAL) sync.enqueue(session.userId, before)
+            sync.enqueueSession(session.userId, id)
             id
         }
         sync.schedule()

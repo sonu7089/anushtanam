@@ -7,6 +7,10 @@
 package com.mantrasiddhi.data.local
 
 import android.content.Context
+import com.mantrasiddhi.data.local.entity.BackupQueueState
+import com.mantrasiddhi.data.local.entity.BackupStateEntity
+import com.mantrasiddhi.data.local.entity.BackupConflictEntity
+import com.mantrasiddhi.data.local.dao.BackupDao
 import com.mantrasiddhi.data.local.entity.JapaEntryEntity
 import com.mantrasiddhi.data.local.dao.JapaDao
 import androidx.room.Database
@@ -48,12 +52,17 @@ import javax.inject.Provider
         SandhyaCountEntity::class,
         SandhyaCountChangeEntity::class,
         SandhyaCountDraftEntity::class,
-        JapaEntryEntity::class
+        JapaEntryEntity::class,
+        BackupQueueState::class,
+        BackupStateEntity::class,
+        BackupConflictEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
+
+    abstract fun backupDao(): BackupDao
 
     abstract fun japaDao(): JapaDao
     abstract fun userDao(): UserDao
@@ -298,6 +307,17 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_12_13: Migration = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN stableId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE recitation_sessions SET stableId = lower(hex(randomblob(16)))")
+                db.execSQL("CREATE INDEX index_recitation_sessions_userId_stableId ON recitation_sessions(userId, stableId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS backup_queue_state (uid TEXT NOT NULL, `key` TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(uid, `key`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS backup_state (uid TEXT NOT NULL, lastSuccessMs INTEGER NOT NULL, needsAttention INTEGER NOT NULL, restorePending INTEGER NOT NULL, bootstrapped INTEGER NOT NULL, cursorSeconds INTEGER NOT NULL, cursorNanos INTEGER NOT NULL, PRIMARY KEY(uid))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS backup_conflicts (uid TEXT NOT NULL, id TEXT NOT NULL, entryId TEXT NOT NULL, firstPayload TEXT NOT NULL, secondPayload TEXT NOT NULL, resolved INTEGER NOT NULL, PRIMARY KEY(uid, id))")
+            }
+        }
+
         fun buildDatabase(
             context: Context,
             userDaoProvider: Provider<UserDao>
@@ -322,7 +342,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_8_9,
                 MIGRATION_9_10,
                 MIGRATION_10_11,
-                MIGRATION_11_12
+                MIGRATION_11_12,
+                MIGRATION_12_13
             )
             .addCallback(object : Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

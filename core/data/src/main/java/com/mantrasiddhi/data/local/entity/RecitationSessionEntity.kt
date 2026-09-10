@@ -13,7 +13,7 @@ import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 
-@Entity(tableName = "recitation_sessions", indices = [Index(value = ["userId", "createdAt", "id"])])
+@Entity(tableName = "recitation_sessions", indices = [Index(value = ["userId", "createdAt", "id"]), Index(value = ["userId", "stableId"])])
 data class RecitationSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,
@@ -32,7 +32,8 @@ data class RecitationSessionEntity(
     // older code (and the v2→v3 migration backfill) remain coherent.
     val correctness: Double = overallScore,
     val completeness: Double = overallScore,
-    val pronunciation: Double = overallScore
+    val pronunciation: Double = overallScore,
+    @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString()
 ) {
     fun toDomain(): RecitationSession {
         return RecitationSession(

@@ -815,4 +815,21 @@
     <string name="family_progress_detail">See your children’s practice and encourage their next step.</string>
     <string name="reminder_prepare_label">Prepare</string>
     <string name="reminder_event_label">Sandhya time</string>
+    <string name="backup_title">Backup and Sync</string>
+    <string name="backup_local">Your practice is saved on this phone.</string>
+    <string name="backup_waiting">Your practice is saved. It will sync automatically in the background.</string>
+    <string name="backup_sync_now">Sync now</string>
+    <string name="backup_syncing">Syncing...</string>
+    <string name="backup_syncing_description">Saving your latest practice.</string>
+    <string name="backup_attention">Sync is taking a little longer. Your practice is saved here, and we will try again soon.</string>
+    <string name="backup_current">Your practice is up to date.</string>
+    <string name="backup_last_saved">Last synced %1$s</string>
+    <string name="backup_review">Review changed counts</string>
+    <string name="backup_review_title">Let us keep the right count</string>
+    <string name="backup_review_description">One entry from %1$s was changed on two phones. Please choose the count you want to keep.</string>
+    <string name="backup_review_current">Current count: %1$d</string>
+    <string name="backup_review_other">Other count: %1$d</string>
+    <string name="backup_keep_current">Keep current count</string>
+    <string name="backup_use_other">Use other count</string>
+    <string name="backup_review_error">This entry may have changed again. Please check the counts and try once more.</string>
 </resources>

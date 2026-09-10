@@ -25,6 +25,10 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
     val themeMode by viewModel.themeMode.collectAsState()
     val languageDisplay by viewModel.languageDisplay.collectAsState()
     val googleViewModel: GoogleAuthViewModel = hiltViewModel()
+    val backupViewModel: BackupViewModel = hiltViewModel()
+    val backupState by backupViewModel.state.collectAsState()
+    val backupSaving by backupViewModel.saving.collectAsState()
+    val backupFailed by backupViewModel.failed.collectAsState()
     val googleState by googleViewModel.state.collectAsState()
     val observedAccount by googleViewModel.account.collectAsState()
     val account = googleState.account ?: observedAccount
@@ -44,7 +48,9 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
                 { account?.let { googleViewModel.start(context, linkTo = it) } },
                 googleViewModel::retryProfile, googleViewModel::continueWithProfile, googleViewModel::refreshProfile)
         }, signOutEnabled = !googleState.busy,
-        onOpenSandhyaSettings = onOpenSandhyaSettings)
+        onOpenSandhyaSettings = onOpenSandhyaSettings,
+        backupContent = { BackupStatusContent(backupState, backupSaving, backupFailed,
+            backupViewModel::resolve, backupViewModel::syncNow) })
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -54,7 +60,8 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     onLogout: () -> Unit, modifier: Modifier = Modifier,
     accountContent: @Composable () -> Unit = {},
     signOutEnabled: Boolean = true,
-    onOpenSandhyaSettings: () -> Unit = {}) {
+    onOpenSandhyaSettings: () -> Unit = {},
+    backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) }) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -110,25 +117,11 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                 }
             }
             SandhyaSettingsEntry(onOpenSandhyaSettings)
-            Column {
-                SectionLabel(stringResource(R.string.settings_about_anushtanam))
-                AboutRow(R.string.settings_about_app_version, R.string.settings_about_app_version_value)
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                AboutRow(R.string.settings_about_speech_engine, R.string.settings_about_speech_engine_value)
-            }
+            backupContent()
             OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text(stringResource(R.string.settings_switch_profile))
             }
             Spacer(Modifier.height(8.dp))
         }
-    }
-}
-
-@Composable
-private fun AboutRow(label: Int, value: Int) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(value), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
     }
 }

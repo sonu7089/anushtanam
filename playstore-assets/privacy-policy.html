@@ -37,9 +37,9 @@
   <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>.
 </p>
 
-<h2>2. On-device features (no data leaves your device)</h2>
+<h2>2. Practice on your phone</h2>
 <p>
-  The core practice experience runs locally on your device and transmits nothing to us:
+  Speech recognition and reminder timing run on your phone. Signed-in practice history syncs automatically as described below:
 </p>
 <ul>
   <li><strong>Speech / pronunciation feedback</strong> — recitation is processed by your device's
@@ -47,7 +47,7 @@
   <li><strong>Approximate location</strong> — used only in an on-device calculation of local sunrise
       and sunset times for Sandhya reminders. It is not transmitted or stored off your device.</li>
   <li><strong>Local practice history</strong> — your recitation history and progress are stored in a
-      private database on your device.</li>
+      private database on your device. When you sign in, saved practice and performance records also sync to your account.</li>
 </ul>
 
 <h2>3. Account and cloud features (data we collect)</h2>
@@ -88,6 +88,11 @@
     <td>Cloud Firestore.</td>
   </tr>
   <tr>
+    <td>Saved practice and performance history, including counts, corrections, scores, word results, transcripts and duration</td>
+    <td>To restore your practice and progress on another phone and keep your devices in sync.</td>
+    <td>Private app storage and owner-only records in Cloud Firestore.</td>
+  </tr>
+  <tr>
     <td>Push notification token</td>
     <td>To deliver reminders and goal notifications.</td>
     <td>Firebase Cloud Messaging / Cloud Firestore.</td>
@@ -103,8 +108,10 @@
   Google sign-in does not give us access to your Google Photos library, contacts or email messages.
   Linking Google to an existing account keeps the same account and family links. If you connect a
   profile saved only on this phone, we ask you to choose the profile and show the account it will belong to.
-  Its detailed practice history and Sandhya records stay on this phone. Google sign-in alone does not
-  back them up. Active goals and Purashcharana counts use the app's existing sync features.
+  Saved practice from the connected profile syncs automatically to that account, including japa counts,
+  corrections, Sandhya history, goals, recitation scores, word results, transcripts and practice time.
+  These records can be restored when you sign in on another phone. Detailed performance records are
+  private to the account; linked family views continue to use their existing progress summaries.
 </p>
 <p>
   We use the data above only to provide the app's features: creating and securing accounts, linking a

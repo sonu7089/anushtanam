@@ -143,47 +143,11 @@ class SyncSignedInUserUseCase @Inject constructor(
         sessionRepository.login(profile)
         runCatching { sandhyaScheduler.scheduleAll() }
 
-        // Restore the mirrored active self-target after a reinstall / new device:
-        // only when Room has no active target (never clobber local state), and
-        // best-effort — an offline login simply skips the restore.
-        withTimeoutOrNull(4_000) { runCatching {
-            check(auth.currentUser?.uid == account.uid)
-            if (targetRepository.getActiveForUser(localId) == null) {
-                targetSyncRepository.fetchActive()?.let { mirrored ->
-                    check(auth.currentUser?.uid == account.uid)
-                    targetRepository.create(
-                        mirrored.copy(userId = localId, setByUserId = localId)
-                    )
-                }
-            }
-        } }
-
-        // Restore the mirrored Purashcharana. A sankalpa is 24,00,000 japa — years of
-        // work — so unlike the target restore this one also runs when a local sankalpa
-        // already exists, to raise a count the cloud knows to be higher. The decision
-        // itself is pure (see PurashcharanaReconciler) and can only ever raise; an
-        // offline login simply skips it.
-        withTimeoutOrNull(4_000) { runCatching {
-            // Drop anything the mirror's throttle is still holding first. It may have been
-            // captured before this account signed in, and writing it after the reconcile
-            // would push a superseded count back over the record we are about to adopt.
-            purashcharanaSyncRepository.discardPending()
-            val local = purashcharanaRepository.getActive(localId)
-            check(auth.currentUser?.uid == account.uid)
-            val remote = purashcharanaSyncRepository.fetchMirrored()
-            check(auth.currentUser?.uid == account.uid)
-            when (val action = PurashcharanaReconciler.resolve(local, remote)) {
-                is PurashcharanaReconcileAction.Restore ->
-                    purashcharanaRepository.adoptRemote(localId, action.remote)
-                is PurashcharanaReconcileAction.RaiseLocal ->
-                    purashcharanaRepository.adoptRemote(localId, action.merged)
-                PurashcharanaReconcileAction.None -> Unit
-            }
-        } }
-
+        // MF-08 restores the versioned history. Recreating goals from old aggregate
+        // mirrors here would duplicate their baselines and undo corrected totals.
         currentCoroutineContext().ensureActive()
         check(auth.currentUser?.uid == account.uid)
-        withTimeoutOrNull(10_000) { runCatching { japaSync.restore(account.uid) } }
+        japaSync.requestRecovery(account.uid)
         if (importId != null) {
             japaSync.importOwnedProfile(localId)
         }

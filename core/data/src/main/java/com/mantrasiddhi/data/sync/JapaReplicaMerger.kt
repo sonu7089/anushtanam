@@ -6,7 +6,10 @@ import com.mantrasiddhi.data.local.entity.*
 
 internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
     suspend fun merge(userId: Long, goals: List<Map<String, Any?>>, entries: List<Map<String, Any?>>,
-        ownerStillActive: () -> Boolean): Boolean {
+        ownerStillActive: () -> Boolean): Boolean = merge(userId, goals, entries, ownerStillActive, project = true)
+
+    suspend fun merge(userId: Long, goals: List<Map<String, Any?>>, entries: List<Map<String, Any?>>,
+        ownerStillActive: () -> Boolean, project: Boolean): Boolean {
         return database.withTransaction {
             check(ownerStillActive())
             val dao = database.japaDao()
@@ -28,26 +31,30 @@ internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
                     val row = PurashcharanaEntity(id = old?.id ?: 0, userId = userId, mantraId = goal.text("mantraId"),
                         mantraAksharaCount = goal.number("aksharas").toInt(), targetJapaCount = goal.number("targetCount"),
                         currentJapaCount = old?.currentJapaCount ?: 0, startedAtMillis = goal.number("startedAtMillis"),
-                        completedAtMillis = old?.completedAtMillis, isActive = effectiveEnd == null,
+                        completedAtMillis = listOfNotNull(old?.completedAtMillis, goal.numberOrNull("completedAtMillis")).maxOrNull(), isActive = effectiveEnd == null,
                         stableId = id, endedAtMillis = effectiveEnd, baselineCount = goal.number("baselineCount"))
                     if (old == null) database.purashcharanaDao().insert(row) else dao.putVow(row)
                 }
             }
             // Two devices may enroll while offline. Keep only the newest goal active.
-            val targets = dao.targets(userId).filter { it.isActive }
+            val targets = if (project) dao.targets(userId).filter { it.isActive } else emptyList()
             for (old in targets.drop(1)) dao.putTarget(old.copy(isActive = false, endedAtMillis = targets.first().startedAtMillis))
-            val vows = dao.vows(userId).filter { it.isActive }
+            val vows = if (project) dao.vows(userId).filter { it.isActive } else emptyList()
             for (old in vows.drop(1)) dao.putVow(old.copy(isActive = false, endedAtMillis = vows.first().startedAtMillis))
             for (value in entries) {
                 val old = dao.entry(value.text("id"))
+                check(old == null || old.userId == userId)
+                val sessionId = database.backupDao().session(userId, value.text("sessionStableId"))?.id ?: old?.sessionId
                 if (JapaSyncPolicy.newer(value, old?.payload())) dao.putEntry(JapaEntryEntity(
                     id = value.text("id"), userId = userId, mantraId = value.text("mantraId"), dateKey = value.text("dateKey"),
                     zoneId = value.text("zoneId"), period = value["period"] as? String, quantity = value.number("quantity"),
                     revision = value.number("revision"), createdAtMillis = value.number("createdAtMillis"),
                     targetId = value["targetId"] as? String, vowId = value["vowId"] as? String, source = value.text("source"),
-                    sessionId = old?.sessionId, updatedAtMillis = value.number("updatedAtMillis"), operationId = value.text("operationId")))
+                    sessionId = sessionId, updatedAtMillis = value.number("updatedAtMillis"), operationId = value.text("operationId")))
+                else if (old != null && old.sessionId == null && sessionId != null) dao.putEntry(old.copy(sessionId = sessionId))
             }
-            database.sandhyaCountDao().rebuildPeriods(userId)
+            if (!project) return@withTransaction false
+            database.sandhyaCountDao().rebuildPeriods(userId, recordHistory = false)
             val beforeProjection = dao.entries(userId)
             dao.project(userId, System.currentTimeMillis())
             beforeProjection != dao.entries(userId)

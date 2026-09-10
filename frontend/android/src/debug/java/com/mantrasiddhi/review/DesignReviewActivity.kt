@@ -169,6 +169,18 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             if (visible) com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet(
                                 onDismiss = { visible = false }, onPractice = {})
                         }
+                        "settings-backup", "settings-backup-waiting", "settings-backup-attention", "settings-backup-conflict" -> {
+                            SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH", {}, {}, {},
+                                backupContent = {
+                                    com.mantrasiddhi.presentation.screens.settings.BackupStatusContent(
+                                        com.mantrasiddhi.presentation.screens.settings.BackupUiState(localOnly = false,
+                                            waiting = page == "settings-backup-waiting", attention = page == "settings-backup-attention",
+                                            lastSuccess = 1789012800000,
+                                            reviews = if (page == "settings-backup-conflict") listOf(
+                                                com.mantrasiddhi.presentation.screens.settings.BackupReview("review", "10 Sep 2026", 500, 540, "op")
+                                            ) else emptyList()))
+                                })
+                        }
                         "settings" -> SettingsContent(ReviewFixtures.parent, if (dark) "DARK" else "LIGHT", "BOTH",
                             { onDarkChange(it == "DARK") }, {}, {})
                         "settings-google", "settings-link-google", "settings-child-google" -> {

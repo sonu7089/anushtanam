@@ -13,6 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 object SyncKind {
+    const val PRACTICE_RECORD = "practice_record"
+    const val CONFLICT_RESOLUTION = "conflict_resolution"
     const val JAPA_ENTRY = "japa_entry"
     const val JAPA_GOAL = "japa_goal"
     const val PROGRESS = "progress"

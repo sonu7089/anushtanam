@@ -1,3 +1,19 @@
+## MF-08 update, 10 September 2026
+
+Automatic recovery now includes complete saved recitation performance, Sandhya observance and count-change history, japa contributions, and goal state. The old aggregate-only login restore is removed. The older architecture notes below describe the earlier mirror paths, which remain for existing family summaries and queued operations.
+
+New owner-only paths under `users/{uid}`:
+
+- `practiceRecords/{type}_{stableId}` stores full session scores, word results, transcription, duration and practice timestamps, observance records, and original count-change records.
+- `backupChanges/{type}_{id}` is the incremental restore feed. Its contents must match the canonical record, and `changedAt` must be a server timestamp. Each page is committed with its local checkpoint.
+- `japaConflicts/{id}` preserves both competing edits and their resolution. Entry `revisions` also retain rejected operations.
+
+The owner confirmed publishing the updated `firestore.rules` on 10 September and seeing a successful sync at 10:38. The subsequent background and Sync now changes add no server fields and require no rules update. No live deployment was performed by the agent. This is a testing release with no migration requirement for an existing public user base. Use the current APK on every test device.
+
+Run `npm test` for rule coverage. For Android recovery against local emulators, start an Android emulator, then run `npx firebase emulators:exec --config firebase.backup-test.json --only firestore,auth --project demo-anushtanam "powershell -NoProfile -ExecutionPolicy Bypass -File ../../scripts/test-backup-recovery.ps1"` from this directory.
+
+Account deletion must recursively remove the entire `users/{uid}` tree, including entries, nested revisions, goals, practice records, conflicts and restore-feed records. Deleting only the parent document does not remove these collections. The existing manual account-deletion process must also remove the existing top-level family, progress, target and authentication records.
+
 # Anushtanam — Firebase (Phase B) setup & deploy
 
 ## Child Google sign-in and direct family links
@@ -116,6 +132,4 @@ Gayatri, which is the work of years. Held only in Room, that number dies with a 
   *earlier* `startedAtMillis` of the two. Remote lower or absent → do nothing. A cloud value
   never lowers a local count.
 
-Full recitation analytics (per-session history and per-attempt detail) are intentionally
-**not** synced — they stay on-device in Room. Only the compact `progress/{uid}` summary above
-and the two sankalpa records (`selfTargets`, `purashcharana`) leave the device.
+MF-08 supersedes the earlier aggregate-only backup scope. Complete saved performance now syncs through the private practice records described above.

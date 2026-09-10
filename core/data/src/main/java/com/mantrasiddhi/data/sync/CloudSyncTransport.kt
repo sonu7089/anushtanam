@@ -20,7 +20,8 @@ class CloudSyncTransport @Inject constructor(
         val uid = events.first().uid
         require(events.all { it.uid == uid } && events.zipWithNext().all { (a, b) -> a.id < b.id })
         check(auth.currentUser?.uid == uid)
-        val japaEvents = events.filter { it.kind == SyncKind.JAPA_ENTRY || it.kind == SyncKind.JAPA_GOAL }
+        val japaEvents = events.filter { it.kind in setOf(SyncKind.JAPA_ENTRY, SyncKind.JAPA_GOAL,
+            SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION) }
         val legacy = events.filterNot { it in japaEvents }
         if (legacy.isNotEmpty()) deliverLegacy(legacy)
         // Complete pre-cutover writes before establishing the legacy baseline once.

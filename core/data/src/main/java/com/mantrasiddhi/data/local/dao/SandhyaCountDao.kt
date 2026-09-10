@@ -38,7 +38,7 @@ abstract class SandhyaCountDao : JapaDao() {
     abstract suspend fun discardDraft(userId: Long, id: String)
 
     /** A remote revision invalidates an open editor instead of silently overwriting its base. */
-    suspend fun rebuildPeriods(userId: Long) {
+    suspend fun rebuildPeriods(userId: Long, recordHistory: Boolean = true) {
         for ((key, entries) in entries(userId).filter { it.period != null }.groupBy { it.dateKey to it.period!! }) {
             val total = entries.fold(java.math.BigInteger.ZERO) { sum, entry -> sum + java.math.BigInteger.valueOf(entry.quantity) }.longValueExact()
             val old = getCount(userId, key.first, key.second)
@@ -46,7 +46,7 @@ abstract class SandhyaCountDao : JapaDao() {
             val revision = Math.addExact(old?.revision ?: 0, 1)
             val zone = old?.zoneId ?: entries.first().zoneId
             putCount(SandhyaCountEntity(userId, key.first, key.second, total, revision, zone))
-            insertChange(SandhyaCountChangeEntity(java.util.UUID.randomUUID().toString(), userId,
+            if (recordHistory) insertChange(SandhyaCountChangeEntity(java.util.UUID.randomUUID().toString(), userId,
                 key.first, key.second, zone, "EDIT", old?.quantity, total, revision, System.currentTimeMillis()))
         }
     }

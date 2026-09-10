@@ -1,3 +1,5 @@
+MF-08 update (10 September 2026): [automatic practice recovery](mentor-feedback/mf-08-implementation.md) adds full saved performance and history, resumable restore checkpoints, conflict review, and a status card above Sign out. It supersedes the earlier aggregate-only backup and login-restore descriptions below.
+
 # Source architecture
 
 The `:app` Gradle name is preserved to keep familiar build commands working. Its physical source directory is `frontend/android`. All original package names remain stable except `SyncSignedInUserUseCase`, which lives in `com.mantrasiddhi.data.session` because it orchestrates concrete DataStore implementations.

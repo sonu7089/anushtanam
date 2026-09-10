@@ -1,10 +1,8 @@
 rules_version = '2';
 
 // Anushtanam (shastralife.anushtanam) — Firestore security rules for the Phase B
-// cloud backend. The client only stores operational data here, a compact per-user
-// progress summary, and the two sankalpa records that must outlive a single phone:
-// the active self-set target and the Purashcharana count. Heavy recitation analytics
-// (full session history) stay on-device in Room and are never synced.
+// cloud backend. MF-08 adds private session performance and practice history,
+// with an incremental restore feed. Linked families still read compact summaries.
 //
 // Identity model:
 //   - Adult: Google or real email and password, one profile per account.
@@ -203,7 +201,8 @@ service cloud.firestore {
         request.resource.data.operationId is string &&
         (!exists(/databases/$(database)/documents/users/$(uid)/japaEntries/$(entryId)) ||
           (request.resource.data.revision >= resource.data.revision &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'revision', 'updatedAtMillis', 'operationId'])));
+           (!('targetId' in resource.data) || resource.data.targetId == null || request.resource.data.targetId == resource.data.targetId) &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'revision', 'updatedAtMillis', 'operationId', 'targetId'])));
       allow delete: if false;
       match /revisions/{operationId} {
         allow read: if isSignedIn() && request.auth.uid == uid;
@@ -220,7 +219,75 @@ service cloud.firestore {
         request.resource.data.baselineCount is int && request.resource.data.baselineCount >= 0 &&
         request.resource.data.targetCount is int && request.resource.data.targetCount > 0 &&
         (!exists(/databases/$(database)/documents/users/$(uid)/japaGoals/$(goalId)) ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['endedAtMillis']));
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['endedAtMillis', 'completedAtMillis']));
+      allow delete: if false;
+    }
+
+    // Full performance records are private to their owner, including children.
+    match /users/{uid}/practiceRecords/{recordId} {
+      function validRecord(d) {
+        return d.id is string && recordId == d.type + '_' + d.id && (
+          (d.type == 'session' && d.keys().hasOnly(['type', 'id', 'entryId', 'mantraId', 'mode',
+            'overallScore', 'wordScoresJson', 'transcription', 'isCorrect', 'durationMs', 'createdAt',
+            'correctness', 'completeness', 'pronunciation']) &&
+            d.mode in ['PRACTICE', 'NORMAL'] && d.mantraId is string && d.isCorrect is bool &&
+            d.overallScore is number && d.correctness is number && d.completeness is number &&
+            d.pronunciation is number && d.durationMs is int && d.durationMs >= 0 && d.createdAt is int &&
+            d.wordScoresJson is string && d.wordScoresJson.size() < 200000 &&
+            d.transcription is string && d.transcription.size() < 200000) ||
+          (d.type == 'sandhya' && d.keys().hasOnly(['type', 'id', 'dateKey', 'period',
+            'scheduledEpochMillis', 'status', 'observedEpochMillis']) &&
+            d.dateKey is string && d.period in ['PRATAH', 'MADHYAHNA', 'SAYAM'] &&
+            d.status in ['NOTIFIED', 'MISSED', 'OBSERVED'] && d.scheduledEpochMillis is int &&
+            (d.observedEpochMillis == null || d.observedEpochMillis is int)) ||
+          (d.type == 'change' && d.keys().hasOnly(['type', 'id', 'dateKey', 'period', 'zoneId', 'mode',
+            'previousQuantity', 'quantity', 'revision', 'createdAtMillis', 'targetCompleted',
+            'vowCompleted', 'completionReversed', 'milestonesCrossed']) &&
+            d.quantity is int && d.quantity >= 0 && d.revision is int && d.revision > 0 &&
+            d.dateKey is string && d.period in ['PRATAH', 'MADHYAHNA', 'SAYAM'] &&
+            d.zoneId is string && d.mode in ['RECORD', 'ADD', 'EDIT', 'COUNTER'] && d.createdAtMillis is int &&
+            d.targetCompleted is bool && d.vowCompleted is bool && d.completionReversed is bool &&
+            d.milestonesCrossed is int)
+        );
+      }
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && (
+        request.resource.data == resource.data ||
+        (resource.data.type == 'sandhya' && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'observedEpochMillis', 'scheduledEpochMillis']) &&
+          (resource.data.status != 'OBSERVED' || request.resource.data.status == 'OBSERVED') &&
+          (resource.data.status != 'MISSED' || request.resource.data.status != 'NOTIFIED')));
+      allow delete: if false;
+    }
+
+    match /users/{uid}/japaConflicts/{conflictId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['id', 'entryId', 'first', 'second', 'resolved']) &&
+        request.resource.data.id == conflictId && request.resource.data.resolved == false &&
+        request.resource.data.first.id == request.resource.data.entryId &&
+        request.resource.data.second.id == request.resource.data.entryId &&
+        request.resource.data.first == get(/databases/$(database)/documents/users/$(uid)/japaEntries/$(request.resource.data.entryId)).data &&
+        request.resource.data.second == getAfter(/databases/$(database)/documents/users/$(uid)/japaEntries/$(request.resource.data.entryId)/revisions/$(request.resource.data.second.operationId)).data;
+      allow update: if isSignedIn() && request.auth.uid == uid && request.resource.data.resolved == true &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resolved']);
+      allow delete: if false;
+    }
+
+    // Feed contents must match the canonical record in the same atomic write.
+    match /users/{uid}/backupChanges/{changeId} {
+      function canonical(d) {
+        return (d.type == 'entry' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaEntries/$(d.id)).data) ||
+          (d.type == 'goal' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaGoals/$(d.id)).data) ||
+          (d.type == 'practice' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/practiceRecords/$(d.id)).data) ||
+          (d.type == 'conflict' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaConflicts/$(d.id)).data);
+      }
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['type', 'id', 'value', 'changedAt']) &&
+        changeId == request.resource.data.type + '_' + request.resource.data.id &&
+        request.resource.data.changedAt == request.time && canonical(request.resource.data);
       allow delete: if false;
     }
 
@@ -242,8 +309,8 @@ service cloud.firestore {
 
     // --- progress/{uid} --------------------------------------------------------
     // Compact per-user progress summary (headline stats + rolling daily map) so the
-    // Progress tab survives reinstall / device switch. Detailed session history
-    // stays on-device in Room and is never synced.
+    // Progress tab and linked family views have a compact summary. Full performance
+    // history is separately backed up in the owner-only practiceRecords collection.
     // Read:  the user themself, or a parent with an APPROVED link to this child.
     // Write: only the user themself.
     match /progress/{uid} {

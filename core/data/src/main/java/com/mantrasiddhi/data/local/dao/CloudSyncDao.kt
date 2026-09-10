@@ -3,10 +3,13 @@ package com.mantrasiddhi.data.local.dao
 import androidx.room.*
 import com.mantrasiddhi.data.local.entity.CloudSyncEntity
 import com.mantrasiddhi.data.local.entity.CloudSyncScheduleEntity
+import com.mantrasiddhi.data.local.entity.BackupQueueState
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class CloudSyncDao {
+    @Query("SELECT COUNT(*) FROM cloud_sync_outbox WHERE uid = :uid")
+    abstract fun observeCount(uid: String): Flow<Int>
     @Insert abstract suspend fun insert(event: CloudSyncEntity): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun setSchedule(schedule: CloudSyncScheduleEntity)
@@ -28,6 +31,23 @@ abstract class CloudSyncDao {
     abstract suspend fun claim(uid: String, nowMs: Long, nextMs: Long): Int
     @Query("SELECT nextAttemptAtMs FROM cloud_sync_schedule WHERE uid = :uid")
     abstract suspend fun nextAttemptAt(uid: String): Long?
+
+    @Query("SELECT CAST(payload AS INTEGER) FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:lastAttempt'")
+    abstract suspend fun lastAttemptAt(uid: String): Long?
+    @Query("SELECT CAST(payload AS INTEGER) FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:lastAttempt'")
+    abstract fun observeLastAttemptAt(uid: String): Flow<Long?>
+    @Upsert protected abstract suspend fun putAttempt(state: BackupQueueState)
+
+    /** Manual requests may skip the initial delay, but never the shared retry limit. */
+    @Transaction
+    open suspend fun claimSyncAttempt(uid: String, nowMs: Long, manual: Boolean): Boolean {
+        val last = lastAttemptAt(uid)
+        if (last != null && nowMs - last < 60_000L) return false
+        if (!manual && (nextAttemptAt(uid) ?: 0L) > nowMs) return false
+        setSchedule(CloudSyncScheduleEntity(uid, nowMs + 60_000L))
+        putAttempt(BackupQueueState(uid, "sync:lastAttempt", nowMs.toString()))
+        return true
+    }
 
     @Transaction
     open suspend fun enqueue(event: CloudSyncEntity): Long {

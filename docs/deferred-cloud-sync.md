@@ -1,3 +1,5 @@
+MF-08 update (10 September 2026): [automatic practice recovery](mentor-feedback/mf-08-implementation.md) adds full saved performance and history, resumable restore checkpoints, conflict review, and a status card above Sign out. Sync now handles pending work with a shared, persisted one-minute cooldown. Recitations and performance upload requests now commit atomically, and active requests survive leaving the activity. Practice sync stops contacting Firebase when there is no pending upload or recovery. It supersedes the earlier aggregate-only backup, login restore, and non-atomic session-save descriptions below.
+
 # Deferred cloud sync — 6 September 2026
 
 Recitations and local counters no longer wait for cloud access. Progress, self-target changes, Purashcharana snapshots, and child-goal increments enter a durable Room outbox. Only the current signed-in account's pending work is eligible for upload.
