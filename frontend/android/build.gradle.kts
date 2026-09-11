@@ -39,12 +39,9 @@ android {
         minSdk = 33
         // targetSdk 36 (Android 16): required by Play policy from Aug 31, 2026.
         targetSdk = 36
-        // Incrementing to 11 as versionCode 10 was consumed by Google Play Console
-        versionCode = 11
-        // Minor bump, not a patch: this release adds the Purashcharana sankalpa with its
-        // cloud mirror, the Sadhana Marg teachings, the japa-counted pulse, and the
-        // Sanskrit-in-English pass across the whole app.
-        versionName = "1.3"
+        // Version 2.0 follows the previous release's versionCode 11.
+        versionCode = 12
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
