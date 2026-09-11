@@ -22,6 +22,11 @@ import com.mantrasiddhi.presentation.components.*
 import com.mantrasiddhi.presentation.screens.home.components.SandhyaHomeCard
 import com.mantrasiddhi.presentation.screens.home.components.PurashcharanaHomeCard
 import com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard
+import com.mantrasiddhi.domain.model.TeachingMessage
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,9 +39,32 @@ fun HomeScreen(
     onNavigateToPurashcharana: () -> Unit = {},
     modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {},
-    onMessages: () -> Unit = {}
+    onMessages: () -> Unit = {},
+    onOpenReflection: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val reflection by viewModel.reflection.collectAsState()
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                now = System.currentTimeMillis()
+                viewModel.refreshReflection()
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(Unit) { viewModel.refreshReflection() }
+    LaunchedEffect(reflection) {
+        now = System.currentTimeMillis()
+        val end = reflection?.expiresAt ?: return@LaunchedEffect
+        if (end > now) {
+            delay((end - System.currentTimeMillis()).coerceAtLeast(1))
+            now = System.currentTimeMillis()
+        }
+    }
     when (val state = uiState) {
         HomeUiState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -46,7 +74,8 @@ fun HomeScreen(
         }
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToSandhya,
-            onNavigateToPurashcharana, modifier, onOpenGuide, onMessages)
+            onNavigateToPurashcharana, modifier, onOpenGuide, onMessages,
+            reflection?.takeIf { it.isVisible(now) }, onOpenReflection)
     }
 }
 
@@ -58,7 +87,9 @@ internal fun HomeContent(
     onSandhya: () -> Unit,
     onPurashcharana: () -> Unit, modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {},
-    onMessages: () -> Unit = {}
+    onMessages: () -> Unit = {},
+    reflection: TeachingMessage? = null,
+    onOpenReflection: (String) -> Unit = {}
 ) {
     Scaffold(modifier = modifier, topBar = {
         LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
@@ -145,7 +176,7 @@ internal fun HomeContent(
             SandhyaHomeCard(onSandhya)
             com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
             PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
-            SadhanaWisdomCard()
+            SadhanaWisdomCard(reflection = reflection, onReadMore = onOpenReflection)
             com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry(onMessages)
             Spacer(Modifier.height(12.dp))
         }

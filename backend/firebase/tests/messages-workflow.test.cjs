@@ -75,6 +75,25 @@ function harness() {
   return { records, sends, call, tick: exported.tickMessages, fail: value => { failure = value; } };
 }
 const content = { locale: 'en', type: 'message', title: 'Begin with care', summary: 'Take your time.', body: 'A quiet moment for you.' };
+test('the dedicated Home reflection can be revised restored and removed without sending', async () => {
+  const h = harness();
+  const contentId = 'home-reflection';
+  const window = { startsAt: Date.now() - 1000, expiresAt: Date.now() + 31 * 86400000, timezone: 'Asia/Kolkata' };
+  await h.call({ op: 'saveDraft', contentId, expectedRevision: 0, content: { ...content, type: 'teaching' } });
+  await h.call({ op: 'publish', contentId, revision: 1, ...window });
+  await h.call({ op: 'saveDraft', contentId, expectedRevision: 1, content: { ...content, title: 'Begin again today' } });
+  assert.equal(h.records.get('publishedContent/home-reflection').revision, 1);
+  await h.call({ op: 'publish', contentId, revision: 2, ...window });
+  assert.equal(h.records.get('publishedContent/home-reflection').title, 'Begin again today');
+  await h.call({ op: 'publish', contentId, revision: 1, ...window });
+  assert.equal(h.records.get('publishedContent/home-reflection').title, content.title);
+  await h.tick();
+  assert.equal(h.sends.length, 0);
+  assert.equal([...h.records.keys()].some(key => key.startsWith('campaigns/')), false);
+  await h.call({ op: 'unpublish', contentId });
+  assert.equal(h.records.has('publishedContent/home-reflection'), false);
+});
+
 async function prepare(h) {
   await h.call({ op: 'saveDraft', contentId: 'note', expectedRevision: 0, content });
   const now = Date.now();
@@ -144,4 +163,89 @@ test('scheduled publication waits for its date and expires automatically', async
   await h.tick(); assert.equal(h.records.has('publishedContent/note'), true);
   h.records.get('publishedContent/note').expiresAt = Date.now() - 1;
   await h.tick(); assert.equal(h.records.has('publishedContent/note'), false);
+});
+
+async function prepareNudge(h, patch = {}) {
+  const now = Date.now();
+  for (const [id, notificationOnly] of [['test-phone', true], ['general-phone', true], ['old-phone', false]]) {
+    h.records.set(`messageInstallations/${id}`, { token: id, enabled: true, schemaVersion: 1,
+      locale: 'en', notificationOnly, updatedAt: { toMillis: () => now } });
+  }
+  h.records.set('messageTestDevices/test-phone', { label: 'Test phone' });
+  const request = { op: 'createNotificationCampaign', campaignId: 'nudge-1', title: 'A festival note',
+    body: 'Your festival offer is ready. Tap to take a look.', destination: 'home',
+    audience: 'test', sendAt: now, expiresAt: now + 60000, timezone: 'Asia/Kolkata', ...patch };
+  await h.call(request);
+  return request;
+}
+
+test('notification-only test sends carry their own text and create no published content', async () => {
+  const h = harness();
+  const request = await prepareNudge(h);
+  const estimate = await h.call({ op: 'estimateAudience', kind: 'nudge', audience: 'all' });
+  assert.equal(estimate.eligible, 2);
+  await h.tick(); await h.tick();
+  assert.equal(h.sends.length, 1);
+  assert.equal(h.sends[0].token, 'test-phone');
+  assert.equal(h.sends[0].notification, undefined);
+  assert.equal(h.sends[0].data.kind, 'nudge');
+  assert.equal(h.sends[0].data.title, request.title);
+  assert.equal(h.sends[0].data.body, request.body);
+  assert.equal(h.sends[0].data.destination, 'home');
+  assert.equal(h.sends[0].data.contentId, undefined);
+  assert.equal(h.sends[0].android.priority, 'normal');
+  assert.equal(h.records.get('campaigns/nudge-1').state, 'complete');
+  assert.equal([...h.records.keys()].some(key => /^(publishedContent|contentDrafts|messagePublicationJobs)\//.test(key)), false);
+});
+
+test('notification-only sends require a publisher and retries preserve the exact request', async () => {
+  const h = harness();
+  const request = await prepareNudge(h);
+  for (const role of [null, 'editor', 'PARENT', 'reader']) {
+    await assert.rejects(h.call(request, role), e => e.code === 'permission-denied');
+  }
+  await h.call(request);
+  for (const patch of [{ title: 'Changed' }, { body: 'Changed' }, { audience: 'all' }, { expiresAt: request.expiresAt + 1 }]) {
+    await assert.rejects(h.call({ ...request, ...patch }), e => e.code === 'already-exists');
+  }
+  for (const patch of [{ contentId: 'note' }, { revision: 1 }, { destination: 'offers' }, { destination: 'https://example.com' }]) {
+    await assert.rejects(h.call({ ...request, campaignId: 'invalid', ...patch }), e => e.code === 'invalid-argument');
+  }
+  await prepare(h);
+  await assert.rejects(h.call({ ...request, campaignId: 'send-1' }).then(async () => {
+    // The nudge ID cannot be reused as a message-linked campaign either.
+    await h.call({ op: 'createCampaign', campaignId: 'send-1', contentId: 'note', revision: 1,
+      audience: 'test', sendAt: request.sendAt, expiresAt: request.expiresAt - 10000, timezone: request.timezone });
+  }), e => e.code === 'already-exists');
+});
+
+test('standalone scheduling expiry cancellation pause and opt-out control dispatch', async () => {
+  for (const action of ['future', 'expired', 'cancelled', 'paused', 'opt-out']) {
+    const h = harness();
+    await prepareNudge(h, action === 'future' ? { sendAt: Date.now() + 30000 } : {});
+    if (action === 'expired') h.records.get('campaigns/nudge-1').expiresAt = Date.now() - 1;
+    if (action === 'cancelled') await h.call({ op: 'cancelCampaign', campaignId: 'nudge-1' });
+    if (action === 'paused') await h.call({ op: 'pause', paused: true });
+    if (action === 'opt-out') h.records.get('messageInstallations/test-phone').enabled = false;
+    await h.tick();
+    assert.equal(h.sends.length, 0, action);
+    if (action === 'future') {
+      h.records.get('campaigns/nudge-1').sendAt = Date.now() - 1;
+      await h.tick();
+      assert.equal(h.sends.length, 1);
+    }
+  }
+});
+
+test('standalone general sends skip old apps and retry without creating another campaign', async () => {
+  const h = harness();
+  await prepareNudge(h, { audience: 'all' });
+  h.fail({ code: 'messaging/server-unavailable' });
+  await h.tick();
+  assert.equal(h.records.get('campaigns/nudge-1/dispatch/general-phone').state, 'retry');
+  h.fail(null);
+  await h.tick();
+  assert.equal(h.records.get('campaigns/nudge-1').accepted, 2);
+  assert.equal(h.records.get('campaigns/nudge-1/dispatch/old-phone').state, 'skipped');
+  assert.equal(h.records.get('campaigns/nudge-1').state, 'complete');
 });

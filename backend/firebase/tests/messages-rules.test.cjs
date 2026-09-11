@@ -34,6 +34,9 @@ test('a phone registration stays with its owner and cannot grant itself test acc
   const data = { uid: 'reader', token: 'sample-token', enabled: true, schemaVersion: 1,
     locale: 'en', appVersion: 1, updatedAt: serverTimestamp() };
   await assertSucceeds(setDoc(doc(owner, 'messageInstallations/reader_phone'), data));
+  await assertSucceeds(updateDoc(doc(owner, 'messageInstallations/reader_phone'), { notificationOnly: true, updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(owner, 'messageInstallations/reader_phone'), { notificationOnly: 'true', updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(other, 'messageInstallations/reader_phone'), { notificationOnly: true, updatedAt: serverTimestamp() }));
   await assertFails(getDoc(doc(other, 'messageInstallations/reader_phone')));
   await assertFails(updateDoc(doc(other, 'messageInstallations/reader_phone'), { uid: 'other', updatedAt: serverTimestamp() }));
   await assertFails(updateDoc(doc(owner, 'messageInstallations/reader_phone'), { test: true, updatedAt: serverTimestamp() }));

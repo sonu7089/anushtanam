@@ -32,6 +32,32 @@ data class TeachingDetail(val message: TeachingMessage?, val offline: Boolean)
 @Singleton
 class TeachingRepository @Inject constructor(private val firestore: FirebaseFirestore,
     private val refreshClock: TeachingRefreshClock) {
+    companion object { const val HOME_REFLECTION_ID = "home-reflection" }
+
+    private val reflectionMutex = Mutex()
+    private var reflectionCacheLoaded = false
+    private var reflectionReadyAt = 0L
+    private val _reflection = MutableStateFlow<TeachingMessage?>(null)
+    val reflection = _reflection.asStateFlow()
+
+    /** A fixed document keeps the mentor's note independent of feed ordering and pagination. */
+    suspend fun refreshReflection() = reflectionMutex.withLock {
+        if (refreshClock.now() < reflectionReadyAt) return@withLock
+        reflectionReadyAt = refreshClock.now() + 10_000L
+        val document = collection.document(HOME_REFLECTION_ID)
+        if (!reflectionCacheLoaded) {
+            val cached = runCatching { withTimeout(1_000) { document.get(Source.CACHE).messageAwait() } }
+            currentCoroutineContext().ensureActive()
+            _reflection.value = cached.getOrNull()?.let(::decode)
+            reflectionCacheLoaded = true
+        }
+        val server = runCatching { withTimeout(8_000) { document.get(Source.SERVER).messageAwait() } }
+        currentCoroutineContext().ensureActive()
+        // A successful missing/invalid document clears stale content; an outage retains valid cache.
+        _reflection.value = if (server.isSuccess) server.getOrNull()?.let(::decode)
+            else _reflection.value?.takeIf { it.isVisible(System.currentTimeMillis()) }
+    }
+
     private val collection get() = firestore.collection("publishedContent")
     private val feedMutex = Mutex()
     private var firstPage: TeachingPage? = null

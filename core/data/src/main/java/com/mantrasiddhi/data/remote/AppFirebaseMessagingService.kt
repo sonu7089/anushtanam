@@ -31,7 +31,7 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
     @Inject lateinit var teachings: com.mantrasiddhi.data.messages.TeachingNotifications
 
     override fun onMessageReceived(message: RemoteMessage) {
-        if (message.data["kind"] == "teaching") {
+        if (message.data["kind"] in setOf("teaching", "nudge")) {
             teachings.receive(message.data)
             return
         }

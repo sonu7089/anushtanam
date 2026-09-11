@@ -44,6 +44,9 @@ class HomeViewModelTest {
         every { this@mockk.invoke(any()) } returns flowOf(com.mantrasiddhi.domain.usecase.JapaSummary())
     }
     private lateinit var viewModel: HomeViewModel
+    private val teachings = mockk<com.mantrasiddhi.data.messages.TeachingRepository> {
+        every { reflection } returns MutableStateFlow(null)
+    }
 
     private val testUser = UserProfile(
         id = 1L,
@@ -72,7 +75,7 @@ class HomeViewModelTest {
     @Test
     fun `should_initiallyEmitLoadingState_when_created`() = runTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
         assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
 
@@ -89,7 +92,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(stats)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Success)
@@ -105,7 +108,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(null)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Error)

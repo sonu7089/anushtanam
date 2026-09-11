@@ -1,5 +1,11 @@
 # MF-10 Firebase deployment
 
+## Notification-only update, 11 September 2026
+
+Deployed the publisher-only standalone notification operation, its dispatcher branch, and the optional boolean `notificationOnly` registration field to `anushtanam-shastralife`. Firebase reported successful updates for `adminMessages` and `tickMessages` and released the rules. No new collection or index is required. The 30-minute schedule remains in place. No live campaign or notification was created or sent during this update.
+
+The app must be updated and reopened before its installation becomes eligible for nudges. Message-linked notifications continue to support older registrations. See [implementation and verification](notification-only-implementation.md) and [the website sending flow](mf-10-website-guide.md#notification-only-nudges). Deployment output is in `backend/firebase/notification-only-deploy.log`.
+
 10 September 2026. Project: `anushtanam-shastralife`, matching the Android app configuration. Firestore location: `asia-south1`.
 
 ## Database update

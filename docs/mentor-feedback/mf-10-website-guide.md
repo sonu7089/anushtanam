@@ -1,6 +1,32 @@
 # Teachings and messages: website integration guide
 
-Updated 10 September 2026.
+Updated 11 September 2026.
+
+**Notification-only support:** The sending page now has two modes: **Message notification** and **Notification only**. Notification only sends a title and short text and opens Home. It creates no message-list entry or reflection. See [the notification-only API and website flow](#notification-only-nudges).
+
+## MF-11: A moment to reflect
+
+The existing Home reflection area now supports one mentor-managed note. Add a dedicated **A moment to reflect** editor to the website using the existing operations below and the fixed content ID `home-reflection`. Keep that ID for every weekly or monthly revision. This is separate from choosing which general message is pinned.
+
+1. Load `getContent` for `home-reflection`. Start at `expectedRevision: 0` only when no draft exists. Otherwise use its latest revision.
+2. Save an English `teaching` with title, summary, full body, optional attribution, and one supported artwork choice. Home keeps its existing text-only design; the artwork appears on the reading screen.
+3. Preview it under **A moment to reflect**. Home shows the full body up to 600 characters; longer bodies use the summary with Read more. Aim for a short title and one gentle paragraph. The reading screen holds the full text.
+4. Publish the saved revision now, or choose the next week's or month's start and end dates. The existing scheduler checks every 30 minutes. Keep the current note valid until the planned replacement is due. A gap falls back to the built-in notes.
+5. Use the same ID to revise, unpublish, cancel its pending schedule, or restore an earlier saved revision. Only one future replacement can be queued for this ID at a time.
+
+Saving and publishing do not send a notification. The reflection is also readable in Teachings and messages. Home reads the dedicated document regardless of list order or pinning. Existing MF-10 apps continue to show it in their message list; the MF-11 Android release adds the Home placement.
+
+Use the same role-checked callable API. No new Firebase deployment or direct database editing is needed. The website is maintained separately from this repository.
+
+**Editorial tone:** Write as a caring teacher speaking to one person. Use simple English, short sentences, and familiar words. Avoid em dashes, slogans, grand promises, pressure about counts, and invented scriptural quotations. Keep Sanskrit or IAST when the teaching needs it, with a brief explanation. Attribution must name the actual author or source; leave it blank when none applies. Review the mentor's words before publishing. The app displays them as supplied rather than rewriting them.
+
+Original sample copy for a preview, not a scriptural quotation:
+
+> **There is time to begin again**
+>
+> If you have missed a few days, you can begin again today. Sit for a little while and say the mantra with care. You do not have to make up for everything at once.
+
+These MF-11 decisions replace the earlier proposal for a separate featured Home panel, remote artwork on Home, and an additional Home refresh control.
 
 This guide is for the private publishing area on your Anushtanam website. The Android app and Firebase backend are in this repository. The website page is a separate project that you will build and host.
 
@@ -210,13 +236,13 @@ await messageAction({ op: "unpublish", contentId: "begin-with-care" });
 // Removes the published version and cancels its pending publication.
 ```
 
-Home publishing and notification sending are separate. A message must have a published or scheduled readable destination before a notification campaign can be created. This release lists every published message in the app. It does not have a separate hidden “notification only” placement.
+Home publishing and notification sending are separate. A message-linked campaign (`createCampaign`) needs a published or scheduled readable destination. Every published message appears in the app's message list. A standalone notification (`createNotificationCampaign`) needs no content document and adds nothing to that list or to A moment to reflect.
 
 ### Choose test phones
 
 ```js
 await messageAction({ op: "listDevices" });
-// { items: [{ id, uid, enabled, appVersion, locale, schemaVersion, updatedAt, test }], next }
+// { items: [{ id, uid, enabled, appVersion, locale, schemaVersion, notificationOnly, updatedAt, test }], next }
 
 await messageAction({
   op: "testDevice", installationId: "ID_FROM_LIST_DEVICES",
@@ -237,9 +263,11 @@ await messageAction({ op: "estimateAudience", audience: "test" });
 
 Use `all` for the general audience. Eligibility requires a current enabled registration, supported schema, English content support, and a refresh within the last 30 days. Test sends also require an explicit test-device record.
 
+For notification-only sends, pass `kind: "nudge"` to `estimateAudience`. Those recipients must also have `notificationOnly: true`, which the updated Android app registers automatically. Missing or false means the installed app does not advertise support. Do not set this field from the website or assume an old app can receive these nudges. Message-linked estimates may omit `kind` or use `kind: "teaching"`.
+
 The estimate scans at most 1,000 registrations. If `sampled` is true, say “At least N eligible installations in the sample” and show the scanned count. Even a full scan is an estimate at that moment, not guaranteed delivery. One person can have several installations. A phone may also have account-specific registration records after account switching; the app suppresses repeated display of the same campaign.
 
-### Send now or schedule a notification
+### Send now or schedule a message notification
 
 Show the final saved content, audience, estimated reach, send time, timezone, and expiry before the deliberate send action. Use different buttons for **Send to test phones** and **Send to readers**.
 
@@ -264,6 +292,47 @@ Retry this exact request if the response is lost. Do not generate a new UUID on 
 For a general send, choose `audience: "all"` and create a separate campaign ID after reviewing the test. The selected revision must be readable by `sendAt` and remain published through the campaign expiry. If it is unpublished or replaced before dispatch, remaining campaign work is cancelled. A corrected current message may be shown when an already-delivered notification is opened.
 
 There are no custom HTML layouts, arbitrary links, automatic sounds, or counter actions in these payloads. Notification taps open the content ID inside the app.
+
+### Notification-only nudges
+
+On the sending page, let the publisher choose **Message notification** or **Notification only** before entering content. For Notification only, show:
+
+- **Title:** required, up to 100 characters.
+- **Notification text:** required, up to 280 characters.
+- **Opens:** Home. This is the only supported destination in this release.
+- Test or general audience, send time, timezone, and expiry.
+- A phone notification preview and the final audience estimate.
+
+Hide the message picker, full-body editor, attribution, artwork, and publish controls in this mode. Show a brief website explanation: “This appears as a phone notification and opens Home. It will not be added to the message list.” Do not add a new screen or toggle for this mode in the Android app. Readers control it with the existing Teachings and messages notification setting.
+
+Keep the final buttons **Send to test phones** and **Send to readers**. Do not queue a campaign while the publisher is typing or previewing it. For a festival offer, first make sure the offer is actually available from Home; this feature does not create an offer or checkout page.
+
+```js
+await messageAction({ op: "estimateAudience", audience: "test", kind: "nudge" });
+
+// Generate and persist this request once for the publisher's deliberate send.
+const notificationRequest = {
+  op: "createNotificationCampaign",
+  campaignId: crypto.randomUUID(),
+  title: "A little something for the festival",
+  body: "Your festival offer is ready. Tap to take a look.",
+  destination: "home",
+  audience: "test",
+  sendAt: Date.now(),
+  expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+  timezone: "Asia/Kolkata"
+};
+await messageAction(notificationRequest);
+// { campaignId, state: "queued" }
+```
+
+Do not include `contentId` or `revision`. Both are rejected for this operation. The publisher role is required. Text uses the same warm, simple English guidance as reflections. There are no em dashes in the sample. URLs and destinations other than Home are not supported.
+
+An immediate send is queued for the next scheduler run, which checks every 30 minutes. A future `sendAt` schedules it. Choose an expiry that allows time for a run. Retry the exact saved request if the result is uncertain. Reusing its campaign ID with different text, timing, audience, or notification mode is rejected. To correct a queued nudge, cancel it and create a new campaign ID. There is no content revision or unpublish step for a standalone nudge.
+
+After checking the test, make a separate deliberate request with a new campaign ID and `audience: "all"`. Estimate that audience with `kind: "nudge"` too. Existing pause, cancellation, campaign details, history, retry limits, and provider-acceptance reporting apply to both modes. In campaign history, label `kind: "nudge"` as **Notification only**; legacy campaigns without `kind` are **Message notification**. Display `title` and `body` for nudges instead of requiring a content ID.
+
+Standalone nudges wait while japa is active, respect Android permission and the existing app/channel preference, expire on the phone, and suppress duplicate alerts by campaign ID. Received text is stored locally until delivery or expiry, so display needs no message fetch. Tapping opens Home from a running or newly launched app, waiting through sign-in if needed. The nudge is not kept as an inbox item. Cancellation cannot recall text already delivered to a phone or waiting in its local queue.
 
 ### Results, cancellation, and pause
 
@@ -311,7 +380,7 @@ Cancellation and pause are checked before each recipient. A send already in prog
 | `messagePublicationJobs/{id}` | Private pending publication |
 | `campaigns/{id}` | Private campaign, request identity, progress cursor, lease, counters |
 | `campaigns/{id}/dispatch/{installationId}` | Private provider attempt state |
-| `messageInstallations/{id}` | Owner-scoped token, account ID, app version, schema, locale, preference, refresh time |
+| `messageInstallations/{id}` | Owner-scoped token, account ID, app version, schema, locale, preference, notification-only capability, refresh time |
 | `messageTestDevices/{id}` | Private publisher-managed test audience |
 | `messageControls/sending` | Private notification pause control |
 | `messageAudit/{id}` | Private editor/publisher action history |
@@ -334,11 +403,31 @@ FCM sends **data-only** messages with normal Android priority:
 }
 ```
 
-Do not add an FCM `notification` object. Android can display those automatically in the background before the app checks japa or notification preferences. The app stores received work locally, resolves the readable content in an Android job, and checks permission, preference, session state, and expiry before posting. All network work stays outside the short FCM receive callback.
+Standalone campaigns send the following data instead. All FCM values are strings, and there is no `contentId`:
 
-Android job scheduling and normal-priority FCM are best effort. A quiet phone, an offline phone, battery restrictions, or a force-stopped app may receive a message late or miss it. Published content remains available through Home.
+```json
+{
+  "kind": "nudge",
+  "schemaVersion": "1",
+  "campaignId": "festival-send-id",
+  "title": "A little something for the festival",
+  "body": "Your festival offer is ready. Tap to take a look.",
+  "destination": "home",
+  "expiresAt": "UTC_MILLISECONDS_AS_A_STRING"
+}
+```
+
+Do not add an FCM `notification` object. Android can display those automatically in the background before the app checks japa or notification preferences. The app stores received work locally and checks permission, preference, session state, and expiry in an Android job before posting. Message-linked work resolves the readable content; standalone work uses its queued text without fetching a content document. All network work stays outside the short FCM receive callback.
+
+Android job scheduling and normal-priority FCM are best effort. A quiet phone, an offline phone, battery restrictions, or a force-stopped app may receive a notification late or miss it. Published messages remain available through Home; standalone nudges have no saved inbox entry.
 
 ## 7. Setup and rollout
+
+For notification-only support, deploy the updated `adminMessages`, `tickMessages`, and Firestore registration rules, then install the new Android APK. The app advertises `notificationOnly: true` when registration next succeeds. Keep older registrations unchanged. No new index, collection, scheduler, or deletion trigger is needed. See [the implementation and deployment record](notification-only-implementation.md) for verified status.
+
+**11 September deployment:** These backend and rule updates are deployed on `anushtanam-shastralife`. The updated Android APK is ready. The separate website mode selector and form still need to be implemented there using this guide.
+
+Before enabling the website option for general sends, verify an updated test phone appears with `notificationOnly: true`, preview the title/body, send a test campaign, and check Home navigation from a running and closed app. Confirm no message or Home reflection is created and test opt-out, japa deferral, expiry, cancellation, and a delayed or duplicate receipt.
 
 The code in this repository does not deploy itself. No production notification is sent by this implementation task.
 
@@ -388,7 +477,7 @@ If no current message has been published, a successful read shows the ordinary e
 
 ### Privacy and retention
 
-The new registration stores an account ID, installation token, supported schema, app version, English locale, notification preference, and refresh time. Campaign history stores provider results. The app does not upload reading history. Pending notifications and duplicate IDs stay on the phone and are excluded from Android backup and device transfer. The random installation ID lives in Android's no-backup directory.
+The registration stores an account ID, installation token, supported schema, app version, English locale, notification preference, notification-only capability, and refresh time. Campaign history stores provider results and the title/body of standalone nudges. The app does not upload reading history. Pending notifications, standalone notification text, and duplicate IDs stay on the phone and are excluded from Android backup and device transfer. The random installation ID lives in Android's no-backup directory.
 
 Include these records in your privacy and deletion procedures. Deleting the account's `users/{uid}` document triggers removal of its installation and test-device records. If your account-deletion service removes Firebase Auth accounts separately, make sure it also deletes that user document. A registration older than 30 days is ineligible. Invalid FCM tokens are removed when detected. Define an operational retention period for campaign logs and audit records before production rollout. Drafts and editorial history may need a different retention period. Do not describe ineligibility as automatic deletion.
 

@@ -124,7 +124,9 @@ fun MantraApp(
     reminderTarget: SandhyaReminderTarget? = null,
     onReminderHandled: () -> Unit = {},
     messageId: String? = null,
-    onMessageHandled: () -> Unit = {}
+    onMessageHandled: () -> Unit = {},
+    homeNotificationId: String? = null,
+    onHomeNotificationHandled: () -> Unit = {}
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -134,6 +136,15 @@ fun MantraApp(
     val guide by guideViewModel.state.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val authRoutes = setOf(Screen.AuthGate.route, Screen.Welcome.route, Screen.ParentAuth.route, Screen.ChildAuth.route, Screen.Login.route)
+    LaunchedEffect(homeNotificationId, currentRoute) {
+        if (homeNotificationId != null && currentRoute != null && currentRoute !in authRoutes) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = false }
+                launchSingleTop = true
+            }
+            onHomeNotificationHandled()
+        }
+    }
     LaunchedEffect(messageId, currentRoute) {
         if (messageId != null && currentRoute != null && currentRoute !in authRoutes) {
             navController.navigate("messages/$messageId") { launchSingleTop = true }
@@ -284,7 +295,8 @@ fun MantraApp(
                     onNavigateToSandhya = { navController.navigate(Screen.Sandhya.route) },
                     onNavigateToPurashcharana = { navController.navigate(Screen.Purashcharana.route) },
                     onOpenGuide = { guideViewModel.open() },
-                    onMessages = { navController.navigate("messages") }
+                    onMessages = { navController.navigate("messages") },
+                    onOpenReflection = { navController.navigate("messages/$it") }
                 )
             }
 

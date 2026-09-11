@@ -98,6 +98,7 @@ exports.adminMessages = onCall(options, async request => {
         const tests = await db().collection("messageTestDevices").get();
         const testIds = new Set(tests.docs.map(d => d.id));
         if (!["all", "test"].includes(input.audience)) throw new Error("Choose an audience.");
+        if (input.kind !== undefined && !["teaching", "nudge"].includes(input.kind)) throw new Error("Choose a supported notification type.");
         return { eligible: registrations.docs.filter(d => policy.eligible(d.data(), input, now, testIds, d.id)).length,
           sampled: registrations.size === 1000, scanned: registrations.size };
       }
@@ -131,6 +132,31 @@ exports.adminMessages = onCall(options, async request => {
             title: content.title, summary: content.summary, state: "queued", createdBy: uid, createdAt: now,
             cursor: null, leaseUntil: 0, accepted: 0, failed: 0, skipped: 0 });
           audit(tx, uid, "createCampaign", campaignRef.id);
+          return { campaignId: campaignRef.id, state: "queued" };
+        });
+      }
+      case "createNotificationCampaign": {
+        authorize(request, true);
+        const campaignRef = ref("campaigns", input.campaignId);
+        const notification = policy.nudge(input);
+        if (input.contentId !== undefined || input.revision !== undefined) throw new Error("A notification-only send does not need a message.");
+        if (!["test", "all"].includes(input.audience)) throw new Error("Choose a test or general audience.");
+        const timezone = policy.text(input.timezone, 80);
+        new Intl.DateTimeFormat("en", { timeZone: timezone });
+        const contract = { ...notification, audience: input.audience,
+          sendAt: input.sendAt, expiresAt: input.expiresAt, timezone };
+        return await db().runTransaction(async tx => {
+          const prior = await tx.get(campaignRef);
+          if (prior.exists) {
+            if (prior.data().request !== JSON.stringify(contract)) {
+              throw new HttpsError("already-exists", "This send ID belongs to a different request.");
+            }
+            return { campaignId: campaignRef.id, state: prior.data().state };
+          }
+          policy.window(input.sendAt, input.expiresAt, now);
+          tx.create(campaignRef, { ...contract, request: JSON.stringify(contract), state: "queued",
+            createdBy: uid, createdAt: now, cursor: null, leaseUntil: 0, accepted: 0, failed: 0, skipped: 0 });
+          audit(tx, uid, "createNotificationCampaign", campaignRef.id);
           return { campaignId: campaignRef.id, state: "queued" };
         });
       }
@@ -243,12 +269,13 @@ async function dispatchCampaign(campaignRef) {
       const claim = await db().runTransaction(async tx => {
         const [current, control, device, previous, content] = await Promise.all([
           tx.get(campaignRef), tx.get(db().doc("messageControls/sending")), tx.get(registration.ref),
-          tx.get(dispatchRef), tx.get(ref("publishedContent", campaign.contentId))]);
+          tx.get(dispatchRef), campaign.kind === "nudge" ? Promise.resolve(null)
+            : tx.get(ref("publishedContent", campaign.contentId))]);
         const c = current.data();
         const now = Date.now();
         if (c.state !== "sending" || c.lease !== lease || control.data()?.paused || c.expiresAt <= now) return { stop: true };
-        const published = content.data();
-        if (!published || published.revision !== c.revision || published.publishedAt > now || published.expiresAt <= now) {
+        const published = content?.data();
+        if (c.kind !== "nudge" && (!published || published.revision !== c.revision || published.publishedAt > now || published.expiresAt <= now)) {
           tx.update(campaignRef, { state: "cancelled", reason: "content_unavailable" });
           return { stop: true };
         }
@@ -267,8 +294,11 @@ async function dispatchCampaign(campaignRef) {
         let result;
         try {
           const providerId = await getMessaging().send({ token: claim.token,
-            data: { kind: "teaching", schemaVersion: "1", campaignId: campaignRef.id,
-              contentId: campaign.contentId, expiresAt: String(campaign.expiresAt) },
+            data: campaign.kind === "nudge"
+              ? { kind: "nudge", schemaVersion: "1", campaignId: campaignRef.id, title: campaign.title,
+                body: campaign.body, destination: campaign.destination, expiresAt: String(campaign.expiresAt) }
+              : { kind: "teaching", schemaVersion: "1", campaignId: campaignRef.id,
+                contentId: campaign.contentId, expiresAt: String(campaign.expiresAt) },
             android: { priority: "normal", ttl: Math.min(policy.MAX_LIFETIME, Math.max(0, campaign.expiresAt - Date.now())) } });
           result = { state: "accepted", providerId, at: Date.now(), attempts: claim.attempts };
         } catch (error) {

@@ -24,7 +24,8 @@ service cloud.firestore {
       allow create, update: if request.auth != null &&
         request.resource.data.uid == request.auth.uid &&
         (!exists(/databases/$(database)/documents/messageInstallations/$(installationId)) || resource.data.uid == request.auth.uid) &&
-        request.resource.data.keys().hasOnly(['uid', 'token', 'enabled', 'schemaVersion', 'locale', 'appVersion', 'updatedAt']) &&
+        request.resource.data.keys().hasOnly(['uid', 'token', 'enabled', 'schemaVersion', 'locale', 'appVersion', 'updatedAt', 'notificationOnly']) &&
+        (!('notificationOnly' in request.resource.data) || request.resource.data.notificationOnly is bool) &&
         request.resource.data.token is string && request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 4096 &&
         request.resource.data.enabled is bool && request.resource.data.schemaVersion == 1 &&
         request.resource.data.locale == 'en' && request.resource.data.appVersion is int &&

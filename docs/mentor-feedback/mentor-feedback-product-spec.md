@@ -263,6 +263,8 @@ Show the next Sandhya reminder in the expanded widget, allow a deliberate “Rec
 
 ## 8. Developer announcements and dynamic Home content — MF-10, MF-11
 
+**11 September 2026 accepted scope:** MF-11 uses **A moment to reflect**, with no new Home panel or refresh/update messaging. It keeps the existing design and built-in notes, and reads the mentor's dedicated `home-reflection` publication. See [the implementation and verification](mf-11-implementation.md). This replaces the earlier featured-panel proposal below. The writing should be warm, simple English without em dashes.
+
 This is an additional requested P1 release stage. The full product/admin flow, architecture, and acceptance tests are in [Remote notifications and Home content](remote-content-and-notifications.md).
 
 - [ ] Authorized developers can draft, preview, test-send, send/schedule, cancel, and inspect a teaching/message campaign.

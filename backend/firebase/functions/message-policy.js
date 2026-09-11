@@ -31,8 +31,13 @@ function window(start, end, now) {
 }
 function eligible(registration, campaign, now, testIds, registrationId) {
   return registration.enabled === true && registration.schemaVersion === 1 && registration.locale === "en" &&
+    (campaign.kind !== "nudge" || registration.notificationOnly === true) &&
     typeof registration.token === "string" && registration.token.length > 0 &&
     registration.updatedAt?.toMillis() > now - 30 * 86400000 &&
     (campaign.audience === "all" || testIds.has(registrationId));
 }
-module.exports = { id, text, content, window, eligible, MAX_LIFETIME };
+function nudge(input) {
+  if (input.destination !== "home") throw new Error("Choose Home as the notification destination.");
+  return { kind: "nudge", title: text(input.title, 100), body: text(input.body, 280), destination: "home" };
+}
+module.exports = { id, text, content, window, eligible, nudge, MAX_LIFETIME };

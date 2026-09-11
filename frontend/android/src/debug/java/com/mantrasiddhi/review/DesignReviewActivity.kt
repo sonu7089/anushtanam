@@ -68,6 +68,10 @@ object ReviewFixtures {
     val target = Target(1, 1, 1, 108, 36)
     val childProgress = ChildProgress(child, target.copy(userId = 2), 216, 2)
     val home = HomeUiState.Success(parent, 36, target, 7, listOf(childProgress))
+    val reflection = TeachingMessage("home-reflection", 1, "There is time to begin again",
+        "If you have missed a few days, begin with a little time today.",
+        "If you have missed a few days, you can begin again today. Sit for a little while and say the mantra with care. You do not have to make up for everything at once.",
+        "", 1L, Long.MAX_VALUE)
     val completedSandhya = SandhyaAdherence.EMPTY.copy(
         totalScheduled = 21, totalObserved = 21, overallAdherenceRate = 1.0,
         currentStreakAllThree = 7, longestStreakAllThree = 12,
@@ -157,6 +161,10 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             })
                         "reflection" -> ReviewPage(R.string.title_home) {
                             com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard()
+                        }
+                        "reflection-mentor" -> ReviewPage(R.string.title_home) {
+                            com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard(
+                                reflection = ReviewFixtures.reflection)
                         }
                         "voice-check" -> VoiceModelScreen(VoiceModelState.CHECK_UNAVAILABLE, DownloadUiState.Idle, {}, {}, Modifier.safeDrawingPadding())
                         "voice-live" -> Box(Modifier.fillMaxSize().safeDrawingPadding()) {

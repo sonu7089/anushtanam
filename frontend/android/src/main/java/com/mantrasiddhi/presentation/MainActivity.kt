@@ -26,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @javax.inject.Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
     private var messageId by mutableStateOf<String?>(null)
+    private var homeNotificationId by mutableStateOf<String?>(null)
     private val notificationPermission = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { granted -> teachingNotifications.permissionResult(granted) }
@@ -50,11 +51,13 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         reminderTarget = SandhyaReminderTarget.from(intent)
         messageId = readMessage(intent)
+        homeNotificationId = com.mantrasiddhi.presentation.navigation.HomeNotificationTarget.from(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("reminderHandled", reminderTarget == null)
         outState.putBoolean("messageHandled", messageId == null)
+        outState.putBoolean("homeNotificationHandled", homeNotificationId == null)
         super.onSaveInstanceState(outState)
     }
 
@@ -64,6 +67,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.getBoolean("messageHandled") != true) messageId = readMessage(intent)
+        if (savedInstanceState?.getBoolean("homeNotificationHandled") != true) {
+            homeNotificationId = com.mantrasiddhi.presentation.navigation.HomeNotificationTarget.from(intent)
+        }
         if (teachingNotifications.needsFirstRequest()) {
             teachingNotifications.markPermissionAsked()
             if (teachingNotifications.hasPermission()) teachingNotifications.refreshPermission()
@@ -80,7 +86,9 @@ class MainActivity : ComponentActivity() {
             AnushtanamTheme(darkTheme = darkTheme) {
                 MantraApp(mainViewModel = mainViewModel, reminderTarget = reminderTarget,
                     onReminderHandled = { reminderTarget = null; intent.action = null; intent.data = null },
-                    messageId = messageId, onMessageHandled = { messageId = null; intent.data = null })
+                    messageId = messageId, onMessageHandled = { messageId = null; intent.data = null },
+                    homeNotificationId = homeNotificationId,
+                    onHomeNotificationHandled = { homeNotificationId = null; intent.data = null })
             }
         }
     }

@@ -5,6 +5,22 @@ const now = 1800000000000;
 const input = { locale: 'en', type: 'teaching', title: 'Begin with care', summary: 'A moment for your practice.',
   body: 'Let your next repetition begin with care.', attribution: 'Anushtanam' };
 
+test('notification-only text is bounded and only Home is supported', () => {
+  const input = { title: 'A little something for the festival', body: 'Tap to take a look.', destination: 'home' };
+  assert.equal(policy.nudge(input).kind, 'nudge');
+  for (const patch of [{ title: '' }, { body: ' ' }, { title: 'a'.repeat(101) },
+    { body: 'a'.repeat(281) }, { destination: 'https://example.com' }, { destination: 'offers' }]) {
+    assert.throws(() => policy.nudge({ ...input, ...patch }));
+  }
+});
+
+test('only updated installations are eligible for notification-only sends', () => {
+  const device = { enabled: true, schemaVersion: 1, locale: 'en', token: 'token', updatedAt: { toMillis: () => now } };
+  assert.equal(policy.eligible(device, { audience: 'all', kind: 'nudge' }, now, new Set(), 'phone'), false);
+  assert.equal(policy.eligible({ ...device, notificationOnly: true }, { audience: 'all', kind: 'nudge' }, now, new Set(), 'phone'), true);
+  assert.equal(policy.eligible({ ...device, notificationOnly: 'true' }, { audience: 'all', kind: 'nudge' }, now, new Set(), 'phone'), false);
+});
+
 test('content is restricted to supported plain-text fields and bundled artwork', () => {
   const content = policy.content({ ...input, arbitraryScript: 'bad', imageUrl: 'https://unknown.example' });
   assert.equal(content.arbitraryScript, undefined);

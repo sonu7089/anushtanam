@@ -31,8 +31,21 @@ class HomeViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getDashboardStatsUseCase: GetDashboardStatsUseCase,
     private val getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase,
-    private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase
+    private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase,
+    private val teachings: com.mantrasiddhi.data.messages.TeachingRepository
 ) : ViewModel() {
+
+    val reflection = teachings.reflection
+    private var reflectionJob: kotlinx.coroutines.Job? = null
+
+    fun refreshReflection() {
+        if (reflectionJob?.isActive == true) return
+        reflectionJob = viewModelScope.launch {
+            try { teachings.refreshReflection() }
+            catch (error: kotlinx.coroutines.CancellationException) { throw error }
+            catch (_: Exception) { /* The built-in notes keep Home useful. */ }
+        }
+    }
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()

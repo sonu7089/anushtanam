@@ -18,6 +18,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.mantrasiddhi.domain.model.TeachingDeliveryPolicy
+import com.mantrasiddhi.domain.model.NotificationNudge
 import com.mantrasiddhi.resources.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,12 +97,20 @@ class TeachingNotifications @Inject constructor(
         // One document per installation and account. Tokens are never placed in the public feed.
         firestore.collection("messageInstallations").document("${uid}_$installationId").set(mapOf(
             "uid" to uid, "token" to token, "enabled" to _enabled.value,
-            "schemaVersion" to 1, "locale" to "en", "appVersion" to version,
+            "schemaVersion" to 1, "locale" to "en", "appVersion" to version, "notificationOnly" to true,
             "updatedAt" to FieldValue.serverTimestamp()
         ))
     }
 
     @Synchronized fun receive(data: Map<String, String>) {
+        if (data["kind"] == "nudge") {
+            val nudge = NotificationNudge.fromPayload(data, System.currentTimeMillis()) ?: return
+            if (!isEnabledNow() || prefs.contains("seen_${nudge.campaignId}")) return
+            prefs.edit().putString("pending_${nudge.campaignId}", JSONObject(nudge.toPayload()).toString()).commit()
+            schedulePending()
+            return
+        }
+        if (data["kind"] != null && data["kind"] != "teaching") return
         if (data["schemaVersion"] != "1") return
         val id = data["campaignId"] ?: return
         val contentId = data["contentId"] ?: return
@@ -140,15 +149,25 @@ class TeachingNotifications @Inject constructor(
     }
 
     @Synchronized fun display(id: String, expiresAt: Long, message: com.mantrasiddhi.domain.model.TeachingMessage) {
+        if (!message.isVisible(System.currentTimeMillis())) return
+        post(id, expiresAt, message.title, message.summary, "anushtanam://messages/${message.id}")
+    }
+
+    @Synchronized fun displayNudge(nudge: NotificationNudge) {
+        if (NotificationNudge.fromPayload(nudge.toPayload(), System.currentTimeMillis()) == null) return
+        post(nudge.campaignId, nudge.expiresAt, nudge.title, nudge.body, "anushtanam://home/${nudge.campaignId}")
+    }
+
+    private fun post(id: String, expiresAt: Long, title: String, body: String, destination: String) {
         if (!TeachingDeliveryPolicy.canDisplay(isEnabledNow(), practicing, expiresAt, System.currentTimeMillis()) ||
-            !message.isVisible(System.currentTimeMillis()) || prefs.contains("seen_$id")) return
+            prefs.contains("seen_$id")) return
         val intent = Intent().setClassName(context.packageName, "com.mantrasiddhi.presentation.MainActivity")
-            .setData(Uri.parse("anushtanam://messages/${message.id}"))
+            .setData(Uri.parse(destination))
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val tap = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_sandhya_sun)
-            .setContentTitle(message.title).setContentText(message.summary)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message.summary)).setContentIntent(tap)
+            .setContentTitle(title).setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body)).setContentIntent(tap)
             .setOnlyAlertOnce(true).setAutoCancel(true).setTimeoutAfter(expiresAt - System.currentTimeMillis()).build()
         // Commit before posting, so a process crash cannot replay an alert. Posting itself is best effort.
         prefs.edit().putLong("seen_$id", expiresAt).remove("pending_$id").commit()

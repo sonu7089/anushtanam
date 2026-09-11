@@ -2,6 +2,8 @@
 
 Updated 10 September 2026.
 
+**11 September 2026 follow-up:** [Notification-only nudges](notification-only-implementation.md) add a separate publisher operation that opens Home without a published message. The earlier limitation requiring content for every campaign now applies only to message-linked sends. The existing notification setting and japa deferral cover both modes.
+
 Follow-up UI changes are recorded in [message screen refinements](mf-10-ui-refinement.md): a refresh icon with a shared 10-second cooldown, fewer detail-page controls, permission requests from the notification toggle, and newly generated list artwork. These replace the earlier UI descriptions below where noted.
 
 The Android message experience is implemented, and its Firebase rules, indexes, and three message functions are deployed on the owner's Blaze project. The live scheduler checks every 30 minutes. See [the deployment and live verification record](mf-10-firebase-deployment.md). The app owner will build and host the website publishing page separately using [the website integration guide](mf-10-website-guide.md). No website has been created and no production campaign has been sent.
