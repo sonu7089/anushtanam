@@ -1,5 +1,7 @@
 # Redundant work and rendering audit
 
+**Final verification:** see the [step-13 finding disposition and evidence](step-13-verification.md). Original findings below describe the pre-fix code; unresolved release/acceptance gates are tracked explicitly in the final verification.
+
 Reviewed 12 September 2026 against source commit `5c5aaba`. This extends the [UI audit](README.md), [database audit](database-audit.md), [lazy-loading plan](lazy-loading.md) and [polling audit](polling-audit.md). No application code, assets, databases or deployed services were changed.
 
 **Step 12 update:** RW-11/12 and the small sorts/formatting cleanups are implemented and verified. RW-14's layers/chart reveals are retained after frame and overdraw profiling, with navigation budgets still open for step 13. [Changes, measured composition counts, retention decisions and verification](step-12-rendering.md). The original audit evidence below describes the pre-fix source.

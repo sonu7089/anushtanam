@@ -159,20 +159,30 @@ class RemoteDiscoveryTest {
             watcher = scope.launch { b.discovery.watch(uid) }
             withTimeout(10_000) { b.db.backupDao().observeState(uid).first { it?.restorePending == true } }
             settled(b, uid)
+            assertTrue("Sender must wait until this empty replica is ready", b.db.japaDao().entries(7).isEmpty())
             InstrumentationRegistry.getInstrumentation().sendStatus(0, android.os.Bundle().apply {
                 putString("stream", "REMOTE_RECEIVER_READY\n")
             })
             withTimeout(100_000) {
                 b.db.backupDao().observeState(uid).first { it?.restorePending == true }
+                crossDeviceStatus("REMOTE_SIGNAL_OBSERVED")
                 while (b.db.japaDao().entry("cross-device") == null) {
                     val wait = b.runner.remainingMs(uid)
+                    crossDeviceStatus("REMOTE_RETRY_WAIT_MS=$wait")
                     if (wait > 0) delay(wait)
-                    b.runner.runPending()
+                    val more = b.runner.runPending()
+                    crossDeviceStatus("REMOTE_ATTEMPT_COMPLETE more=$more entries=${b.db.japaDao().entries(7).size}")
                 }
             }
             assertEquals(72L, b.db.japaDao().entry("cross-device")!!.quantity)
             assertEquals(1, b.db.japaDao().entries(7).size)
         } finally { watcher?.cancelAndJoin(); scope.cancel(); b.close() }
+    }
+
+    private fun crossDeviceStatus(message: String) {
+        InstrumentationRegistry.getInstrumentation().sendStatus(0, android.os.Bundle().apply {
+            putString("stream", "$message\n")
+        })
     }
 
     internal suspend fun sendToOtherDevice(email: String) {

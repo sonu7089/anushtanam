@@ -1,0 +1,636 @@
+{
+  "date": "2026-09-12",
+  "rawDirectory": "build/step13",
+  "scope": "Pixel 7 Pro plus Android emulator; local demo Firebase; no production deployment",
+  "apkSha256": {
+    "frontend/android/build/outputs/apk/debug/app-debug.apk": "9907a3b04aac39aa5c29a54dd60ef3305e8712c2a67bb976d7668bff82d43d9c",
+    "frontend/android/build/outputs/apk/benchmark/app-benchmark.apk": "cd8e0417565bb35da316ac92684dc182028cfc8518a8a0938867129483919ad7",
+    "core/data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk": "93d01a2ee77d5222e0d6439ca2b3f481e0d3273259501bc8d15baaf1969c1c7d",
+    "macrobenchmark/build/outputs/apk/benchmark/macrobenchmark-benchmark.apk": "7ac1f9afb9e9fef4b125dd1575d34bf7677d1a3740be3271ef9a67e695e8861c"
+  },
+  "units": [
+    {
+      "module": "domain",
+      "tests": 367,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "data",
+      "tests": 147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "app",
+      "tests": 117,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "rulesSha256": "699ae8ea9cf8353a3c93b7ae8e96ec85cd6dcd400a50272f09779b7914e54a3e",
+  "backend": {
+    "runs": [
+      {
+        "log": "build/step13/backend-all.log",
+        "tests": 56,
+        "passed": 56,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "log": "build/step13/rules.log",
+        "tests": 34,
+        "passed": 34,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "distinctPassedTests": 60,
+    "additionalAuditProbes": 4
+  },
+  "instrumentation": {
+    "dataPixel": {
+      "status": "passed",
+      "reportedTests": 64,
+      "seconds": 71.012,
+      "log": "build/step13/data-device.log"
+    },
+    "uiEmulator": {
+      "status": "passed",
+      "reportedTests": 82,
+      "seconds": 127.547,
+      "log": "build/step13/ui-emulator.log"
+    },
+    "uiPixel": {
+      "status": "passed",
+      "reportedTests": 75,
+      "seconds": 96.995,
+      "log": "build/step13/ui-pixel.log"
+    },
+    "cloudPixel": {
+      "status": "passed",
+      "reportedTests": 8,
+      "seconds": 68.0,
+      "log": "build/step13/recovery/cloud.log"
+    },
+    "processDeathRecovery": {
+      "status": "passed",
+      "reportedTests": 1,
+      "seconds": 0.267,
+      "log": "build/step13/recovery/crash-recover.log"
+    },
+    "pixelReceives": {
+      "status": "passed",
+      "reportedTests": 1,
+      "seconds": 63.535,
+      "log": "build/step13/recovery-final/primary-receives.log"
+    },
+    "emulatorSends": {
+      "status": "passed",
+      "reportedTests": 1,
+      "seconds": 0.787,
+      "log": "build/step13/recovery-final/primary-receives-send.log"
+    },
+    "emulatorReceives": {
+      "status": "passed",
+      "reportedTests": 1,
+      "seconds": 61.152,
+      "log": "build/step13/recovery-final/secondary-receives.log"
+    },
+    "pixelSends": {
+      "status": "passed",
+      "reportedTests": 1,
+      "seconds": 1.567,
+      "log": "build/step13/recovery-final/secondary-receives-send.log"
+    },
+    "playbackPixel": {
+      "status": "not_run_user_closed_validation",
+      "log": "build\\step13\\playback-instrumentation.log"
+    }
+  },
+  "app": {
+    "directory": "build/perf-baseline/20260912-211525",
+    "complete": false,
+    "processes": 1,
+    "expectedProcesses": 1,
+    "environment": {
+      "fingerprint": "google/cheetah_beta/cheetah:17/CP41.260814.003.A2/16182618:user/release-keys",
+      "size": "Physical size: 1440x3120",
+      "density": "Physical density: 560",
+      "fontScale": null,
+      "animatorScale": "1.0",
+      "transitionScale": "1.0",
+      "windowScale": "1.0",
+      "timestamp": "2026-09-12T21:15:25.1995107+05:30"
+    },
+    "measurements": {
+      "20260912-211525/idle.json": {
+        "cpuPercentOfOneCore": 0.6548984408763007,
+        "active": {
+          "japa.history": 0,
+          "progress.days": 0,
+          "progress.totals": 0
+        },
+        "workDelta": {
+          "auth.listener.attach": 0,
+          "auth.loadAccount": 0,
+          "auth.profile.get": 0,
+          "notification.registration.write": 0,
+          "reminder.owner.update": 0,
+          "render.shimmer.clock.start": 0,
+          "render.shimmer.clock.stop": 0,
+          "render.shimmer.composition": 0,
+          "room.BEGIN.other": 0,
+          "room.CREATE.backup_conflicts": 0,
+          "room.CREATE.japa_entries": 0,
+          "room.CREATE.other": 0,
+          "room.CREATE.purashcharana": 0,
+          "room.CREATE.recitation_sessions": 0,
+          "room.CREATE.targets": 0,
+          "room.DROP.japa_entries": 0,
+          "room.DROP.purashcharana": 0,
+          "room.DROP.recitation_sessions": 0,
+          "room.DROP.targets": 0,
+          "room.END.other": 0,
+          "room.INSERT.other": 0,
+          "room.INSERT.user_profiles": 0,
+          "room.SELECT.backup_conflicts": 0,
+          "room.SELECT.backup_state": 0,
+          "room.SELECT.other": 0,
+          "room.SELECT.purashcharana": 0,
+          "room.SELECT.recitation_sessions": 0,
+          "room.SELECT.targets": 0,
+          "room.SELECT.user_profiles": 0,
+          "room.TRANSACTION.other": 0,
+          "room.UPDATE.other": 0,
+          "room.UPDATE.user_profiles": 0,
+          "subscriptions.japa.history": 0,
+          "subscriptions.progress.days": 0,
+          "subscriptions.progress.totals": 0
+        }
+      },
+      "20260912-211525/navigation.json": {
+        "home": {
+          "n": 20,
+          "median": 268.283,
+          "p95": 335.357
+        },
+        "progress": {
+          "n": 20,
+          "median": 289.288,
+          "p95": 322.4
+        },
+        "settings": {
+          "n": 20,
+          "median": 278.997,
+          "p95": 317.92
+        }
+      },
+      "20260912-211525/startup-hot.json": {
+        "n": 20,
+        "median": 180.392,
+        "p95": 214.495
+      },
+      "20260912-211525/startup-warm.json": {
+        "n": 20,
+        "median": 225.72,
+        "p95": 343.271
+      },
+      "traces/com.mantrasiddhi.macrobenchmark-benchmarkData.json": {
+        "hotStartup": {
+          "frameCount": {
+            "n": 20,
+            "median": 3.0,
+            "p95": 4.0
+          },
+          "timeToInitialDisplayMs": {
+            "n": 20,
+            "median": 25.249,
+            "p95": 32.529
+          },
+          "frameDurationCpuMs": {
+            "n": 67,
+            "median": 8.503,
+            "p95": 12.583
+          },
+          "frameOverrunMs": {
+            "n": 67,
+            "median": -2.315,
+            "p95": 5.165,
+            "positiveOverrunPercent": 22.388
+          }
+        },
+        "warmStartup": {
+          "frameCount": {
+            "n": 20,
+            "median": 13.5,
+            "p95": 24.0
+          },
+          "timeToFullDisplayMs": {
+            "n": 20,
+            "median": 138.698,
+            "p95": 183.429
+          },
+          "timeToInitialDisplayMs": {
+            "n": 20,
+            "median": 75.109,
+            "p95": 96.841
+          },
+          "frameDurationCpuMs": {
+            "n": 315,
+            "median": 3.796,
+            "p95": 34.065
+          },
+          "frameOverrunMs": {
+            "n": 315,
+            "median": -7.919,
+            "p95": 31.299,
+            "positiveOverrunPercent": 25.714
+          }
+        },
+        "navigation": {
+          "frameCount": {
+            "n": 20,
+            "median": 133.0,
+            "p95": 136.0
+          },
+          "frameDurationCpuMs": {
+            "n": 2659,
+            "median": 3.536,
+            "p95": 8.985
+          },
+          "frameOverrunMs": {
+            "n": 2659,
+            "median": -9.778,
+            "p95": 1.162,
+            "positiveOverrunPercent": 5.566
+          }
+        }
+      }
+    }
+  },
+  "historyRetained": {
+    "directory": "build/perf-baseline/20260912-213134",
+    "complete": true,
+    "processes": 1,
+    "expectedProcesses": 1,
+    "environment": {
+      "fingerprint": "google/cheetah_beta/cheetah:17/CP41.260814.003.A2/16182618:user/release-keys",
+      "size": "Physical size: 1440x3120",
+      "density": "Physical density: 560",
+      "fontScale": null,
+      "animatorScale": "1.0",
+      "transitionScale": "1.0",
+      "windowScale": "1.0",
+      "timestamp": "2026-09-12T21:31:34.3026961+05:30"
+    },
+    "measurements": {
+      "completeHistorySamplesCombined": {
+        "0": {
+          "wallMs": {
+            "n": 20,
+            "median": 44.018,
+            "p95": 72.888
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 103.0,
+            "p95": 217
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 0.0,
+            "p95": 0
+          }
+        },
+        "1000": {
+          "wallMs": {
+            "n": 20,
+            "median": 612.272,
+            "p95": 656.552
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 2160.0,
+            "p95": 2472
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 4000.0,
+            "p95": 4000
+          }
+        },
+        "10000": {
+          "wallMs": {
+            "n": 20,
+            "median": 6787.776,
+            "p95": 7366.73
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 27062.0,
+            "p95": 30449
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 40000.0,
+            "p95": 40000
+          }
+        }
+      }
+    }
+  },
+  "historyFresh": {
+    "directory": "build/perf-baseline/20260912-213440",
+    "complete": true,
+    "processes": 20,
+    "expectedProcesses": 20,
+    "environment": {
+      "fingerprint": "google/cheetah_beta/cheetah:17/CP41.260814.003.A2/16182618:user/release-keys",
+      "size": "Physical size: 1440x3120",
+      "density": "Physical density: 560",
+      "fontScale": null,
+      "animatorScale": "1.0",
+      "transitionScale": "1.0",
+      "windowScale": "1.0",
+      "timestamp": "2026-09-12T21:34:40.5128364+05:30"
+    },
+    "measurements": {
+      "completeHistorySamplesCombined": {
+        "0": {
+          "wallMs": {
+            "n": 20,
+            "median": 94.684,
+            "p95": 112.374
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 299.5,
+            "p95": 336
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 0.0,
+            "p95": 0
+          }
+        },
+        "1000": {
+          "wallMs": {
+            "n": 20,
+            "median": 815.88,
+            "p95": 1012.086
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 2849.5,
+            "p95": 3244
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 4000.0,
+            "p95": 4000
+          }
+        },
+        "10000": {
+          "wallMs": {
+            "n": 20,
+            "median": 6480.753,
+            "p95": 8203.767
+          },
+          "cpuMs": {
+            "n": 20,
+            "median": 25549.5,
+            "p95": 29332
+          },
+          "selectQueries": {
+            "n": 20,
+            "median": 7.0,
+            "p95": 7
+          },
+          "mappedSessionRows": {
+            "n": 20,
+            "median": 40000.0,
+            "p95": 40000
+          }
+        }
+      }
+    }
+  },
+  "provisionalBudgets": {
+    "cachedNavigationP95Ms": {
+      "target": 250,
+      "observed": {
+        "home": 335.357,
+        "progress": 322.4,
+        "settings": 317.92
+      },
+      "passed": false
+    },
+    "navigationPositiveOverrunPercent": {
+      "targetLessThan": 5,
+      "observed": 5.566,
+      "passed": false
+    }
+  },
+  "limitations": [
+    "Two physical phones, stable OS and lower-end hardware are not covered.",
+    "Returning-account fixture was not fully controlled in the original baseline.",
+    "Room history timings are debug analytics, not optimized navigation at those sizes.",
+    "The broad account/slow-network/scroll release matrix and app-owned Baseline Profile remain open.",
+    "The initial app run had a cold readiness timeout; preserve it separately from the final rerun."
+  ],
+  "closure": "Closed at the user's request with completed evidence and accepted remaining limitations.",
+  "stoppedAtUserRequest": {
+    "directory": "build/perf-baseline/20260912-214625",
+    "complete": false,
+    "processes": 1,
+    "expectedProcesses": 1,
+    "environment": {
+      "fingerprint": "google/cheetah_beta/cheetah:17/CP41.260814.003.A2/16182618:user/release-keys",
+      "size": "Physical size: 1440x3120",
+      "density": "Physical density: 560",
+      "fontScale": "0.85",
+      "animatorScale": "1.0",
+      "transitionScale": "1.0",
+      "windowScale": "1.0",
+      "timestamp": "2026-09-12T21:46:25.9999789+05:30"
+    },
+    "measurements": {
+      "20260912-214625/idle.json": {
+        "cpuPercentOfOneCore": 0.6719893546240852,
+        "active": {
+          "japa.history": 0,
+          "progress.days": 0,
+          "progress.totals": 0
+        },
+        "workDelta": {
+          "auth.listener.attach": 0,
+          "auth.loadAccount": 0,
+          "auth.profile.get": 0,
+          "notification.registration.write": 0,
+          "reminder.owner.update": 0,
+          "render.shimmer.clock.start": 0,
+          "render.shimmer.clock.stop": 0,
+          "render.shimmer.composition": 0,
+          "room.BEGIN.other": 0,
+          "room.CREATE.backup_conflicts": 0,
+          "room.CREATE.japa_entries": 0,
+          "room.CREATE.other": 0,
+          "room.CREATE.purashcharana": 0,
+          "room.CREATE.recitation_sessions": 0,
+          "room.CREATE.targets": 0,
+          "room.DROP.japa_entries": 0,
+          "room.DROP.purashcharana": 0,
+          "room.DROP.recitation_sessions": 0,
+          "room.DROP.targets": 0,
+          "room.END.other": 0,
+          "room.INSERT.other": 0,
+          "room.INSERT.user_profiles": 0,
+          "room.SELECT.backup_conflicts": 0,
+          "room.SELECT.backup_state": 0,
+          "room.SELECT.other": 0,
+          "room.SELECT.purashcharana": 0,
+          "room.SELECT.recitation_sessions": 0,
+          "room.SELECT.targets": 0,
+          "room.SELECT.user_profiles": 0,
+          "room.TRANSACTION.other": 0,
+          "room.UPDATE.other": 0,
+          "room.UPDATE.user_profiles": 0,
+          "subscriptions.japa.history": 0,
+          "subscriptions.progress.days": 0,
+          "subscriptions.progress.totals": 0
+        }
+      },
+      "20260912-214625/startup-cold.json": {
+        "n": 20,
+        "median": 2417.234,
+        "p95": 3857.641
+      },
+      "20260912-214625/startup-hot.json": {
+        "n": 20,
+        "median": 183.677,
+        "p95": 199.101
+      },
+      "20260912-214625/startup-warm.json": {
+        "n": 20,
+        "median": 230.282,
+        "p95": 332.536
+      },
+      "traces/com.mantrasiddhi.macrobenchmark-benchmarkData.json": {
+        "hotStartup": {
+          "frameCount": {
+            "n": 20,
+            "median": 4.0,
+            "p95": 4.0
+          },
+          "timeToInitialDisplayMs": {
+            "n": 20,
+            "median": 29.78,
+            "p95": 39.969
+          },
+          "frameDurationCpuMs": {
+            "n": 71,
+            "median": 9.776,
+            "p95": 14.331
+          },
+          "frameOverrunMs": {
+            "n": 71,
+            "median": -0.37,
+            "p95": 6.665,
+            "positiveOverrunPercent": 49.296
+          }
+        },
+        "coldStartup": {
+          "frameCount": {
+            "n": 20,
+            "median": 17.0,
+            "p95": 25.0
+          },
+          "timeToFullDisplayMs": {
+            "n": 20,
+            "median": 2242.792,
+            "p95": 3692.564
+          },
+          "timeToInitialDisplayMs": {
+            "n": 20,
+            "median": 312.167,
+            "p95": 363.162
+          },
+          "frameDurationCpuMs": {
+            "n": 364,
+            "median": 7.635,
+            "p95": 53.398
+          },
+          "frameOverrunMs": {
+            "n": 364,
+            "median": -3.384,
+            "p95": 126.994,
+            "positiveOverrunPercent": 37.637
+          }
+        },
+        "warmStartup": {
+          "frameCount": {
+            "n": 20,
+            "median": 16.0,
+            "p95": 24.0
+          },
+          "timeToFullDisplayMs": {
+            "n": 20,
+            "median": 134.263,
+            "p95": 181.447
+          },
+          "timeToInitialDisplayMs": {
+            "n": 20,
+            "median": 75.514,
+            "p95": 83.93
+          },
+          "frameDurationCpuMs": {
+            "n": 317,
+            "median": 3.773,
+            "p95": 31.358
+          },
+          "frameOverrunMs": {
+            "n": 317,
+            "median": -7.829,
+            "p95": 30.707,
+            "positiveOverrunPercent": 23.659
+          }
+        }
+      }
+    }
+  },
+  "artwork": {
+    "comparisons": 210,
+    "maxMeanChannelError": 4.891,
+    "screenshots": 24
+  }
+}

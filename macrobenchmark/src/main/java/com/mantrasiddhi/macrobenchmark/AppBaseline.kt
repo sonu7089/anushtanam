@@ -124,15 +124,60 @@ class AppBaseline {
         }
     }
 
+    /** Opt-in real reference playback and hidden-screen work, with the baseline trace config. */
+    @Test fun playbackWork() {
+        assumeTrue(args.getString("playback") == "true" && signedIn)
+        val samples = JSONArray()
+        benchmark.measureRepeated(
+            packageName = PACKAGE, metrics = listOf(FrameTimingMetric()),
+            compilationMode = CompilationMode.None(), iterations = iterations,
+            experimentalConfig = traceConfig,
+            setupBlock = {
+                launchApp(); tap("practice")
+                check(device.wait(Until.hasObject(By.desc("Play the reference japa")), 30_000)) {
+                    "Reference player unavailable; check the existing voice/setup gate"
+                }
+                SystemClock.sleep(1000)
+            }
+        ) {
+            val before = snapshot()
+            device.findObject(By.desc("Play the reference japa")).click()
+            SystemClock.sleep(10_000)
+            checkNotNull(device.findObject(By.desc("Pause the reference japa"))).click()
+            val after = snapshot()
+            check(before.getInt("pid") == after.getInt("pid"))
+            val countsBefore = before.getJSONObject("counts")
+            val countsAfter = after.getJSONObject("counts")
+            val precision = countsAfter.optLong("playback.sample") - countsBefore.optLong("playback.sample")
+            val cosmetic = countsAfter.optLong("playback.position.publish") - countsBefore.optLong("playback.position.publish")
+            check(precision > 0 && cosmetic in 1 until precision) { "Playback did not retain separate precision/cosmetic updates" }
+            // Start again, then leave while playing: hidden-screen cancellation must own the stop.
+            device.findObject(By.desc("Play the reference japa")).click()
+            tap("home"); awaitTag("perf_home_ready")
+            SystemClock.sleep(1000)
+            val hiddenBefore = snapshot()
+            SystemClock.sleep(2000)
+            val hiddenAfter = snapshot()
+            check(hiddenBefore.getInt("pid") == hiddenAfter.getInt("pid"))
+            for (key in listOf("playback.sample", "playback.position.publish", "render.player.composition", "render.words.composition")) {
+                check(hiddenBefore.getJSONObject("counts").optLong(key) == hiddenAfter.getJSONObject("counts").optLong(key)) {
+                    "Hidden Practice continued work: $key"
+                }
+            }
+            if (iteration != null) samples.put(JSONObject().put("before", before).put("after", after)
+                .put("hiddenBefore", hiddenBefore).put("hiddenAfter", hiddenAfter))
+        }
+        save("playback", JSONObject().put("samples", samples))
+    }
+
     private fun tap(route: String) {
         val node = device.wait(Until.findObject(By.res("perf_tab_$route")), 15_000)
         checkNotNull(node) { "Missing navigation tab $route" }.click()
     }
 
     private fun launchApp(clearTask: Boolean = false) {
-        // The launcher is a short-lived SplashActivity. Macrobenchmark's gfxinfo
-        // waiter can lose that window after Main replaces it; wait for real content
-        // instead. Use the same MAIN/LAUNCHER/new-task/reset-task intent as a launcher.
+        // SplashActivity is now a launcher alias targeting Main. Keep the original
+        // explicit-content observer and launcher intent for baseline comparability.
         // Recreate activities for WARM while keeping the process alive. This is
         // normally supplied by MacrobenchmarkScope.startActivityAndWait.
         val flags = if (clearTask) "0x10208000" else "0x10200000"
@@ -143,8 +188,15 @@ class AppBaseline {
     }
 
     private fun awaitTag(tag: String) {
-        check(device.wait(Until.hasObject(By.res(tag)), 30_000)) {
-            "Timed out waiting for $tag; check account state, setup gates and permission dialogs"
+        if (!device.wait(Until.hasObject(By.res(tag)), 30_000)) {
+            val context = InstrumentationRegistry.getInstrumentation().context
+            val dir = File(context.getExternalFilesDir(null), "perf-failures").apply { mkdirs() }
+            val name = "$tag-${SystemClock.elapsedRealtime()}"
+            // Use this runner's existing UiAutomation connection, never a competing
+            // shell uiautomator process while instrumentation is active.
+            device.takeScreenshot(File(dir, "$name.png"))
+            device.dumpWindowHierarchy(File(dir, "$name.xml"))
+            error("Timed out waiting for $tag; diagnostics: $dir/$name; check account/setup/permission gates")
         }
     }
 

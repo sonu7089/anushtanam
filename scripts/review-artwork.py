@@ -1,5 +1,6 @@
 """Render source/derivative comparisons at actual placement pixels for visual QA."""
 import importlib.util
+import argparse
 import json
 import math
 import sys
@@ -12,7 +13,9 @@ sys.dont_write_bytecode = True
 exporter = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(exporter)
 design = ROOT/'frontend/android/design/artwork'
-out = ROOT/'build/step10/comparisons'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, default=ROOT/'build/step10/comparisons')
+out = parser.parse_args().output
 out.mkdir(parents=True, exist_ok=True)
 manifest = json.loads((design/'manifest.json').read_text())
 rows = []

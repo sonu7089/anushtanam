@@ -1,5 +1,7 @@
 # Database correctness and query audit
 
+**Final verification:** see the [step-13 finding disposition and evidence](step-13-verification.md). Original findings below describe the pre-fix code; unresolved release/acceptance gates are tracked explicitly in the final verification.
+
 Reviewed 12 September 2026 against source commit `5c5aaba`. This extends the [UI audit](README.md) and [lazy-loading plan](lazy-loading.md). See the separate [polling audit](polling-audit.md) for CPU wakeups and scheduling changes.
 
 **The local ledger has good transactional foundations, but the boundaries around it need work.** The highest-priority findings are a first-install profile-seeding race, non-atomic cloud-summary/child-goal accounting, permissive cloud validation, and a missing trigger for receiving remote-only ledger changes. Query optimization should follow or accompany those correctness fixes.

@@ -33,6 +33,7 @@ try {
         fingerprint = (AdbRead @('shell', 'getprop', 'ro.build.fingerprint'))
         size = (AdbRead @('shell', 'wm', 'size')); density = (AdbRead @('shell', 'wm', 'density'))
         timezone = (AdbRead @('shell', 'getprop', 'persist.sys.timezone'))
+        fontScale = (AdbRead @('shell', 'settings', 'get', 'system', 'font_scale'))
         animatorScale = (AdbRead @('shell', 'settings', 'get', 'global', 'animator_duration_scale'))
         transitionScale = (AdbRead @('shell', 'settings', 'get', 'global', 'transition_animation_scale'))
         windowScale = (AdbRead @('shell', 'settings', 'get', 'global', 'window_animation_scale'))

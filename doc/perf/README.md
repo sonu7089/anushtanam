@@ -1,5 +1,7 @@
 # UI performance audit
 
+**Final verification:** see the [step-13 finding disposition and evidence](step-13-verification.md). Original findings below describe the pre-fix code; unresolved release/acceptance gates are tracked explicitly in the final verification.
+
 **Start implementation with the [master fix roadmap](fix-roadmap.md).** It consolidates all audits into one ordered checklist and supersedes their individual implementation sequences.
 
 Reviewed 12 September 2026 against commit `5c5aaba`.

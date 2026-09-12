@@ -1,5 +1,7 @@
 # Polling, timers and CPU demand
 
+**Final verification:** see the [step-13 finding disposition and evidence](step-13-verification.md). Original findings below describe the pre-fix code; unresolved release/acceptance gates are tracked explicitly in the final verification.
+
 Reviewed 12 September 2026. Companion to the [database audit](database-audit.md). Frequencies below come from source code; they are not measured CPU consumption, battery drain or wake-lock activity. Coroutine `delay` suspends between checks, so reducing a timer matters mainly when it avoids expensive work on each tick or unnecessary background resumptions.
 
 **First remove repeated alarm re-arming and full-history capture. Then narrow the remaining timers to their actual deadlines and visible consumers.** Do not remove speech/playback safety timing merely because it uses a loop.

@@ -1,5 +1,7 @@
 # Placement-aware image delivery proposal
 
+**Final verification:** see the [step-13 finding disposition and evidence](step-13-verification.md). Original findings below describe the pre-fix code; unresolved release/acceptance gates are tracked explicitly in the final verification.
+
 **Implemented in step 10:** [actual variants, encoded savings, device decoding/visual checks and limitations](step-10-startup-images.md). The [artwork manifest and exporter instructions](../../frontend/android/design/artwork/README.md) describe the shipped pipeline. The original proposal and source-size evidence below are retained for context; proposed tiers are not the final generated inventory.
 
 ## What the files show
