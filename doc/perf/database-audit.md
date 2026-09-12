@@ -52,12 +52,12 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | ID | Priority | Finding | Evidence |
 | --- | --- | --- | --- |
 | DB-01 | P1, resolved | Async demo seed could overwrite a newly created real profile | Seed removed; production-factory Room regressions pass on device (see resolution below) |
-| DB-02 | P1 | Cloud summary and parent-goal deltas can be lost after a successful local save | Confirmed transaction/lifecycle gap; crash injection pending |
+| DB-02 | P1, resolved locally | Cloud summary and parent-goal deltas can be lost after a successful local save | Confirmed transaction/lifecycle gap; crash injection pending |
 | DB-03 | P1, fixed | Child goal rules allowed unexpected fields and invalid counts | Rejection regressions pass; rules deployed |
 | DB-04 | P1, fixed | Invalid owner records could poison restore; canonical writes could omit the feed | Validation/quarantine and atomic feed tests pass; rules deployed |
 | DB-05 | P1 | A settled device has no trigger to receive another device's ledger changes | Confirmed trigger gap; two-device timing test pending |
 | DB-06 | P1, resolved locally | Legacy target identities collide if a profile has multiple unfinished targets | Room v15 repair before uniqueness; all supported migration starts verified (see step 03) |
-| DB-07 | P2 | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
+| DB-07 | P2, resolved locally | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
 | DB-08 | P2 | Projection and backup repeatedly scan/serialize full history | Confirmed query/call structure |
 | DB-09 | P2 | Home/Progress day-dependent values do not necessarily refresh at midnight | Confirmed missing time input; device boundary test pending |
 | DB-10 | P2 | Missing lookup/order indexes; long lists remain unbounded | SQLite plans and instruction counts |
@@ -105,6 +105,10 @@ Process death, cancellation or enqueue failure after the local transaction can l
 **Fix:** enqueue all required accounting events inside the original local transaction, with session stable ID, original account and occurrence time. Make downstream projection idempotent by event identity. Preserve the rule that manual japa does not earn parent-assigned audio rewards. Reconcile existing compact summaries from canonical sessions rather than replaying anonymous increments. Do not add a second independent increment beside the existing path.
 
 **Test:** terminate immediately after local commit; restart/recover and verify ledger, full history, cloud analytics and assigned-goal progress agree exactly once. Test retries, account switch, midnight and competing attempts. The older `IncrementTargetUseCase` and `incrementJapa` repository API still mutate projections directly, but current evaluation does not invoke them; deprecate or constrain those legacy APIs instead of alleging current double increments from their unused constructor parameters.
+
+#### DB-02/07 resolution — step 06, 12 September 2026
+
+[Step 06](step-06-recoverable-counts.md) makes the canonical session the shared idempotency receipt: its compound event commits with Room, and cloud history/feed/summary/assigned-goal credit commit together. Room v16 preserves occurrence and eligibility inputs. A versioned canonical bootstrap replaces approximate seeds and repairs historical projections while archiving their old values. Verified 590 unit tests, 60 backend tests and 28 physical-device tests including process death, replay, concurrent uploads and historical correction. Debug builds and lint pass. Updated rules are verified locally and require deployment before production use; legacy date/role limits, missing historical sources and the two-device validation boundary are documented in the implementation notes.
 
 ### DB-03 — Cloud goal validation contradicts its stated field restriction
 

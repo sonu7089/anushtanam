@@ -56,7 +56,7 @@ import com.mantrasiddhi.data.local.entity.UserProfileEntity
         BackupQuarantineEntity::class,
         com.mantrasiddhi.data.local.entity.IdentityRepairEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -76,6 +76,16 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
         const val DATABASE_NAME = "mantra_siddhi_db"
 
         val MIGRATION_14_15: Migration = IdentityRepairMigration
+
+        val MIGRATION_15_16: Migration = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN projectionDate TEXT")
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN projectionZoneId TEXT")
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN childGoalEligible INTEGER")
+                // Every existing account gets one repair attempt, even with an empty outbox.
+                db.execSQL("UPDATE backup_state SET restorePending = 1")
+            }
+        }
 
         /** Mantra recorded for rows that predate the multi-mantra catalog (v7). */
         private const val LEGACY_MANTRA_ID = RecitationSessionEntity.LEGACY_MANTRA_ID
@@ -349,7 +359,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                     }, java.util.concurrent.Executor { it.run() })
                 }
             }
-            // Contiguous v1 to v15 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v16 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -367,7 +377,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_11_12,
                 MIGRATION_12_13,
                 MIGRATION_13_14,
-                MIGRATION_14_15
+                MIGRATION_14_15,
+                MIGRATION_15_16
             )
             .build()
         }

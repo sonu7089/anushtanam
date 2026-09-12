@@ -2,7 +2,6 @@ package com.mantrasiddhi.data.sync
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
-import com.google.firebase.Timestamp
 import com.mantrasiddhi.data.local.entity.CloudSyncEntity
 import com.mantrasiddhi.data.remote.FirebaseContract as F
 import com.mantrasiddhi.data.remote.awaitResult
@@ -22,10 +21,17 @@ class CloudSyncTransport @Inject constructor(
         check(auth.currentUser?.uid == uid)
         val japaEvents = events.filter { it.kind in setOf(SyncKind.JAPA_ENTRY, SyncKind.JAPA_GOAL,
             SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION) }
-        val legacy = events.filterNot { it in japaEvents }
+        // Anonymous historical deltas cannot be safely attributed. Canonical bootstrap
+        // repairs them instead of risking a second increment beside session delivery.
+        val legacy = events.filterNot { it in japaEvents || it.kind in setOf(SyncKind.PROGRESS, SyncKind.CHILD_GOAL) }
         if (legacy.isNotEmpty()) deliverLegacy(legacy)
         // Complete pre-cutover writes before establishing the legacy baseline once.
-        for (event in japaEvents) japaSync.deliver(uid, event.kind, CloudSyncPolicy.decode(event.payload))
+        for (event in japaEvents) {
+            val payload = CloudSyncPolicy.decode(event.payload)
+            if (event.kind == SyncKind.PRACTICE_RECORD && payload["type"] == "session")
+                japaSync.deliverSession(uid, payload, event)
+            else japaSync.deliver(uid, event.kind, payload)
+        }
     }
 
     private suspend fun deliverLegacy(events: List<CloudSyncEntity>) {
@@ -33,23 +39,13 @@ class CloudSyncTransport @Inject constructor(
         val payloads = events.associate { it.id to CloudSyncPolicy.decode(it.payload) }
         fun document(collection: String) = firestore.collection(collection).document(uid)
         val account = document(F.COLLECTION_USERS)
-        val progress = document(F.COLLECTION_PROGRESS)
         val target = document(F.COLLECTION_SELF_TARGETS)
         val sankalpa = document(F.COLLECTION_PURASHCHARANA)
         val kinds = events.map { it.kind }.toSet()
-        // Fetch only unfinished goals; checkpoints prevent replay from redirecting
-        // old japa to a later goal after the original one has completed.
-        val goals = if (SyncKind.CHILD_GOAL in kinds) {
-            firestore.collection(F.COLLECTION_GOALS).whereEqualTo(F.FIELD_CHILD_UID, uid)
-                .whereEqualTo(F.FIELD_IS_COMPLETED, false)
-                .get(Source.SERVER).awaitResult().documents.map { it.reference }
-        } else emptyList()
         val references = buildSet {
             add(account)
-            if (SyncKind.PROGRESS in kinds) add(progress)
             if (kinds.any { it in setOf(SyncKind.TARGET_CREATE, SyncKind.TARGET_INCREMENT, SyncKind.TARGET_CLEAR) }) add(target)
             if (SyncKind.PURASHCHARANA in kinds) add(sankalpa)
-            addAll(goals)
         }
         firestore.runTransaction { transaction ->
             check(auth.currentUser?.uid == uid)
@@ -64,14 +60,6 @@ class CloudSyncTransport @Inject constructor(
                 if (CloudSyncPolicy.acknowledged(checkpoints, event)) continue
                 val payload = payloads.getValue(event.id)
                 when (event.kind) {
-                    SyncKind.PROGRESS -> {
-                        val remote = state[progress].orEmpty()
-                        @Suppress("UNCHECKED_CAST")
-                        val markers = (remote[CloudSyncPolicy.CHECKPOINTS] as? Map<String, Any?>).orEmpty()
-                        state[progress] = CloudSyncPolicy.progress(remote, payload) +
-                            (CloudSyncPolicy.CHECKPOINTS to (markers + (event.streamId to event.id)))
-                        touched += progress
-                    }
                     SyncKind.TARGET_CREATE -> { state[target] = payload; touched += target }
                     SyncKind.TARGET_CLEAR -> { state[target] = null; touched += target }
                     SyncKind.TARGET_INCREMENT -> {
@@ -86,20 +74,6 @@ class CloudSyncTransport @Inject constructor(
                     SyncKind.PURASHCHARANA -> {
                         state[sankalpa] = CloudSyncPolicy.purashcharana(state[sankalpa].orEmpty(), payload)
                         touched += sankalpa
-                    }
-                    SyncKind.CHILD_GOAL -> {
-                        val active = goals.filter { ref ->
-                            val data = state[ref].orEmpty()
-                            data[F.FIELD_CHILD_UID] == uid && data[F.FIELD_IS_COMPLETED] != true &&
-                                (data[F.FIELD_CREATED_AT] as? Timestamp)?.toDate()?.time?.let { it <= event.createdAtMs } == true
-                        }.minByOrNull { (state[it]?.get(F.FIELD_CREATED_AT) as Timestamp).toDate().time }
-                        if (active != null) {
-                            val remote = state[active].orEmpty()
-                            val count = remote.long(F.FIELD_CURRENT_COUNT) + 1
-                            state[active] = remote + mapOf(F.FIELD_CURRENT_COUNT to count,
-                                F.FIELD_IS_COMPLETED to (count >= remote.long(F.FIELD_TARGET_COUNT)))
-                            touched += active
-                        }
                     }
                     else -> error("Unknown deferred sync operation: ${event.kind}")
                 }

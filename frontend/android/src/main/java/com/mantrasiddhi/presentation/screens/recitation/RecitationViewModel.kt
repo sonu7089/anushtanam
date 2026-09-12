@@ -53,9 +53,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -176,7 +173,6 @@ class RecitationViewModel @Inject constructor(
             teachingNotifications?.setPracticing(value)
         }
     private var listeningJob: Job? = null
-    private val cloudGoalMutex = Mutex()
 
     // --- Continuous-session segmentation state (all touched on the main dispatcher) ---
 
@@ -559,23 +555,7 @@ class RecitationViewModel @Inject constructor(
                 confidence = confidence
             )
 
-            // Parent-set cloud goals synchronize independently of local feedback.
-            // Serialize increments so rapid attempts cannot race the same cloud goal.
-            if (evaluation.isCorrect) {
-                viewModelScope.launch {
-                    cloudGoalMutex.withLock {
-                        if (activeUser?.id == user.id && activeUser?.firebaseUid == user.firebaseUid) {
-                            try {
-                                withTimeoutOrNull(8_000L) { incrementActiveCloudGoalUseCase(user.firebaseUid) }
-                            } catch (cancelled: CancellationException) {
-                                throw cancelled
-                            } catch (_: Exception) {
-                                // Local counting already succeeded; cloud goals are best-effort.
-                            }
-                        }
-                    }
-                }
-            }
+            // Saving the session also durably queues summary and assigned-goal accounting.
 
             // Silent visual confirmation. Bumping the id here — and only here — is what
             // makes JapaCountedPulse fire exactly one expanding ring per counted japa. The

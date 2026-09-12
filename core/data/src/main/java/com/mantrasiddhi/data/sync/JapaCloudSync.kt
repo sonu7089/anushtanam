@@ -25,6 +25,10 @@ class JapaCloudSync @Inject constructor(
     private val backup: PracticeBackupStore
 ) {
     private val restoreLock = Mutex()
+    private val projections = SessionProjectionSync(firestore, auth)
+
+    suspend fun deliverSession(uid: String, payload: Map<String, Any?>, event: CloudSyncEntity) =
+        projections.deliver(uid, payload, event)
 
     /** Called inside the same Room transaction as the practice or goal change. */
     suspend fun enqueue(userId: Long, before: List<JapaEntryEntity> = emptyList()) {
@@ -104,6 +108,10 @@ class JapaCloudSync @Inject constructor(
 
     suspend fun deliver(uid: String, kind: String, payload: Map<String, Any?>) {
         check(auth.currentUser?.uid == uid)
+        if (kind == SyncKind.PRACTICE_RECORD && payload.text("type") == "session") {
+            projections.deliver(uid, payload)
+            return
+        }
         val owner = firestore.collection("users").document(uid)
         val collection = when (kind) {
             SyncKind.JAPA_ENTRY -> "japaEntries"
@@ -175,6 +183,7 @@ class JapaCloudSync @Inject constructor(
     suspend fun restore(uid: String) = restoreLock.withLock {
         check(auth.currentUser?.uid == uid)
         val user = database.userDao().getByFirebaseUid(uid) ?: return@withLock
+        projections.ensureReady(uid)
         val owner = firestore.collection("users").document(uid)
         val merger = JapaReplicaMerger(database)
         val restorer = BackupRecordRestorer(database, backup)

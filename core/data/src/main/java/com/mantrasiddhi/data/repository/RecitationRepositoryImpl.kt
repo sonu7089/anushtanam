@@ -30,14 +30,22 @@ class RecitationRepositoryImpl @Inject constructor(
 
     override suspend fun saveSession(session: RecitationSession): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {
-            require(database.userDao().getById(session.userId) != null) { "Unknown session owner" }
+            val owner = requireNotNull(database.userDao().getById(session.userId)) { "Unknown session owner" }
             require(session.stableId.isNotBlank()) { "Session identity is required" }
             val old = if (session.id > 0) requireNotNull(database.backupDao().sessionByLocalId(session.id)) {
                 "Unknown saved session"
             } else database.backupDao().session(session.userId, session.stableId)
-            val row = RecitationSessionEntity.fromDomain(session)
+            val zone = java.time.ZoneId.systemDefault()
+            val row = RecitationSessionEntity.fromDomain(session).copy(
+                projectionDate = java.time.Instant.ofEpochMilli(session.createdAt).atZone(zone).toLocalDate().toString(),
+                projectionZoneId = zone.id,
+                childGoalEligible = owner.profileType == "CHILD" && session.isCorrect &&
+                    session.mode == com.mantrasiddhi.domain.model.RecitationMode.NORMAL
+            )
             if (old != null) {
-                require(row.copy(id = old.id, acceptedEntryId = old.acceptedEntryId) == old) { "Saved assessments are immutable" }
+                require(row.copy(id = old.id, acceptedEntryId = old.acceptedEntryId,
+                    projectionDate = old.projectionDate, projectionZoneId = old.projectionZoneId,
+                    childGoalEligible = old.childGoalEligible) == old) { "Saved assessments are immutable" }
                 return@withTransaction old.id
             }
             val before = database.japaDao().entries(session.userId)

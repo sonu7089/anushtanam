@@ -36,7 +36,11 @@ data class RecitationSessionEntity(
     val pronunciation: Double = overallScore,
     @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString(),
     /** Eventual backlink metadata, separate from the immutable assessment. */
-    val acceptedEntryId: String? = null
+    val acceptedEntryId: String? = null,
+    /** Occurrence metadata for durable cloud counting; null denotes pre-v16 history. */
+    val projectionDate: String? = null,
+    val projectionZoneId: String? = null,
+    val childGoalEligible: Boolean? = null
 ) {
     fun toDomain(): RecitationSession {
         return RecitationSession(

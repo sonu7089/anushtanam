@@ -63,7 +63,15 @@ internal object BackupRecordValidator {
     private fun practice(d: Map<String, Any?>) {
         when (d["type"]) {
             "session" -> {
-                d.fields("type id entryId mantraId mode overallScore wordScoresJson transcription isCorrect durationMs createdAt correctness completeness pronunciation")
+                d.fields("type id entryId mantraId mode overallScore wordScoresJson transcription isCorrect durationMs createdAt correctness completeness pronunciation",
+                    "projectionDate projectionZoneId childGoalEligible")
+                if (d.keys.any { it in setOf("projectionDate", "projectionZoneId", "childGoalEligible") }) {
+                    d.string("projectionZoneId", 200); d.bool("childGoalEligible")
+                    val zone = ZoneId.of(d.text("projectionZoneId"))
+                    require(d.text("projectionDate") == java.time.Instant.ofEpochMilli(d.integer("createdAt"))
+                        .atZone(zone).toLocalDate().toString()) { "Invalid occurrence date" }
+                    require(d["childGoalEligible"] != true || (d["mode"] == "NORMAL" && d["isCorrect"] == true)) { "Ineligible reward session" }
+                }
                 d.nullableId("entryId"); d.identifier("mantraId")
                 require(d["mode"] in setOf("PRACTICE", "NORMAL")) { "Invalid session mode" }
                 for (field in listOf("overallScore", "correctness", "completeness", "pronunciation")) {

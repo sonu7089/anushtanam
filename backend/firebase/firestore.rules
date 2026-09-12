@@ -266,6 +266,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Preserve pre-repair projections without exposing private source history to parents.
+    match /users/{uid}/projectionRepairs/{repairId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['version', 'kind', 'value', 'createdAt']) &&
+        request.resource.data.version == 2 && request.resource.data.kind in ['progress', 'goal'] &&
+        request.resource.data.value is map && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     // Editable japa is private to its owner and never writes parent-assigned rewards.
     match /users/{uid}/japaEntries/{entryId} {
       allow read: if isSignedIn() && request.auth.uid == uid;
@@ -301,7 +311,12 @@ service cloud.firestore {
         return v1(d) && identity(d.id) && recordId == d.type + '_' + d.id && (
           (d.type == 'session' && d.keys().hasOnly(['type', 'id', 'entryId', 'mantraId', 'mode',
             'overallScore', 'wordScoresJson', 'transcription', 'isCorrect', 'durationMs', 'createdAt',
-            'correctness', 'completeness', 'pronunciation', 'schemaVersion']) &&
+            'correctness', 'completeness', 'pronunciation', 'schemaVersion',
+            'projectionDate', 'projectionZoneId', 'childGoalEligible']) &&
+            (!('projectionDate' in d) && !('projectionZoneId' in d) && !('childGoalEligible' in d) ||
+              (d.projectionDate is string && d.projectionDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
+               zone(d.projectionZoneId) && d.childGoalEligible is bool &&
+               (!d.childGoalEligible || (d.mode == 'NORMAL' && d.isCorrect)))) &&
             nullableId(d.entryId) && d.mode in ['PRACTICE', 'NORMAL'] && identity(d.mantraId) && d.isCorrect is bool &&
             score(d.overallScore) && score(d.correctness) && score(d.completeness) &&
             score(d.pronunciation) && count(d.durationMs) && millis(d.createdAt) &&
@@ -323,7 +338,17 @@ service cloud.firestore {
         );
       }
       allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && published(uid, 'practice', recordId, request.resource.data);
+      function sessionCounted() {
+        let ref = /databases/$(database)/documents/progress/$(uid);
+        let after = getAfter(ref).data;
+        return !exists(ref) || !('sessionProjectionVersion' in get(ref).data) ||
+          (after.sessionProjectionVersion == 2 &&
+           after.sessionProjectionRevision == get(ref).data.sessionProjectionRevision + 1 &&
+           after.totalSessions == get(ref).data.totalSessions + 1);
+      }
+      allow create: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) &&
+        published(uid, 'practice', recordId, request.resource.data) &&
+        (request.resource.data.type != 'session' || sessionCounted());
       allow update: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && published(uid, 'practice', recordId, request.resource.data) && (
         request.resource.data == resource.data ||
         (resource.data.type == 'sandhya' && request.resource.data.diff(resource.data).affectedKeys()
@@ -393,7 +418,15 @@ service cloud.firestore {
         request.auth.uid == uid ||
         isApprovedLink(request.auth.uid, uid)
       );
-      allow write: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      // Cutover is permanent. Old anonymous increments cannot corrupt a repaired summary.
+      allow update: if isSignedIn() && request.auth.uid == uid &&
+        (!('sessionProjectionVersion' in resource.data) ||
+          (request.resource.data.sessionProjectionVersion >= resource.data.sessionProjectionVersion &&
+           (request.resource.data.sessionProjectionRevision > resource.data.sessionProjectionRevision ||
+            (request.resource.data.sessionProjectionRevision == resource.data.sessionProjectionRevision &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['syncCheckpoints', 'updatedAt'])))));
+      allow delete: if isSignedIn() && request.auth.uid == uid && !('sessionProjectionVersion' in resource.data);
     }
   }
 }

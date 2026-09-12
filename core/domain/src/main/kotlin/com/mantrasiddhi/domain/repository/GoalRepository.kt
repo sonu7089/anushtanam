@@ -28,12 +28,7 @@ interface GoalRepository {
     /** Parent stream: goals the signed-in parent set for [childUid]. */
     fun goalsForParentAndChild(childUid: String): Flow<List<CloudGoal>>
 
-    /**
-     * Child action: increment the child's active (non-completed, oldest) goal by 1,
-     * marking it completed once the target is reached. No-op when no active goal exists.
-     *
-     * The durable implementation queues this locally and returns false. Completion
-     * arrives through goalsForChild after the deferred upload.
-     */
+    /** Retired anonymous API; implementations reject it. Save a stable session instead. */
+    @Deprecated("Use RecitationRepository.saveSession; anonymous increments cannot be recovered")
     suspend fun incrementActiveGoalProgress(expectedChildUid: String): Result<Boolean>
 }

@@ -21,10 +21,10 @@ class IdentityMigrationTest {
         MantraSiddhiDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
     private val migrations = with(MantraSiddhiDatabase) { arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15) }
+        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16) }
 
     @Test fun everySupportedStartingVersionPreservesMixedHistoryThroughProductionChain() {
-        for (version in 1..14) {
+        for (version in 1..15) {
             val name = "identity-chain-$version-${UUID.randomUUID()}"
             try {
                 // v1-v3 predate committed Room exports. Reconstruct only their documented
@@ -36,14 +36,14 @@ class IdentityMigrationTest {
                     for (id in 1..4) insert(db, "targets", mapOf("id" to id, "userId" to if (id == 4) 8 else 7, "setByUserId" to 7,
                         "targetRecitationCount" to 108, "currentRecitationCount" to if (id == 3) 108 else 32, "moneyAmount" to 5.0,
                         "rewardType" to "OTHER", "rewardDescription" to "history", "isCompleted" to if (id == 3) 1 else 0,
-                        "stableId" to if (id == 3) "complete" else "legacy-target", "baselineCount" to if (id == 3) 108 else 32, "startedAtMillis" to 100))
+                        "stableId" to if (id == 3) "complete" else if (version >= 15 && id == 2) "second-target" else "legacy-target", "baselineCount" to if (id == 3) 108 else 32, "startedAtMillis" to 100))
                     for (id in 1..2) insert(db, "recitation_sessions", mapOf("id" to id, "userId" to 7, "mantraId" to "gayatri",
                         "mode" to if (id == 1) "NORMAL" else "PRACTICE", "overallScore" to .75, "wordScoresJson" to "om:0.75",
                         "transcription" to "om", "isCorrect" to 1, "durationMs" to 5000, "createdAt" to 1700000000000L,
                         "correctness" to .75, "completeness" to .75, "pronunciation" to .75, "stableId" to "session-$id"))
                     if (version >= 6) for (id in 1..2) insert(db, "purashcharana", mapOf("id" to id, "userId" to 7,
                         "mantraId" to "gayatri", "mantraAksharaCount" to 24, "targetJapaCount" to 2400000, "currentJapaCount" to 500,
-                        "startedAtMillis" to 100, "completedAtMillis" to null, "isActive" to 1, "stableId" to "legacy-vow-100", "baselineCount" to 500))
+                        "startedAtMillis" to 100, "completedAtMillis" to null, "isActive" to 1, "stableId" to if (version >= 15) "vow-$id" else "legacy-vow-100", "baselineCount" to 500))
                     if (version >= 4) insert(db, "sandhya_logs", mapOf("id" to 1, "userId" to 7, "period" to "SAYAM", "scheduledEpochMillis" to 100,
                         "status" to "OBSERVED", "observedEpochMillis" to 101, "dateKey" to "20260910"))
                     if (version >= 9) {
@@ -55,7 +55,7 @@ class IdentityMigrationTest {
                         "period" to "SAYAM", "quantity" to 108, "revision" to 1, "createdAtMillis" to 100, "targetId" to null, "vowId" to null,
                         "source" to "SANDHYA", "sessionId" to null, "updatedAtMillis" to 100, "operationId" to "manual"))
                 }
-                helper.runMigrationsAndValidate(name, 15, true, *migrations).use { db ->
+                helper.runMigrationsAndValidate(name, 16, true, *migrations).use { db ->
                     assertEquals("v$version profiles", 2L, number(db, "SELECT COUNT(*) FROM user_profiles"))
                     assertEquals(2L, number(db, "SELECT COUNT(*) FROM recitation_sessions"))
                     assertEquals(10000L, number(db, "SELECT SUM(durationMs) FROM recitation_sessions"))
@@ -74,7 +74,7 @@ class IdentityMigrationTest {
                 }
                 // Open/reopen through the actual production builder as well as the schema helper.
                 repeat(2) { MantraSiddhiDatabase.buildDatabase(context, name).let { db ->
-                    try { assertEquals(15, db.openHelper.writableDatabase.version) } finally { db.close() }
+                    try { assertEquals(16, db.openHelper.writableDatabase.version) } finally { db.close() }
                 } }
             } finally { context.deleteDatabase(name) }
         }

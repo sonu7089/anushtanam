@@ -96,20 +96,10 @@ class CloudSyncTransportTest {
         assertEquals(3L, server.getValue(doc(F.COLLECTION_SELF_TARGETS))[F.FIELD_CURRENT_COUNT])
     }
 
-    @Test fun `progress seeds once and checkpoint prevents duplicate recitations`() = runTest {
+    @Test fun `anonymous progress and reward deltas are retired without double credit`() = runTest {
         val transport = transport()
-        fun progress(id: Long, score: Double) = event(id, SyncKind.PROGRESS, mapOf(
-            "score" to score, "correct" to true, "date" to "2026-09-06",
-            "seed" to mapOf(F.FIELD_TOTAL_SESSIONS to id, F.FIELD_CORRECT_SESSIONS to id,
-                F.FIELD_SCORE_SUM to score, F.FIELD_BEST_SCORE to score)))
-        val batch = listOf(progress(1, 0.9), progress(2, 1.0))
-        transport.deliver(batch)
-        transport.deliver(batch)
-        val result = server.getValue(doc(F.COLLECTION_PROGRESS))
-        assertEquals(2L, result[F.FIELD_TOTAL_SESSIONS])
-        assertEquals(1.9, result[F.FIELD_SCORE_SUM])
-        assertEquals(mapOf("device" to 2L), result[CloudSyncPolicy.CHECKPOINTS])
-        assertEquals(1, writes.count { it == doc(F.COLLECTION_PROGRESS) })
+        transport.deliver(listOf(event(1, SyncKind.PROGRESS), event(2, SyncKind.CHILD_GOAL)))
+        assertTrue(writes.isEmpty())
     }
 
     @Test fun `cleared target stays deleted when its batch is replayed`() = runTest {
@@ -132,31 +122,4 @@ class CloudSyncTransportTest {
         verify(exactly = 0) { firestore.runTransaction(any<Transaction.Function<Unit>>()) }
     }
 
-    @Test fun `goal completion replay does not credit the next goal or one created after recitation`() = runTest {
-        val transport = transport()
-        val goalRefs = listOf(doc("first-goal"), doc("next-goal"), doc("future-goal"))
-        for ((index, ref) in goalRefs.withIndex()) server[ref] = mapOf(
-            F.FIELD_CHILD_UID to "owner", F.FIELD_PARENT_UID to "parent",
-            F.FIELD_IS_COMPLETED to false, F.FIELD_CURRENT_COUNT to 0L,
-            F.FIELD_TARGET_COUNT to 1L, F.FIELD_CREATED_AT to Timestamp(Date(if (index == 2) 2_000 else index.toLong())))
-        val query = mockk<Query>()
-        val collection = mockk<CollectionReference>()
-        every { firestore.collection(F.COLLECTION_GOALS) } returns collection
-        every { collection.whereEqualTo(F.FIELD_CHILD_UID, "owner") } returns query
-        every { query.whereEqualTo(F.FIELD_IS_COMPLETED, false) } returns query
-        every { query.get(Source.SERVER) } answers {
-            val docs = goalRefs.filter { server[it]?.get(F.FIELD_IS_COMPLETED) == false }.map { ref ->
-                mockk<DocumentSnapshot> { every { reference } returns ref }
-            }
-            completedTask(mockk<QuerySnapshot> { every { documents } returns docs })
-        }
-        val batch = listOf(event(1, SyncKind.CHILD_GOAL), event(2, SyncKind.CHILD_GOAL), event(3, SyncKind.CHILD_GOAL))
-        transport.deliver(batch)
-        assertEquals(true, server.getValue(goalRefs[0])[F.FIELD_IS_COMPLETED])
-        assertEquals(true, server.getValue(goalRefs[1])[F.FIELD_IS_COMPLETED])
-        assertEquals(0L, server.getValue(goalRefs[2])[F.FIELD_CURRENT_COUNT])
-        writes.clear()
-        transport.deliver(batch)
-        assertTrue(writes.isEmpty())
-    }
 }

@@ -89,12 +89,9 @@ class FirestoreGoalRepositoryImpl @Inject constructor(
             .catch { emit(emptyList()) }
     }
 
-    override suspend fun incrementActiveGoalProgress(expectedChildUid: String): Result<Boolean> = runCatching {
-        check(auth.currentUser?.uid == expectedChildUid) { "Account changed" }
-        outbox.enqueue(expectedChildUid, SyncKind.CHILD_GOAL, emptyMap())
-        // Completion arrives through goalsForChild after synchronization.
-        false
-    }
+    @Deprecated("Assigned-goal credit is committed with a stable saved session")
+    override suspend fun incrementActiveGoalProgress(expectedChildUid: String): Result<Boolean> =
+        Result.failure(UnsupportedOperationException("A stable saved session is required"))
 
     private fun DocumentSnapshot.toGoal(): CloudGoal? {
         val parentUid = getString(FirebaseContract.FIELD_PARENT_UID) ?: return null

@@ -22,7 +22,7 @@ class FirestoreGoalRepositoryTest {
         coVerify(exactly = 0) { outbox.enqueue(any(), any(), any()) }
     }
 
-    @Test fun `outbox retains the captured owner if identity changes while enqueue suspends`() = runTest {
+    @Test fun `anonymous reward API rejects even the current owner`() = runTest {
         var uid = "A"
         val auth = mockk<FirebaseAuth>()
         every { auth.currentUser } returns mockk<FirebaseUser> { every { this@mockk.uid } answers { uid } }
@@ -32,8 +32,8 @@ class FirestoreGoalRepositoryTest {
         }
         val accounts = mockk<AuthRepository> { every { currentAccount } returns flowOf(null) }
         val repository = FirestoreGoalRepositoryImpl(auth, mockk(), outbox, accounts, backgroundScope)
-        assertEquals(false, repository.incrementActiveGoalProgress("A").getOrThrow())
-        coVerify(exactly = 1) { outbox.enqueue("A", SyncKind.CHILD_GOAL, emptyMap()) }
+        assertTrue(repository.incrementActiveGoalProgress("A").isFailure)
+        coVerify(exactly = 0) { outbox.enqueue("A", SyncKind.CHILD_GOAL, emptyMap()) }
         coVerify(exactly = 0) { outbox.enqueue("B", any(), any()) }
     }
 }
