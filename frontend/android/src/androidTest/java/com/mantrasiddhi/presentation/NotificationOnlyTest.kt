@@ -47,6 +47,10 @@ class NotificationOnlyTest {
             assertFalse(manager.activeNotifications.any { it.tag == "teaching_${note.campaignId}" })
             notifications.setPracticing(false)
             notifications.displayNudge(note)
+            // NotificationManager enqueues delivery in another process; wait for that acknowledgement.
+            val deadline = android.os.SystemClock.elapsedRealtime() + 5_000
+            while (manager.activeNotifications.none { it.tag == "teaching_${note.campaignId}" } &&
+                android.os.SystemClock.elapsedRealtime() < deadline) Thread.sleep(25)
             val posted = manager.activeNotifications.first { it.tag == "teaching_${note.campaignId}" }
             assertEquals(note.title, posted.notification.extras.getString(Notification.EXTRA_TITLE))
             assertEquals(note.body, posted.notification.extras.getString(Notification.EXTRA_TEXT))

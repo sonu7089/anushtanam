@@ -31,8 +31,6 @@ import com.mantrasiddhi.presentation.screens.home.components.SadhanaWisdomCard
 import com.mantrasiddhi.domain.model.TeachingMessage
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -68,26 +66,13 @@ fun HomeScreen(
             onUsable()
         }
     }
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val now = rememberDeadlineTime(listOfNotNull(reflection?.publishedAt, reflection?.expiresAt))
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner, viewModel) {
         val model = viewModel ?: return@LaunchedEffect
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             model.refreshReflection()
             try { kotlinx.coroutines.awaitCancellation() } finally { model.stopReflection() }
-        }
-    }
-    LaunchedEffect(owner, reflection) {
-        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            now = System.currentTimeMillis()
-            try {
-                val end = reflection?.expiresAt
-                if (end != null && end > now) {
-                    delay((end - System.currentTimeMillis()).coerceAtLeast(1))
-                    now = System.currentTimeMillis()
-                }
-                kotlinx.coroutines.awaitCancellation()
-            } finally { /* Deadline cancelled while hidden. */ }
         }
     }
     if (uiState is HomeUiState.Error) {

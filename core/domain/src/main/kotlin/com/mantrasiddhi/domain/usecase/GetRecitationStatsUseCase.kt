@@ -30,12 +30,13 @@ data class RecitationOverviewStats(
  * UseCase to calculate recitation overview statistics.
  */
 class GetRecitationStatsUseCase @Inject constructor(
-    private val recitationRepository: RecitationRepository
+    private val recitationRepository: RecitationRepository,
+    private val calendarTime: com.mantrasiddhi.domain.util.CalendarTime = com.mantrasiddhi.domain.util.CalendarTime()
 ) {
     operator fun invoke(userId: Long): Flow<RecitationOverviewStats> = kotlinx.coroutines.flow.combine(
-        recitationRepository.observeTotals(userId), recitationRepository.observePracticeDays(userId)
-    ) { totals, days ->
+        recitationRepository.observeTotals(userId), recitationRepository.observePracticeDays(userId), calendarTime.days()
+    ) { totals, days, calendar ->
         RecitationOverviewStats(totals.total, totals.correct, totals.average,
-            days.currentStreak(), totals.best)
+            days.currentStreak(calendar.first), totals.best)
     }.flowOn(kotlinx.coroutines.Dispatchers.Default)
 }

@@ -14,6 +14,10 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProgressViewModelTest {
+    private val calendarDays = MutableStateFlow(java.time.LocalDate.now() to java.time.ZoneId.systemDefault())
+    private val calendarTime = mockk<com.mantrasiddhi.domain.util.CalendarTime> {
+        every { days(any()) } returns calendarDays
+    }
     private val dispatcher = UnconfinedTestDispatcher()
     private val user = MutableStateFlow<UserProfile?>(UserProfile(1, "Fixture", ProfileType.INDIVIDUAL, avatarIndex = 0))
     private val current = mockk<GetCurrentUserUseCase> { every { this@mockk.invoke() } returns user }
@@ -39,7 +43,7 @@ class ProgressViewModelTest {
                 .map { SessionHistoryRow(it, 100, "NORMAL", .9, true, 1000) }
             counted("history", rows)
         }
-        vm = ProgressViewModel(current, stats, sessions, cloud, japa)
+        vm = ProgressViewModel(current, stats, sessions, cloud, japa, calendarTime)
     }
     @AfterEach fun cleanup() { ViewModelStore().apply { put("progress", vm); clear() }; Dispatchers.resetMain() }
     private fun state() = vm.uiState.value as ProgressUiState.Success
@@ -125,5 +129,18 @@ class ProgressViewModelTest {
         assertEquals(0, active["stats"])
         assertEquals(1, active["japa"])
         verify(exactly = 1) { japa(1) }
+    }
+
+    @Test fun `midnight shifts japa dates and bounded score range without reading hidden history`() = runTest(dispatcher) {
+        val watch = backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        vm.selectTab(1)
+        val previous = state().dailyCounts.map { it.dateMillis }
+        calendarDays.value = calendarDays.value.first.plusDays(1) to calendarDays.value.second
+        assertEquals(previous.drop(1), state().dailyCounts.dropLast(1).map { it.dateMillis })
+        vm.selectTab(2)
+        calendarDays.value = calendarDays.value.first.plusDays(1) to calendarDays.value.second
+        verify(exactly = 2) { sessions.observeScoreDays(any(), any(), any()) }
+        verify(exactly = 0) { sessions.observeHistoryPage(any(), any(), any(), any()) }
+        watch.cancel()
     }
 }

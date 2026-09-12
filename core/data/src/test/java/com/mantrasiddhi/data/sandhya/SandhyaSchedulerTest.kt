@@ -28,6 +28,7 @@ class SandhyaSchedulerTest {
     @Test fun `all three periods have independent preparation and event times`() = runTest {
         val upcoming = scheduler().upcoming(settings, now)
         assertEquals(6, upcoming.size)
+        coVerify(exactly = 1) { logs.getLogs(7) }
         SandhyaPeriod.entries.forEach { period ->
             val prepare = upcoming.getValue(period to SandhyaReminderStage.PREPARATION)
             val event = upcoming.getValue(period to SandhyaReminderStage.EVENT)
@@ -40,6 +41,7 @@ class SandhyaSchedulerTest {
         assertTrue(scheduler.upcoming(settings.copy(enabled = false), now).isEmpty())
         assertTrue(scheduler.upcoming(settings.copy(userId = 0), now).isEmpty())
         assertTrue(scheduler.upcoming(settings.copy(preparationEnabled = false, eventEnabled = false), now).isEmpty())
+        coVerify(exactly = 0) { logs.getLogs(any()) }
     }
     @Test fun `turning off one stage leaves the other and late enablement keeps todays event`() = runTest {
         val scheduler = scheduler()
@@ -66,5 +68,19 @@ class SandhyaSchedulerTest {
         coEvery { prefs.deliveredDate(7, SandhyaPeriod.PRATAH, SandhyaReminderStage.PREPARATION) } returns date
         val next = scheduler.upcoming(settings, now).getValue(SandhyaPeriod.PRATAH to SandhyaReminderStage.PREPARATION)
         assertNotEquals(date, SandhyaDateKey.of(next.eventMillis, settings.zone()))
+    }
+
+    @Test fun `supplied logs and cached calendar serve deadline updates without another read`() = runTest {
+        val scheduler = scheduler()
+        val probe = com.mantrasiddhi.domain.diagnostics.WorkProbe
+        val enabled = probe.enabled
+        probe.enabled = true
+        try {
+            val first = scheduler.upcoming(settings, now, emptyList())
+            val computations = probe.snapshot().first["reminder.solar.compute"]
+            assertEquals(first, scheduler.upcoming(settings, now + 30_000, emptyList()))
+            assertEquals(computations, probe.snapshot().first["reminder.solar.compute"])
+            coVerify(exactly = 0) { logs.getLogs(any()) }
+        } finally { probe.enabled = enabled }
     }
 }

@@ -18,6 +18,43 @@ import org.junit.Test
 import java.util.UUID
 
 class TeachingNotificationTest {
+    @Test fun unchangedPermissionRefreshAndEmptyMaintenanceDoNotCommitPreferences() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val base = instrumentation.targetContext
+        val name = "maintenance-${UUID.randomUUID()}"
+        val storage = base.getSharedPreferences(name, Context.MODE_PRIVATE)
+        val commits = java.util.concurrent.atomic.AtomicInteger()
+        val tracked = object : SharedPreferences by storage {
+            override fun edit(): SharedPreferences.Editor {
+                val editor = storage.edit()
+                return object : SharedPreferences.Editor by editor {
+                    override fun commit(): Boolean { commits.incrementAndGet(); return editor.commit() }
+                }
+            }
+        }
+        val context = object : ContextWrapper(base) {
+            override fun getSharedPreferences(name: String, mode: Int) = tracked
+        }
+        val firebase = FirebaseApp.initializeApp(base, FirebaseOptions.Builder().setProjectId("demo-message-test")
+            .setApplicationId("1:123456789:android:abcdef").setApiKey("test-key").build(), name)
+        try {
+            val notifications = TeachingNotifications(context, FirebaseFirestore.getInstance(firebase), FirebaseAuth.getInstance(firebase))
+            notifications.permissionResult(false)
+            instrumentation.runOnMainSync { repeat(20) { notifications.refreshPermission() } }
+            repeat(20) { assertTrue(notifications.pending().isEmpty()) }
+            assertEquals(0, commits.get())
+            storage.edit().putLong("seen_old", 1).commit()
+            notifications.pending()
+            assertEquals(1, commits.get())
+            notifications.pending()
+            assertEquals(1, commits.get())
+        } finally {
+            base.deleteSharedPreferences(name)
+            FirebaseFirestore.getInstance(firebase).terminate()
+            firebase.delete()
+        }
+    }
+
     @Test fun queuedMessageWaitsForJapaAndDuplicateReceiptDoesNotPostAgain() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val base = instrumentation.targetContext
@@ -50,6 +87,10 @@ class TeachingNotificationTest {
             assertFalse(manager.activeNotifications.any { it.tag == "teaching_$id" })
             notifications.setPracticing(false)
             notifications.display(id, message.expiresAt, message)
+            // NotificationManager enqueues delivery in another process; wait for that acknowledgement.
+            val deadline = android.os.SystemClock.elapsedRealtime() + 5_000
+            while (manager.activeNotifications.none { it.tag == "teaching_$id" } &&
+                android.os.SystemClock.elapsedRealtime() < deadline) Thread.sleep(25)
             val posted = manager.activeNotifications.first { it.tag == "teaching_$id" }
             assertTrue(posted.notification.contentIntent.isImmutable)
             assertEquals(TeachingNotifications.CHANNEL, posted.notification.channelId)

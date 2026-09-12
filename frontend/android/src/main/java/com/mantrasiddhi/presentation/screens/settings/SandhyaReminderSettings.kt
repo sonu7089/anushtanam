@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.mantrasiddhi.data.preferences.SandhyaSettings
@@ -33,7 +32,6 @@ import com.mantrasiddhi.domain.model.*
 import com.mantrasiddhi.presentation.components.LotusCard
 import com.mantrasiddhi.presentation.components.SectionLabel
 import com.mantrasiddhi.resources.R
-import kotlinx.coroutines.delay
 
 @Composable
 internal fun SandhyaReminderSettings(viewModel: SettingsViewModel) {
@@ -55,7 +53,6 @@ internal fun SandhyaReminderSettings(viewModel: SettingsViewModel) {
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notificationsAllowed = allowed()
-        viewModel.refreshReminders()
     }
     fun requestNotifications() {
         if (Build.VERSION.SDK_INT >= 33 && !asked && ContextCompat.checkSelfPermission(context,
@@ -68,16 +65,10 @@ internal fun SandhyaReminderSettings(viewModel: SettingsViewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsAllowed = allowed()
-                viewModel.refreshReminders()
             }
         }
         lifecycle.lifecycle.addObserver(observer)
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(lifecycle, settings) {
-        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) { viewModel.refreshReminders(); delay(60_000) }
-        }
     }
     settings?.let { value ->
         ReminderPreferencesCard(value, notificationsAllowed = notificationsAllowed,

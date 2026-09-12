@@ -21,6 +21,7 @@ import com.mantrasiddhi.domain.model.SandhyaMinimums
 import com.mantrasiddhi.domain.model.SandhyaPeriod
 import com.mantrasiddhi.domain.model.minimumJapa
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -86,7 +87,7 @@ class SandhyaPreferences @Inject constructor(
             preparationEnabled = prefs[KEY_PREPARATION] ?: true,
             eventEnabled = prefs[KEY_EVENT] ?: true
         )
-    }
+    }.distinctUntilChanged()
 
     val permissionAsked = context.dataStore.data.map { it[KEY_PERMISSION_ASKED] ?: false }
     suspend fun markPermissionAsked() { context.dataStore.edit { it[KEY_PERMISSION_ASKED] = true } }
@@ -105,6 +106,10 @@ class SandhyaPreferences @Inject constructor(
             it[stringPreferencesKey("delivery_date_${userId}_${period.name}_${stage.name}")] = dateKey
         }
     }
+
+    fun deliveryChanges(userId: Long) = context.dataStore.data.map { prefs ->
+        prefs.asMap().filterKeys { it.name.startsWith("delivered_${userId}_") || it.name.startsWith("delivery_date_${userId}_") }
+    }.distinctUntilChanged()
 
     suspend fun current(): SandhyaSettings = settings.first()
 

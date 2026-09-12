@@ -162,6 +162,8 @@ Initialization calls `refresh`; attaching/resuming the gate calls it again. `ref
 
 ## RW-09 — Permission refresh writes unchanged notification registration
 
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
 **Evidence:** [TeachingNotifications](../../core/data/src/main/java/com/mantrasiddhi/data/messages/TeachingNotifications.kt), `start`, `refreshPermission`, `register`, `pending` and `schedulePending`; [MainActivity](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/MainActivity.kt), `onCreate`/`onResume`.
 
 `start` ensures the channel, calls `refreshPermission` (which ensures it again and schedules pending delivery), installs an auth listener that registers, then schedules pending delivery again. Activity creation can refresh permission, and every `onResume` refreshes it. Each signed-in refresh requests the FCM token and sets the installation document, including a new server timestamp, without checking whether UID/token/enabled/version/locale changed.
@@ -173,6 +175,8 @@ Pending checks traverse preference maps and call `commit`, even when cleanup rem
 **Verify:** unchanged resume loops should not each issue a registration write. Token rotation, account switch, opt-out and system permission changes must promptly publish the new state. Offline writes and retries must not mark unsaved state as successfully synchronized.
 
 ## RW-10 — Repeated reminder work also has multiple owners
+
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
 
 **Evidence:** [MantraSiddhiApplication](../../frontend/android/src/main/java/com/mantrasiddhi/MantraSiddhiApplication.kt), cold-start `scheduleAll`; [SyncSignedInUserUseCase](../../core/data/src/main/java/com/mantrasiddhi/data/session/SyncSignedInUserUseCase.kt), post-login `scheduleAll`; [SandhyaViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/sandhya/SandhyaViewModel.kt), init and `buildState`; [SettingsViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/settings/SettingsViewModel.kt), `refreshReminders`.
 

@@ -24,6 +24,8 @@ Reviewed 12 September 2026. Companion to the [database audit](database-audit.md)
 
 ## POLL-01 — A “refresh” must not rewrite alarms every minute
 
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
 The reminder settings timer calls a method that schedules all periods/stages, rather than simply checking permission/status. With both preparation and event reminders enabled there are six combinations; the scheduler can read logs, calculate upcoming times and issue alarm-service calls for each one. Resume and the initial effect can request this again.
 
 Expose cheap notification-permission and next-reminder state independently. Re-arm on changed region/timezone, reminder preferences, profile ownership, observance, boot/app update or an explicit repair action. Coalesce simultaneous requests by profile and settings revision. Keep the cold-start backstop, but avoid duplicate startup scheduling across Application and profile initialization.
@@ -31,6 +33,8 @@ Expose cheap notification-permission and next-reminder state independently. Re-a
 Test that leaving Settings open with no changes causes no periodic preference writes or alarm replacements, while every relevant event still updates the correct alarms.
 
 ## POLL-02 — Sandhya clock ticks invalidate too much work
+
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
 
 Every 30 seconds, `buildState` calls `scheduler.upcoming`. [SandhyaScheduler.next](../../core/data/src/main/java/com/mantrasiddhi/data/sandhya/SandhyaScheduler.kt) loads all logs for a user on each enabled period/stage calculation and can examine multiple future dates. This repeats even when the clock changed but all history/preferences stayed identical. With six enabled combinations, one state build can issue six full-log reads. Typing a persisted draft can trigger the same build as well.
 
@@ -57,6 +61,8 @@ The [remote-only discovery gap, DB-05](database-audit.md) needs an explicit refr
 
 ## POLL-04 — Replace expiry polling with deadline updates
 
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
 The Messages 30-second timer does not fetch the server, but repeatedly filters every loaded item and can leave an expired message visible until the next tick. The QR loop checks every second although its label displays no live countdown. A five-minute unused invitation can therefore cause approximately 300 checks for a single visible state transition. Its bitmap generation is already keyed by token/active state and runs off Main; do not claim it regenerates every second.
 
 Schedule a single cancellable delay to the nearest expiry, then recompute the next deadline after content/invite changes. Refresh on resume so expiry during background suspension is handled immediately. Include any future visibility-start boundary if content policy introduces one. Scope timers to visible UI and recalculate after wall-clock changes; local timers do not supersede server-side QR expiry checks.
@@ -69,7 +75,9 @@ Keep segment-stop precision separate from cosmetic position labels. A coarser la
 
 ## POLL-06 — Lifecycle and clock semantics
 
-**Sync-clock portion resolved in step 07:** [persisted elapsed deadlines and clock/reboot tests](step-07-discovery-retries.md). UI lifecycle ownership is implemented in [step 09](step-09-visible-demand.md); calendar/expiry deadline changes remain step 11.
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
+**Sync-clock portion resolved in step 07:** [persisted elapsed deadlines and clock/reboot tests](step-07-discovery-retries.md). UI lifecycle ownership is implemented in [step 09](step-09-visible-demand.md); calendar/expiry deadline changes are implemented in [step 11](step-11-event-deadlines.md).
 
 `LaunchedEffect` follows composition lifetime, not automatically the visible/resumed lifecycle. Use lifecycle-scoped collection/timers for UI-only jobs. Similarly, replacing a composable collector cannot stop an unconditional `viewModelScope.launch` subscription. The previously documented child-detail collector leak and repeated cold auth subscriptions increase work without explicit polling.
 

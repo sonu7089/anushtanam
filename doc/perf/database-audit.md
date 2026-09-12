@@ -174,6 +174,8 @@ The coordinator's table invalidation observer triggers another broad capture aft
 
 ### DB-09 — Calendar changes need explicit invalidation
 
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
 [HomeViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/home/HomeViewModel.kt) computes `todayJapa` using `LocalDate.now()` when its combined data emits. Dashboard streaks and [ProgressViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/progress/ProgressViewModel.kt) rolling dates likewise depend on data emissions. A quiet screen left open over midnight can retain yesterday's values until some unrelated emission. Resuming Home refreshes the reflection, not necessarily its count state.
 
 **Fix:** combine small date-dependent projections with a calendar-day signal, scheduled at the next relevant midnight and refreshed on resume/timezone/time changes. Keep original recorded entry dates intact and define the timezone policy for legacy audio fallback. Do not rescan history every second to reset a daily label. Verify midnight, device timezone changes and return from background without new practice.

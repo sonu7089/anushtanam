@@ -37,6 +37,10 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
+    private val calendarDays = MutableStateFlow(java.time.LocalDate.now() to java.time.ZoneId.systemDefault())
+    private val calendarTime = mockk<com.mantrasiddhi.domain.util.CalendarTime> {
+        every { days(any()) } returns calendarDays
+    }
     private val observers = mutableListOf<kotlinx.coroutines.Job>()
     private fun watch(vm: HomeViewModel) {
         observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.uiState.collect {} }
@@ -82,7 +86,7 @@ class HomeViewModelTest {
     @Test
     fun `should_initiallyEmitLoadingState_when_created`() = runTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
         watch(viewModel)
         assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
@@ -100,7 +104,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(stats)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
         watch(viewModel)
 
         val state = viewModel.uiState.value
@@ -117,7 +121,7 @@ class HomeViewModelTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(null)
 
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
         watch(viewModel)
 
         val state = viewModel.uiState.value
@@ -133,7 +137,7 @@ class HomeViewModelTest {
             try { kotlinx.coroutines.awaitCancellation() } finally { active-- }
         }
         every { japa(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
-        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
         assertEquals(0, active)
         watch(viewModel)
         val state = viewModel.uiState.value as HomeUiState.Success
@@ -144,5 +148,18 @@ class HomeViewModelTest {
         observers.forEach { it.cancel() }
         runCurrent()
         assertEquals(0, active)
+    }
+
+    @Test fun `midnight refreshes japa without reloading unchanged sections`() = runTest {
+        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
+        every { getDashboardStatsUseCase(any()) } returns flowOf(DashboardStats(testUser, 0, 0, null))
+        every { japa(any()) } returns flowOf(com.mantrasiddhi.domain.usecase.JapaSummary(
+            mapOf(calendarDays.value.first to java.math.BigInteger.valueOf(108))))
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
+        watch(viewModel)
+        assertEquals("108", (viewModel.uiState.value as HomeUiState.Success).todayJapa)
+        calendarDays.value = calendarDays.value.first.plusDays(1) to calendarDays.value.second
+        assertEquals("0", (viewModel.uiState.value as HomeUiState.Success).todayJapa)
+        io.mockk.verify(exactly = 1) { japa(any()); getDashboardStatsUseCase(any()) }
     }
 }

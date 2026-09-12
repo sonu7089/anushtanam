@@ -125,6 +125,8 @@ The account flow is cold, and Main subscribes twice, for entry routing and child
 
 ### UI-07 — Synchronous notification maintenance on launch/resume
 
+**Step 11 resolved locally (12 September 2026):** [implementation, work counts, tests and limits](step-11-event-deadlines.md). The original evidence below describes the pre-fix behavior.
+
 [TeachingNotifications.kt](../../core/data/src/main/java/com/mantrasiddhi/data/messages/TeachingNotifications.kt), lines 50–102 and 128–148, performs preference scans and `commit()`. `schedulePending()` calls `pending()`, which parses pending JSON and calls `commit()` even when no removals were needed. `start()` calls `refreshPermission()` (which schedules pending work), then schedules again. [MainActivity.kt](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/MainActivity.kt) calls `refreshPermission()` on resume and synchronous permission bookkeeping before `setContent` on first request. Registration lazily reads/writes an installation ID file from its completion path.
 
 **Change:** coalesce permission/token registration and queue cleanup; run file and preference maintenance on IO, only write actual changes, and keep UI state publication cheap. Retain durable “seen before posting” ordering for notification de-duplication rather than replacing every `commit()` with `apply()`. Measure first-launch prompt interruption separately from actual frame stalls.

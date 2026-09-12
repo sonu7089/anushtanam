@@ -43,15 +43,16 @@ data class DashboardStats(
 class GetDashboardStatsUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val targetRepository: TargetRepository,
-    private val recitationRepository: RecitationRepository
+    private val recitationRepository: RecitationRepository,
+    private val calendarTime: com.mantrasiddhi.domain.util.CalendarTime = com.mantrasiddhi.domain.util.CalendarTime()
 ) {
     operator fun invoke(userId: Long): Flow<DashboardStats?> = combine(
         targetRepository.getAllForUser(userId),
         recitationRepository.observePracticeDays(userId),
-        flow { emit(userRepository.getById(userId)) }
-    ) { targets, days, user ->
-        user?.let { DashboardStats(it, days.firstOrNull { day -> day.dateKey == LocalDate.now().toString() }?.count ?: 0,
-            days.currentStreak(), targets.filter { target -> target.isActive }.maxWithOrNull(
+        flow { emit(userRepository.getById(userId)) }, calendarTime.days()
+    ) { targets, days, user, calendar ->
+        user?.let { DashboardStats(it, days.firstOrNull { day -> day.dateKey == calendar.first.toString() }?.count ?: 0,
+            days.currentStreak(calendar.first), targets.filter { target -> target.isActive }.maxWithOrNull(
                 compareBy<Target> { target -> target.startedAtMillis }.thenBy { target -> target.stableId })) }
     }.flowOn(kotlinx.coroutines.Dispatchers.Default)
 }

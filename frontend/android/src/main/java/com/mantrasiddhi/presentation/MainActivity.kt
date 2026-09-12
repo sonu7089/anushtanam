@@ -25,12 +25,17 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @javax.inject.Inject lateinit var reminderScheduler: com.mantrasiddhi.data.sandhya.SandhyaScheduler
+    @javax.inject.Inject lateinit var reminderNotifier: com.mantrasiddhi.data.sandhya.SandhyaNotifier
     @javax.inject.Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
     private var messageId by mutableStateOf<String?>(null)
     private var homeNotificationId by mutableStateOf<String?>(null)
     private val notificationPermission = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { granted -> teachingNotifications.permissionResult(granted) }
+    ) { granted ->
+        teachingNotifications.permissionResult(granted)
+        reminderScheduler.updateNotificationPermission(reminderNotifier.notificationsAllowed())
+    }
 
     private fun readMessage(intent: Intent): String? {
         val uri = intent.data ?: return null
@@ -40,9 +45,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @javax.inject.Inject lateinit var calendarTime: com.mantrasiddhi.domain.util.CalendarTime
+
     override fun onResume() {
         super.onResume()
+        calendarTime.invalidate()
         teachingNotifications.refreshPermission()
+        reminderScheduler.updateNotificationPermission(reminderNotifier.notificationsAllowed())
     }
 
     private var reminderTarget by mutableStateOf<SandhyaReminderTarget?>(null)

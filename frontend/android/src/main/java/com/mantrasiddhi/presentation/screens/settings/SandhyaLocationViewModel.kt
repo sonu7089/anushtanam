@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.data.location.GeocodingService
 import com.mantrasiddhi.data.location.LocationProvider
 import com.mantrasiddhi.data.preferences.SandhyaPreferences
-import com.mantrasiddhi.data.sandhya.SandhyaScheduler
 import com.mantrasiddhi.domain.model.SandhyaRegion
 import com.mantrasiddhi.resources.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +24,6 @@ sealed interface LocationSearchState {
 @HiltViewModel
 class SandhyaLocationViewModel @Inject constructor(
     private val preferences: SandhyaPreferences,
-    private val scheduler: SandhyaScheduler,
     private val locationProvider: LocationProvider,
     private val geocodingService: GeocodingService
 ) : ViewModel() {
@@ -34,7 +32,6 @@ class SandhyaLocationViewModel @Inject constructor(
     fun selectRegion(region: SandhyaRegion) {
         viewModelScope.launch {
             preferences.setRegion(region)
-            scheduler.scheduleAll()
         }
     }
 
@@ -101,7 +98,6 @@ class SandhyaLocationViewModel @Inject constructor(
                     zoneId = "" // device timezone
                 )
             )
-            scheduler.scheduleAll()
         }
     }
 

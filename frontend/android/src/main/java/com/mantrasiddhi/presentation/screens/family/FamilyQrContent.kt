@@ -1,8 +1,5 @@
 package com.mantrasiddhi.presentation.screens.family
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -24,7 +21,6 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.mantrasiddhi.resources.R
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 internal fun familyQrMatrix(payload: String) = QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 512, 512,
@@ -35,17 +31,8 @@ internal fun familyQrMatrix(payload: String) = QRCodeWriter().encode(payload, Ba
 internal fun ChildFamilyQr(state: FamilyUiState, onShow: () -> Unit) {
     val bringIntoView = remember { BringIntoViewRequester() }
     val invite = state.qrInvite
-    var now by remember(invite?.token) { mutableStateOf(System.currentTimeMillis()) }
-    val lifecycle = LocalLifecycleOwner.current
-    LaunchedEffect(lifecycle, invite) {
-        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            now = System.currentTimeMillis()
-            while (invite != null && !invite.used && now < invite.expiresAtMillis) {
-                delay(1_000)
-                now = System.currentTimeMillis()
-            }
-        }
-    }
+    val now = com.mantrasiddhi.presentation.components.rememberDeadlineTime(
+        listOfNotNull(invite?.takeUnless { it.used }?.expiresAtMillis))
     val active = invite != null && !invite.used && now < invite.expiresAtMillis
     val bitmap by produceState<Bitmap?>(null, invite?.token, active) {
         value = if (active) withContext(Dispatchers.Default) {

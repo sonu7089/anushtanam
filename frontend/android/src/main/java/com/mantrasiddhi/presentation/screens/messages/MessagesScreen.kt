@@ -29,12 +29,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.mantrasiddhi.domain.model.TeachingMessage
 import com.mantrasiddhi.presentation.components.*
 import com.mantrasiddhi.resources.R
-import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -74,13 +72,12 @@ fun MessagesScreen(onBack: () -> Unit, onOpen: (String) -> Unit,
                    contentId: String? = null, viewModel: MessagesViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val now = rememberDeadlineTime((state.items + listOfNotNull(state.detail)).flatMap { listOf(it.publishedAt, it.expiresAt) })
     LaunchedEffect(owner, contentId) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.refresh(contentId)
             try {
-                now = System.currentTimeMillis()
-                while (true) { delay(30_000); now = System.currentTimeMillis() }
+                kotlinx.coroutines.awaitCancellation()
             } finally { viewModel.stop() }
         }
     }

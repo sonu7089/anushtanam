@@ -36,7 +36,7 @@ class SandhyaBootReceiver : BroadcastReceiver() {
                 val pending = goAsync()
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
-                        withTimeoutOrNull(WORK_BUDGET_MS) { scheduler.scheduleAll() }
+                        withTimeoutOrNull(WORK_BUDGET_MS) { scheduler.scheduleAll(force = true) }
                     } finally {
                         pending.finish()
                     }

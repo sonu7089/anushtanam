@@ -35,7 +35,8 @@ class HomeViewModel @Inject constructor(
     private val getDashboardStatsUseCase: GetDashboardStatsUseCase,
     private val getActivePurashcharanaUseCase: GetActivePurashcharanaUseCase,
     private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase,
-    private val teachings: com.mantrasiddhi.data.messages.TeachingRepository
+    private val teachings: com.mantrasiddhi.data.messages.TeachingRepository,
+    private val calendarTime: com.mantrasiddhi.domain.util.CalendarTime = com.mantrasiddhi.domain.util.CalendarTime()
 ) : ViewModel() {
 
     val reflection = teachings.reflection
@@ -63,9 +64,9 @@ class HomeViewModel @Inject constructor(
         if (user == null) flowOf(HomeUiState.Error(R.string.home_error_no_profile)) else
             retryRequest.flatMapLatest {
                 combine(getDashboardStatsUseCase(user.id).section(),
-                    getActivePurashcharanaUseCase(user.id).section(), getJapaSummary(user.id).section()) { stats, vow, japa ->
+                    getActivePurashcharanaUseCase(user.id).section(), getJapaSummary(user.id).section(), calendarTime.days()) { stats, vow, japa, calendar ->
                     HomeUiState.Success(user = user, todayCount = stats.value?.todayRecitationCount ?: 0,
-                        todayJapa = japa.value?.on(java.time.LocalDate.now())?.toString(),
+                        todayJapa = japa.value?.on(calendar.first)?.toString(),
                         activeTarget = stats.value?.activeTarget, streakDays = stats.value?.streakDays ?: 0,
                         purashcharana = vow.value, statsLoading = stats.loading,
                         statsFailed = stats.failed || (!stats.loading && stats.value == null),

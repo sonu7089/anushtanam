@@ -26,8 +26,19 @@ class MantraSiddhiApplication : Application() {
     @Inject lateinit var cloudSyncCoordinator: CloudSyncCoordinator
     @Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
 
+    @Inject lateinit var calendarTime: com.mantrasiddhi.domain.util.CalendarTime
+
     override fun onCreate() {
         super.onCreate()
+        registerReceiver(object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: android.content.Context, intent: android.content.Intent) {
+                calendarTime.invalidate()
+            }
+        }, android.content.IntentFilter().apply {
+            addAction(android.content.Intent.ACTION_TIME_CHANGED)
+            addAction(android.content.Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(android.content.Intent.ACTION_DATE_CHANGED)
+        }, android.content.Context.RECEIVER_NOT_EXPORTED)
         teachingNotifications.start()
         cloudSyncCoordinator.start(this)
         // Create the reminder channel up front so users can tune it in system settings.

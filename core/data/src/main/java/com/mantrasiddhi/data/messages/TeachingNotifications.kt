@@ -21,6 +21,9 @@ import com.mantrasiddhi.domain.model.TeachingDeliveryPolicy
 import com.mantrasiddhi.domain.model.NotificationNudge
 import com.mantrasiddhi.resources.R
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
@@ -46,6 +49,37 @@ class TeachingNotifications @Inject constructor(
         if (file.exists()) file.readText() else UUID.randomUUID().toString().also { file.writeText(it) }
     }
     private var started = false
+    private val maintenanceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val registrationRequests = Channel<Unit>(Channel.CONFLATED)
+    private val registration = RegistrationCoalescer<RegistrationInputs>()
+    @Volatile private var cachedToken: String? = null
+    private var permissionKnown = false
+    private data class RegistrationInputs(val uid: String, val token: String, val enabled: Boolean, val version: Long)
+
+    init {
+        maintenanceScope.launch {
+            for (request in registrationRequests) {
+                try {
+                    val uid = auth.currentUser?.uid ?: continue
+                    val token = cachedToken ?: FirebaseMessaging.getInstance().token.await().also {
+                        if (cachedToken == null) cachedToken = it
+                    }
+                    if (auth.currentUser?.uid != uid) continue
+                    val input = RegistrationInputs(uid, cachedToken ?: token, _enabled.value,
+                        context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
+                    registration.update(input) {
+                        com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("notification.registration.write")
+                        firestore.collection("messageInstallations").document("${uid}_$installationId").set(mapOf(
+                            "uid" to uid, "token" to input.token, "enabled" to input.enabled,
+                            "schemaVersion" to 1, "locale" to "en", "appVersion" to input.version,
+                            "notificationOnly" to true, "updatedAt" to FieldValue.serverTimestamp()
+                        )).await()
+                    }
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { /* Retry the current inputs on the next refresh/token/auth event. */ }
+            }
+        }
+    }
 
     fun start() {
         if (started) return
@@ -53,53 +87,48 @@ class TeachingNotifications @Inject constructor(
         ensureChannel()
         refreshPermission()
         auth.addAuthStateListener { register() }
-        schedulePending()
     }
 
-    fun ensureChannel() {
+    private var channelCreated = false
+    @Synchronized fun ensureChannel() {
+        if (channelCreated) return
         manager.createNotificationChannel(NotificationChannelCompat.Builder(CHANNEL,
             NotificationManagerCompat.IMPORTANCE_DEFAULT).setName(context.getString(R.string.messages_title))
             .setDescription(context.getString(R.string.messages_notification_description)).build())
+        channelCreated = true
     }
 
     fun hasPermission() = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED && manager.areNotificationsEnabled()
 
     fun needsFirstRequest(): Boolean = !prefs.getBoolean("permissionAsked", false)
-    fun markPermissionAsked() { prefs.edit().putBoolean("permissionAsked", true).commit() }
+    fun markPermissionAsked() { prefs.edit().putBoolean("permissionAsked", true).apply() }
     fun permissionResult(granted: Boolean) {
-        prefs.edit().putBoolean("permissionAsked", true).putBoolean("wanted", granted).commit()
+        prefs.edit().putBoolean("permissionAsked", true).putBoolean("wanted", granted).apply()
         refreshPermission()
     }
 
     fun refreshPermission() {
         ensureChannel()
         // Keep a deliberate app opt-out when Android permission changes elsewhere.
+        val wasEnabled = _enabled.value
         _enabled.value = prefs.getBoolean("wanted", true) && hasPermission() &&
             manager.getNotificationChannel(CHANNEL)?.importance != NotificationManagerCompat.IMPORTANCE_NONE
-        if (!_enabled.value) clearPending()
+        if (!permissionKnown || wasEnabled != _enabled.value) {
+            permissionKnown = true
+            if (!_enabled.value) clearPending() else schedulePending()
+        }
         register()
-        schedulePending()
     }
 
     fun setEnabled(value: Boolean) {
-        prefs.edit().putBoolean("wanted", value).commit()
+        prefs.edit().putBoolean("wanted", value).apply()
         refreshPermission()
     }
 
     fun register(token: String? = null) {
-        val uid = auth.currentUser?.uid ?: return
-        if (token == null) {
-            FirebaseMessaging.getInstance().token.addOnSuccessListener { register(it) }
-            return
-        }
-        val version = context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
-        // One document per installation and account. Tokens are never placed in the public feed.
-        firestore.collection("messageInstallations").document("${uid}_$installationId").set(mapOf(
-            "uid" to uid, "token" to token, "enabled" to _enabled.value,
-            "schemaVersion" to 1, "locale" to "en", "appVersion" to version, "notificationOnly" to true,
-            "updatedAt" to FieldValue.serverTimestamp()
-        ))
+        if (token != null) cachedToken = token
+        registrationRequests.trySend(Unit)
     }
 
     @Synchronized fun receive(data: Map<String, String>) {
@@ -128,24 +157,28 @@ class TeachingNotifications @Inject constructor(
     @Synchronized fun pending(): Map<String, String> {
         val now = System.currentTimeMillis()
         val editor = prefs.edit()
-        prefs.all.filterKeys { it.startsWith("seen_") }.forEach { (key, value) ->
-            if ((value as? Long ?: 0) <= now) editor.remove(key)
+        var changed = false
+        val snapshot = prefs.all
+        snapshot.filterKeys { it.startsWith("seen_") }.forEach { (key, value) ->
+            if ((value as? Long ?: 0) <= now) { editor.remove(key); changed = true }
         }
         val result = mutableMapOf<String, String>()
-        prefs.all.filterKeys { it.startsWith("pending_") }.forEach { (key, value) ->
+        snapshot.filterKeys { it.startsWith("pending_") }.forEach { (key, value) ->
             val payload = runCatching { JSONObject(value as String) }.getOrNull()
-            if (payload == null || payload.optLong("expiresAt") <= now) editor.remove(key)
+            if (payload == null || payload.optLong("expiresAt") <= now) { editor.remove(key); changed = true }
             else result[key.removePrefix("pending_")] = value as String
         }
-        editor.commit()
+        if (changed) { editor.commit(); com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("notification.maintenance.commit") }
         return result
     }
 
     @Synchronized fun discard(id: String) { prefs.edit().remove("pending_$id").commit() }
     @Synchronized private fun clearPending() {
+        val keys = prefs.all.keys.filter { it.startsWith("pending_") }
+        if (keys.isEmpty()) return
         val editor = prefs.edit()
-        prefs.all.keys.filter { it.startsWith("pending_") }.forEach(editor::remove)
-        editor.commit()
+        keys.forEach(editor::remove)
+        editor.apply()
     }
 
     @Synchronized fun display(id: String, expiresAt: Long, message: com.mantrasiddhi.domain.model.TeachingMessage) {
@@ -175,15 +208,18 @@ class TeachingNotifications @Inject constructor(
     }
 
     fun setPracticing(value: Boolean) {
+        val changed = practicing != value
         practicing = value
-        if (!value) schedulePending()
+        if (changed && !value) schedulePending()
     }
 
     fun schedulePending(delayMillis: Long = 0) {
-        if (pending().isEmpty()) return
-        context.getSystemService(JobScheduler::class.java).schedule(JobInfo.Builder(JOB_ID,
-            ComponentName(context, TeachingDeliveryJob::class.java))
-            .setMinimumLatency(delayMillis).setPersisted(true).build())
+        maintenanceScope.launch {
+            if (pending().isEmpty()) return@launch
+            context.getSystemService(JobScheduler::class.java).schedule(JobInfo.Builder(JOB_ID,
+                ComponentName(context, TeachingDeliveryJob::class.java))
+                .setMinimumLatency(delayMillis).setPersisted(true).build())
+        }
     }
 
     companion object {

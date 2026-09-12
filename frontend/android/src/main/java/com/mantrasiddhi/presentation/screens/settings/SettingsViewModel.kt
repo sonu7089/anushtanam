@@ -48,13 +48,11 @@ class SettingsViewModel @Inject constructor(
     private val signOutUseCase: SignOutUseCase,
     private val users: UserRepository,
     private val session: SessionRepository,
-    private val reminderScheduler: com.mantrasiddhi.data.sandhya.SandhyaScheduler,
     private val sandhyaPreferences: SandhyaPreferences
 ) : ViewModel() {
 
     val reminderSettings = sandhyaPreferences.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val reminderPermissionAsked = sandhyaPreferences.permissionAsked.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-    fun refreshReminders() = updateReminders { }
     fun setRemindersEnabled(enabled: Boolean) = updateReminders {
         sandhyaPreferences.setEnabled(enabled)
     }
@@ -64,9 +62,7 @@ class SettingsViewModel @Inject constructor(
     private fun updateReminders(change: suspend () -> Unit) {
         viewModelScope.launch {
             try {
-                sandhyaPreferences.setUserId(currentUser.value?.id ?: 0L)
                 change()
-                reminderScheduler.scheduleAll()
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { _events.emit(SettingsEvent.Error("We could not update your reminders. Please try again.")) }
         }

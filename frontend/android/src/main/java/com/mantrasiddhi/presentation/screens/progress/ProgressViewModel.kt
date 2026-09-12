@@ -35,7 +35,8 @@ class ProgressViewModel @Inject constructor(
     private val stats: GetRecitationStatsUseCase,
     private val sessions: RecitationRepository,
     private val cloud: ProgressSyncRepository,
-    private val japa: GetJapaSummaryUseCase
+    private val japa: GetJapaSummaryUseCase,
+    private val calendarTime: com.mantrasiddhi.domain.util.CalendarTime = com.mantrasiddhi.domain.util.CalendarTime()
 ) : ViewModel() {
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab = _selectedTab.asStateFlow()
@@ -68,24 +69,24 @@ class ProgressViewModel @Inject constructor(
 
     private fun section(userId: Long, tab: Int): Flow<ProgressUiState.Success> = when (tab) {
         0 -> {
-            val overview = cloud.summaryFlow().distinctUntilChanged().flatMapLatest { summary ->
+            val overview = combine(cloud.summaryFlow().distinctUntilChanged(), calendarTime.days()) { summary, calendar -> summary to calendar.first }.flatMapLatest { (summary, today) ->
                 if (summary == null) stats(userId) else flowOf(RecitationOverviewStats(
                     summary.totalSessions.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
                     summary.correctSessions.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
-                    summary.averageAccuracy, summary.currentStreak(LocalDate.now().toString()), summary.bestScore))
+                    summary.averageAccuracy, summary.currentStreak(today.toString()), summary.bestScore))
             }
             combine(overview, japa(userId)) { value, count ->
                 ProgressUiState.Success(overviewStats = value.copy(performedJapa = count.lifetime.toString()))
             }
         }
-        1 -> japa(userId).map { count ->
-            ProgressUiState.Success(dailyCounts = dates().map { day ->
+        1 -> combine(japa(userId), calendarTime.days()) { count, calendar ->
+            ProgressUiState.Success(dailyCounts = dates(calendar.first).map { day ->
                 val amount = count.on(day)
                 DailyCount(label(day), millis(day), amount.min(java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong())).toInt(), amount.toString())
             })
         }
-        2 -> {
-            val dates = dates()
+        2 -> calendarTime.days().flatMapLatest { calendar ->
+            val dates = dates(calendar.first)
             // Accuracy and all three axes share this one bounded aggregate query.
             combine(sessions.observeScoreDays(userId, millis(dates.first()), millis(dates.last().plusDays(1))),
                 cloud.summaryFlow()) { days, summary ->
@@ -133,7 +134,7 @@ class ProgressViewModel @Inject constructor(
     private fun SessionHistoryRow.toSession(userId: Long) = RecitationSession(id, userId, "",
         RecitationMode.valueOf(mode), overallScore, emptyMap(), "", isCorrect, durationMs,
         createdAt = createdAt, stableId = "history:$id")
-    private fun dates() = (6L downTo 0L).map { LocalDate.now().minusDays(it) }
+    private fun dates(today: LocalDate) = (6L downTo 0L).map { today.minusDays(it) }
     private fun millis(date: LocalDate) = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     private fun label(date: LocalDate) = date.format(DateTimeFormatter.ofPattern("EEE"))
     companion object { const val PAGE_SIZE = 30 }
