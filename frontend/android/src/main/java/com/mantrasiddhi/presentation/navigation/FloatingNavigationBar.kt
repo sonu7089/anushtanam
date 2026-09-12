@@ -62,7 +62,8 @@ fun MantraBottomBar(navController: NavHostController, showFamily: Boolean) {
 @Composable
 internal fun FloatingNavigationBar(
     destinations: List<NavigationDestination>, currentRoute: String?, onNavigate: (Screen) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     BoxWithConstraints(modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
         val showLabels = maxWidth >= 336.dp && LocalDensity.current.fontScale <= 1.2f
@@ -94,15 +95,15 @@ internal fun FloatingNavigationBar(
                             if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             animationSpec = tween(140), label = "navigationInk")
                         Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape)
-                            .testTag("perf_tab_${item.screen.route}")
-                            .selectable(selected, role = Role.Tab, onClick = { onNavigate(item.screen) })
+                            .testTag("${if (enabled) "perf" else "entry"}_tab_${item.screen.route}")
+                            .selectable(selected, enabled = enabled, role = Role.Tab, onClick = { onNavigate(item.screen) })
                             .semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center) {
-                            Icon(painterResource(item.icon), null, Modifier.size(24.dp), tint = ink)
+                            Icon(painterResource(item.icon), null, Modifier.size(24.dp), tint = if (enabled) ink else ink.copy(alpha = 0.38f))
                             if (showLabels) {
                                 Spacer(Modifier.height(4.dp))
-                                Text(label, Modifier.clearAndSetSemantics {}, color = ink,
+                                Text(label, Modifier.clearAndSetSemantics {}, color = if (enabled) ink else ink.copy(alpha = 0.38f),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }

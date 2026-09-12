@@ -25,7 +25,7 @@ P1 means address early because work scales with subscribers/history or occurs on
 | RW-05 | P1 | Screen-owned work outlives visible screens; child goals have two consumers | Confirmed ownership structure; retained lifetimes depend on navigation |
 | RW-06 | P1, resolved locally | Target reads scan the ledger; projection rewrites unchanged goals | Confirmed; second repair pass occurs when the first changed entries |
 | RW-07 | P1, resolved locally | One durable save can lead to several broad backup passes | Confirmed independent triggers; number/timing varies |
-| RW-08 | P2 | Voice-model initial and resume checks cancel/restart each other | Confirmed call sites; overlap depends on callback timing |
+| RW-08 | P2 | Voice-model initial and resume checks cancel/restart each other | Resolved in step 10; unit and real-device query counts verified |
 | RW-09 | P2 | Notification refresh repeats registration and maintenance | Confirmed on startup/resume; successful remote writes depend on connectivity |
 | RW-10 | P2 | Reminder and calendar work repeats without relevant changes | Confirmed; detailed timer inventory is in polling audit |
 | RW-11 | P2 | Playback position is read high in the UI tree at 20 Hz | Confirmed state-read scope; actual skipped/recomposed children need profiling |
@@ -149,6 +149,8 @@ The compact progress path also calls `buildSeedData` on **every** session even a
 **Verify:** after initial sync, one new session should serialize only its affected records/projections; an unchanged foreground resume should not serialize all history. Count reads/encodes separately from network writes, and test crash recovery, offline retry and corrections to old entries.
 
 ## RW-08 — Voice-model initialization and resume can restart the same check
+
+**Resolved in step 10:** [single initial owner, queued revalidation and regression/device evidence](step-10-startup-images.md). The following paragraphs retain the original finding.
 
 **Evidence:** [VoiceModelViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/voicemodel/VoiceModelViewModel.kt), lines 69–96; [VoiceModelGate](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/components/VoiceModelGate.kt), lines 45–55; [VoiceModelManager](../../core/data/src/main/java/com/mantrasiddhi/data/speech/VoiceModelManager.kt), `checkStatus`/`querySupport`.
 

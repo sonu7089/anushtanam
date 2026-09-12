@@ -141,7 +141,6 @@ class SyncSignedInUserUseCase @Inject constructor(
         sandhyaPreferences.setUserId(localId)
         check(auth.currentUser?.uid == account.uid)
         sessionRepository.login(profile)
-        runCatching { sandhyaScheduler.scheduleAll() }
 
         // MF-08 restores the versioned history. Recreating goals from old aggregate
         // mirrors here would duplicate their baselines and undo corrected totals.
@@ -153,6 +152,7 @@ class SyncSignedInUserUseCase @Inject constructor(
         }
         currentCoroutineContext().ensureActive()
         check(auth.currentUser?.uid == account.uid)
+        sandhyaScheduler.requestStartupRearm(localId)
         localId
     }
 }

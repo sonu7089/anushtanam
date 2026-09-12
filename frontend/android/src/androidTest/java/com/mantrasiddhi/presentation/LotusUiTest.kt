@@ -54,6 +54,7 @@ class LotusUiTest {
         } }
         listOf(R.string.title_practice, R.string.title_recitation, R.string.home_active_target,
             R.string.home_sandhya_title, R.string.home_purashcharana_title).forEach {
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text(it)))
             compose.onNodeWithText(text(it)).performScrollTo().performClick()
         }
         compose.onNodeWithText("Aarav").assertDoesNotExist()

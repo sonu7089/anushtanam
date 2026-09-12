@@ -2,7 +2,6 @@ package com.mantrasiddhi.presentation.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,7 +18,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,19 +28,20 @@ enum class LotusArt { LOTUS, RITUAL, EMBLEM, RIVER, DIYA, JASMINE, FAMILY, MESSA
 
 /** Decorative bitmap art: excluded from accessibility announcements. */
 @Composable
-fun LotusArtwork(art: LotusArt = LotusArt.LOTUS, modifier: Modifier = Modifier) {
-    Image(painter = painterResource(when (art) {
-        LotusArt.LOTUS -> R.drawable.lotus_morning
-        LotusArt.RITUAL -> R.drawable.ritual_still_life
-        LotusArt.EMBLEM -> R.drawable.lotus_emblem
-        LotusArt.RIVER -> R.drawable.river_dawn
-        LotusArt.DIYA -> R.drawable.diya_cutout
-        LotusArt.JASMINE -> R.drawable.jasmine_sprig
-        LotusArt.FAMILY -> R.drawable.family_hands
-        LotusArt.MESSAGES -> R.drawable.messages_morning_notes
-    }), contentDescription = null,
+fun LotusArtwork(art: LotusArt = LotusArt.LOTUS, modifier: Modifier = Modifier,
+                 usage: ArtUsage = ArtUsage.Image) {
+    AppArtwork(when (art) {
+        LotusArt.LOTUS -> AppArt.LOTUS
+        LotusArt.RITUAL -> AppArt.RITUAL
+        LotusArt.EMBLEM -> AppArt.EMBLEM
+        LotusArt.RIVER -> AppArt.RIVER
+        LotusArt.DIYA -> AppArt.DIYA
+        LotusArt.JASMINE -> AppArt.JASMINE
+        LotusArt.FAMILY -> AppArt.FAMILY
+        LotusArt.MESSAGES -> AppArt.MESSAGES
+    }, modifier = modifier, usage = usage,
         contentScale = if (art in listOf(LotusArt.EMBLEM, LotusArt.DIYA, LotusArt.JASMINE)) ContentScale.Fit else ContentScale.Crop,
-        alignment = Alignment.CenterEnd, modifier = modifier)
+        alignment = Alignment.CenterEnd)
 }
 
 /** Extends only the artwork into the page gutters. Reading and touch bounds stay inset. */

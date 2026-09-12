@@ -1,6 +1,7 @@
 package com.mantrasiddhi.presentation.screens.targets
 
-import androidx.compose.foundation.Image
+import com.mantrasiddhi.presentation.components.AppArtwork
+import com.mantrasiddhi.presentation.components.AppArt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -11,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -179,7 +179,7 @@ private fun EmptyGoal(onSetGoal: () -> Unit) {
 
 @Composable
 private fun GoalArtwork(modifier: Modifier) {
-    Image(painterResource(com.mantrasiddhi.R.drawable.purashcharana_mala), null, modifier)
+    AppArtwork(AppArt.MALA, modifier)
 }
 
 @Composable

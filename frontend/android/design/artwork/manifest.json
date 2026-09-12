@@ -1,0 +1,369 @@
+{
+  "pillow": "12.3.0",
+  "libwebp": "1.6.0",
+  "color": "sRGB; source Google cHRM/gAMA are standard sRGB; ICC converted before stripping",
+  "provenance": "Original PNG chunks retained in masters; see ../practice-guide-art.md",
+  "assets": [
+    {
+      "id": "DIYA",
+      "file": "diya_cutout.png",
+      "sha256": "c071bcc906ff444f9cc207e342e529f2c842e61424d78d368dc1e0c08e57463d",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            128,
+            192,
+            256,
+            320,
+            448
+          ]
+        }
+      }
+    },
+    {
+      "id": "FAMILY",
+      "file": "family_hands.png",
+      "sha256": "c3edaa15cca5d6abc300e9b63b85e0a4bcf30bab9ea14013b98e08cd81267047",
+      "size": [
+        1024,
+        1536
+      ],
+      "alpha": false,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "square_end",
+          "edges": [
+            640,
+            960,
+            1024
+          ]
+        },
+        "thumb": {
+          "crop": "square_end",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        }
+      }
+    },
+    {
+      "id": "BOOK",
+      "file": "gayatri_practice_book.png",
+      "sha256": "399d23bb0ae94c8b7c330e70b393dae7f1eff9199747018e7461fb59dbec25b6",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            128,
+            192,
+            256,
+            320,
+            448,
+            640,
+            896
+          ]
+        }
+      }
+    },
+    {
+      "id": "GOOGLE",
+      "file": "google_g.png",
+      "sha256": "d1ce9c2af0b10a7333abc99bc706f9a6a199e5b65bf3e3009624f076b8638e6a",
+      "size": [
+        200,
+        204
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            48,
+            64,
+            80,
+            96
+          ]
+        }
+      }
+    },
+    {
+      "id": "JASMINE",
+      "file": "jasmine_sprig.png",
+      "sha256": "288bb09c674818b4f459d478260b8c6f29f1a111c6a489f586798ade60a4be7a",
+      "size": [
+        1024,
+        1536
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            256,
+            384,
+            512
+          ]
+        }
+      }
+    },
+    {
+      "id": "EMBLEM",
+      "file": "lotus_emblem.png",
+      "sha256": "d9be68fca65eb67ddfa1041e045b96879764ca619b0cb4a30351c19cae2b3c5c",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            128,
+            192,
+            256,
+            320,
+            448,
+            640
+          ]
+        }
+      }
+    },
+    {
+      "id": "LOTUS",
+      "file": "lotus_morning.png",
+      "sha256": "b0b7e0b6af2530472e37f449ba5b38a0154071e170d7d0d2051bd4d35e1974d7",
+      "size": [
+        1536,
+        1024
+      ],
+      "alpha": false,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            640,
+            960,
+            1280,
+            1536
+          ]
+        },
+        "thumb": {
+          "crop": "square_end",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        }
+      }
+    },
+    {
+      "id": "MESSAGES",
+      "file": "messages_morning_notes.png",
+      "sha256": "4672b9e4756090a16ad51412d9618c045282d07e0bed11aa0ddc95f326a8ce7f",
+      "size": [
+        1536,
+        1024
+      ],
+      "alpha": false,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            640,
+            960,
+            1280,
+            1536
+          ]
+        },
+        "thumb": {
+          "crop": "square_end",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        },
+        "banner": {
+          "crop": "banner_end",
+          "edges": [
+            640,
+            960,
+            1280,
+            1536
+          ]
+        }
+      }
+    },
+    {
+      "id": "MALA",
+      "file": "purashcharana_mala.png",
+      "sha256": "babfc473c5c88bef3b82e60ba56ba557e0a69cae92bae620387038a548d469e5",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            128,
+            192,
+            256,
+            320,
+            448,
+            640,
+            896
+          ]
+        }
+      }
+    },
+    {
+      "id": "RITUAL",
+      "file": "ritual_still_life.png",
+      "sha256": "b0d807cbd6055d65f59e6e20a5d9d46b75fb199565d05049fa2d9e23663515f3",
+      "size": [
+        1536,
+        1024
+      ],
+      "alpha": false,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            640,
+            960,
+            1280,
+            1536
+          ]
+        },
+        "thumb": {
+          "crop": "square_end",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        }
+      }
+    },
+    {
+      "id": "RIVER",
+      "file": "river_dawn.png",
+      "sha256": "689000a1aede97f9f1aedbf3e5d3e3a62a3ede24ea9e63322bd16f2713bbbfba",
+      "size": [
+        1536,
+        1024
+      ],
+      "alpha": false,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            640,
+            960,
+            1280,
+            1536
+          ]
+        },
+        "thumb": {
+          "crop": "square_end",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        }
+      }
+    },
+    {
+      "id": "VESSEL",
+      "file": "sandhya_vessel.png",
+      "sha256": "2035b80b74743fe4d0b898c04218dbd7323faafaa3db1b734cb65a70c724948e",
+      "size": [
+        1374,
+        1145
+      ],
+      "alpha": true,
+      "focal_point": [
+        1.0,
+        0.5
+      ],
+      "usages": {
+        "image": {
+          "crop": "fit",
+          "edges": [
+            128,
+            192,
+            256,
+            320
+          ]
+        }
+      }
+    }
+  ]
+}

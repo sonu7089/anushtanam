@@ -1,0 +1,804 @@
+{
+  "manifestSha256": "a6a82109eb02cc06c8d944ff44f782e6a1370e3aad4c9ba7df58f545b09a085c",
+  "generatorSha256": "776a1ce59beea313048eb755d84a8a1f384fe7ef326c8ebbf1d1c83604f126f9",
+  "variants": [
+    {
+      "resource": "art_diya_cutout_image_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "93f6b62089fb22bb8e847da03fcfaa341c2371b0edae91ffe1e8411475560224",
+      "bytes": 9724,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_diya_cutout_image_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "2886da5185966e1a2447079e00a7197dd3058143c7aa342982b7820a3dd7b85c",
+      "bytes": 19214,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_diya_cutout_image_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "20a367d162e9e7ecdc0edcdccdf03a38abfa736b70dbf7caa569491d96814333",
+      "bytes": 31002,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_diya_cutout_image_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "f455d82ea6bc3af01504c16619adfa4192b73f850b6da712e991df03af525519",
+      "bytes": 46278,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_diya_cutout_image_448",
+      "width": 448,
+      "height": 448,
+      "sha256": "5022c44482554ff053369dd7a5d47af8668418f08670a8f111de7b20580ac1a2",
+      "bytes": 85920,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_family_hands_image_640",
+      "width": 640,
+      "height": 640,
+      "sha256": "6e71d7f91abf72c91c211fbe195df9c1e1704032dd8b35999995a508cb75aded",
+      "bytes": 39720,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_image_960",
+      "width": 960,
+      "height": 960,
+      "sha256": "b0e882b298a230133834422d1bc8fe5854febe5b0244ddfc0eeb633f6388e9b3",
+      "bytes": 75618,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_image_1024",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "d345f9d9e5feeb584a769abc32a55ad97b8c32ba2120c9aabb1a6c645aa6329f",
+      "bytes": 82212,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_thumb_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "8e0284ebdcd0681ed85d372cbb8dc2339a7a643ea92cc7a9c91fafe01ae4772d",
+      "bytes": 4150,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_thumb_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "6192c2695349a0f85d3f036914bf90465224db54e5b33f1945049f63ab7eb31f",
+      "bytes": 7298,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_thumb_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "c75cbb7f9baa857be90288dd3600036416d6adcf8e3a6d6dc1d9c4a70a11ebd0",
+      "bytes": 10772,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_family_hands_thumb_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "977d64f424e2422711e19ee68c8f97d4b6e9afc2be477dea98ff7a49e1fdffc1",
+      "bytes": 15024,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "a88938a4401c1a4788e4bac3a007584189f81340a484d19838108f4c3bb6f747",
+      "bytes": 14874,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "070ca220bd14476b20ed7546e56b6c1b14becac02ace8afe9fc5e048b032cddc",
+      "bytes": 28994,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "63ae991ffbea98017d7ef2b142e1050e4aa7d6b2b6646add4109e5cbf707a622",
+      "bytes": 47018,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "51242a9c75c45432bdea83a64eb3d2fce70f19d3d6d1a129218e50dee8141410",
+      "bytes": 70016,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_448",
+      "width": 448,
+      "height": 448,
+      "sha256": "80e803e30e87a01e9021ca40732e9782b9557fa86dda972b47e749a642a4d462",
+      "bytes": 134660,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_640",
+      "width": 640,
+      "height": 640,
+      "sha256": "9c9267a20bf930c7a8d85ad07e9e713f73766424adecbaefbb2c02d99bffdd11",
+      "bytes": 274312,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_gayatri_practice_book_image_896",
+      "width": 896,
+      "height": 896,
+      "sha256": "85b9360a8b8389e5475f1304451ab4981f3f3b15c9e805625aaa8987dabc9e29",
+      "bytes": 545658,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_google_g_image_48",
+      "width": 47,
+      "height": 48,
+      "sha256": "d1a2f9054794e28ba9cefbd9939ac7e342d14ef609a6a7d2113b24933cf67863",
+      "bytes": 2970,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_google_g_image_64",
+      "width": 63,
+      "height": 64,
+      "sha256": "1e1a65a7d65acd6e33a3104097a4face5db59c3224091c792d2dfc597cf104ff",
+      "bytes": 4098,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_google_g_image_80",
+      "width": 78,
+      "height": 80,
+      "sha256": "3942498c0fd288d3da240b579775dae15a926470f621898873fdf7c5c1592900",
+      "bytes": 5472,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_google_g_image_96",
+      "width": 94,
+      "height": 96,
+      "sha256": "2ba2c903e830d37c3630e8ba8a42cddf7ffe6db2fba9f602f0c7e30708a01049",
+      "bytes": 6864,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_jasmine_sprig_image_256",
+      "width": 171,
+      "height": 256,
+      "sha256": "230272688659380214d330408a9cd1bdf3f0e8e6b552b4faad0f3c31b90d7e74",
+      "bytes": 23958,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_jasmine_sprig_image_384",
+      "width": 256,
+      "height": 384,
+      "sha256": "4fbdc89e0dbb4443a71d4f3f360f962f60ee689e9bfeb663e3176750727cef13",
+      "bytes": 43512,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_jasmine_sprig_image_512",
+      "width": 341,
+      "height": 512,
+      "sha256": "5a9827d6ffda8293f7f937d78768a63c904a170a4a8c1e7ef68d71b6fded6148",
+      "bytes": 69532,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "976d35c8d8d0bd9f01ff7f77718053b361185d6f8464bd4e417efe622765d8c0",
+      "bytes": 11468,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "e31cfee7a8bccba7b3bf62180ac4e98ad7c0eff8f3939e061d2c13c795eeae46",
+      "bytes": 21942,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "bbd9cd21ac9d164834da059fccaf9abc903897298ef4463d33b9a3b3d738cfdf",
+      "bytes": 34996,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "00bbbbd01f27e1340ca0ca6cb53d4ba4d07491beef1155183379d5ac14b5c368",
+      "bytes": 51292,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_448",
+      "width": 448,
+      "height": 448,
+      "sha256": "d0aea5a5d25338446ed66ec47d113a9a71d056d875e94db7ff95893383c4fe14",
+      "bytes": 94242,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_emblem_image_640",
+      "width": 640,
+      "height": 640,
+      "sha256": "3b9a3c3f9b2002debdd42d08ad4341b7449186d0cd0b9a86e19336d0ffab20d5",
+      "bytes": 182000,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_lotus_morning_image_640",
+      "width": 640,
+      "height": 427,
+      "sha256": "481d2df3fb5b1af2b2a74cef918d209938b3dc49187f4b783d6c5980287eb037",
+      "bytes": 19418,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_image_960",
+      "width": 960,
+      "height": 640,
+      "sha256": "f64a460d9a3cabbbfb5d50c19a07010775ffa3de24a7908b21eb5f280f5b49ab",
+      "bytes": 34712,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_image_1280",
+      "width": 1280,
+      "height": 853,
+      "sha256": "c8c5e437b7fa06571a09def2ffef123d25490052fdb92b310ac69eddbddc6e5f",
+      "bytes": 49714,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_image_1536",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "fd1a396915bc9088319444173951220b1073960d187985559ae6472757d15ab5",
+      "bytes": 65294,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_thumb_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "2ffc3237d0283d107ea6ae824e230c4e8f62638a6e9342f98f7818580de6ea05",
+      "bytes": 3432,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_thumb_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "b4203f2c0d4a832c3aabf750c68025f2240c2fa5c11f587f77eb1bdd79acc341",
+      "bytes": 5746,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_thumb_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "1a75961b8cd595245dbddf912f8b08245fc90e4ef47faba0ed1e7a9029a00a6e",
+      "bytes": 8374,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_lotus_morning_thumb_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "56c374229b09e826e42fb66833c963744e209e5c1dde3ada68c7cc6e0d84c3da",
+      "bytes": 11600,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_image_640",
+      "width": 640,
+      "height": 427,
+      "sha256": "294837e0c0adedae023864aed2a75a2a557d392c847b339ab0b115efc687a7ff",
+      "bytes": 43716,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_image_960",
+      "width": 960,
+      "height": 640,
+      "sha256": "c8123715cfdf6921d0ca774802b96dac03136497e49eae11cda24ba9a95a74a8",
+      "bytes": 75998,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_image_1280",
+      "width": 1280,
+      "height": 853,
+      "sha256": "c64f056c9202b2801159e010a5ec409d3df8c4305eb4f073cf337df7a5a51e43",
+      "bytes": 114172,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_image_1536",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "cbf38b68e7e26d8078a17c1eabe62d27032497877b729c9285a924de866274f4",
+      "bytes": 148334,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_thumb_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "b2432cdce482d39c506434103f55c19faa2cb8d5cfe3442bbda34af82c7a4ee0",
+      "bytes": 5236,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_thumb_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "2ca0e01ffc52add395717164e03b28c83fcc1da92902da60dfb98e48c03a0f92",
+      "bytes": 10100,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_thumb_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "b3d3b8cb87dd795086f4bfa85ec7e9f5666b9e9ae4a3ffaedb022fb63886397e",
+      "bytes": 15268,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_thumb_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "2eee3ab3bc8fe95c328223bb670cf02dbb17192e7c6293d9cc652b2a0e9e2d20",
+      "bytes": 21684,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_banner_640",
+      "width": 640,
+      "height": 320,
+      "sha256": "35c7d815d5181198c675ad7a9af73d65633903cda5bbc6733c921811ff83c998",
+      "bytes": 35632,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_banner_960",
+      "width": 960,
+      "height": 480,
+      "sha256": "70eba8de0096b86b84fd36c324899bbe6b70b310d1bc452715dd4051bdf243ba",
+      "bytes": 61998,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_banner_1280",
+      "width": 1280,
+      "height": 640,
+      "sha256": "ac78e77527de23acc8a91690e0fd6e61f106cf9eb814a18b9ec9643ed5cadf40",
+      "bytes": 93894,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_messages_morning_notes_banner_1536",
+      "width": 1536,
+      "height": 768,
+      "sha256": "f10a8f2490854613018c39fd6e9098aba70ccd9d9f346099566427d4cdb15db8",
+      "bytes": 122970,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_purashcharana_mala_image_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "5d7deec6597d4d6eaa2384caa2d02cca506cacb444dcd552c0601e0414977f90",
+      "bytes": 7860,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "52c46e30f8692e9a347c91b5a965b58fb852e5be733342fcc8096debc29695f5",
+      "bytes": 14750,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "54d18dafbc3c9bad97276505efa6bffaf718a1d8fe22ec0ad6eff4dd99e40ba3",
+      "bytes": 24362,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "ef34b0aeb2f78aa104bfb0b046d520fffaa552f76007f47e4f6c1448521bcfc4",
+      "bytes": 35478,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_448",
+      "width": 448,
+      "height": 448,
+      "sha256": "1ee9fa633d9adf76a8956701434b61d337bdf4d69c5f91dbf79e43009d1f0934",
+      "bytes": 60118,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_640",
+      "width": 640,
+      "height": 640,
+      "sha256": "34abf536d911decc6791762e3df2e03d12963dca28199a09025661030631e1c1",
+      "bytes": 110012,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_purashcharana_mala_image_896",
+      "width": 896,
+      "height": 896,
+      "sha256": "089ed07aaf15fdadd130c3ee051ecda91bf78528674ade2afaf21089f41eb61f",
+      "bytes": 200934,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_ritual_still_life_image_640",
+      "width": 640,
+      "height": 427,
+      "sha256": "f73b7b7a818db438cda26b52a60b332707c576680dd6c5622a1f7840c908215a",
+      "bytes": 27790,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_image_960",
+      "width": 960,
+      "height": 640,
+      "sha256": "2697afe9b6aa4706cbc39323f28a5ebada8487d81b0aa12e83c59216a04f674c",
+      "bytes": 47720,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_image_1280",
+      "width": 1280,
+      "height": 853,
+      "sha256": "8c285352c6d59282759b8789e304d6dbfd37db44bd7a10d14e3cd61461d101a0",
+      "bytes": 71852,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_image_1536",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "90be1f5c2a8350f2c023a0b799508a84013f400280eb02cc50bca4e144ff65dd",
+      "bytes": 94644,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_thumb_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "2377232509cc0db54d95ee74d8113d83761da22f35f4e817f8769e9fe2adde86",
+      "bytes": 3804,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_thumb_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "86fc16b107eca9b041270ea091ef5782c2a5fe925e047d31b1557c4ec1934eb3",
+      "bytes": 6832,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_thumb_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "3649718196beefa66a3836c4e0e1d7beb91f41b0747c3ecaa2e3650743278753",
+      "bytes": 9978,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_ritual_still_life_thumb_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "9d6dcda9905f729c48c57b1c8ba43189d283c8321706ca9412073c684550f5c2",
+      "bytes": 13306,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_image_640",
+      "width": 640,
+      "height": 427,
+      "sha256": "7d9b836e31e48ec788dc38d1e97d36d7e6c21b208835f44b700a5c0960e08a19",
+      "bytes": 31380,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_image_960",
+      "width": 960,
+      "height": 640,
+      "sha256": "fe739fa30d77952f61b6f656e1c442381bec30729e9e4b65539c69270299bfed",
+      "bytes": 63984,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_image_1280",
+      "width": 1280,
+      "height": 853,
+      "sha256": "743d04fabc275c9f59d5fff9f9ef4d4bac3d26c8394ff4555621896529c86799",
+      "bytes": 106604,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_image_1536",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "17f6937fb1d7206192dc21b271e54c527486adeacd88737344d15960a91803d4",
+      "bytes": 147136,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_thumb_128",
+      "width": 128,
+      "height": 128,
+      "sha256": "6089ec53dbaf6b41739a884230a9ca2828387d87daa437157d22c1a1d062e18e",
+      "bytes": 3520,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_thumb_192",
+      "width": 192,
+      "height": 192,
+      "sha256": "2139885cc2501841e3c0855e4873e231a8049b5a9de458b3ade551586bd62493",
+      "bytes": 7374,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_thumb_256",
+      "width": 256,
+      "height": 256,
+      "sha256": "f2aa219c59fc37756fc91477ef9ea429b216c9011b7e498c9094b4009504a5f6",
+      "bytes": 12036,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_river_dawn_thumb_320",
+      "width": 320,
+      "height": 320,
+      "sha256": "98fe7421b535d70d604d2dab0b8b0b5d5b7e7accc87294f9364d8fb44c4cc2b2",
+      "bytes": 17928,
+      "alpha": false,
+      "lossless": false
+    },
+    {
+      "resource": "art_sandhya_vessel_image_128",
+      "width": 128,
+      "height": 107,
+      "sha256": "1c948f3af69ee34005201fa1c62f50623245eebf0f6f02d92815614c7011c36d",
+      "bytes": 13922,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_sandhya_vessel_image_192",
+      "width": 192,
+      "height": 160,
+      "sha256": "4f1c694370de3a553e37416cbd46e51321cb3a2af3460a270334a4e23ade5bb5",
+      "bytes": 26592,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_sandhya_vessel_image_256",
+      "width": 256,
+      "height": 213,
+      "sha256": "91075453e17c9e1f2c749ae67c05eef2555dd7194d2b2bee2cd368b6c816a638",
+      "bytes": 42792,
+      "alpha": true,
+      "lossless": true
+    },
+    {
+      "resource": "art_sandhya_vessel_image_320",
+      "width": 320,
+      "height": 267,
+      "sha256": "2c0478c863bad258187983f01a5b9539d96116e79b7844aa27897c9047522473",
+      "bytes": 63104,
+      "alpha": true,
+      "lossless": true
+    }
+  ],
+  "files": {
+    "frontend/android/src/main/res/drawable-nodpi/art_diya_cutout_image_128.webp": "93f6b62089fb22bb8e847da03fcfaa341c2371b0edae91ffe1e8411475560224",
+    "frontend/android/src/main/res/drawable-nodpi/art_diya_cutout_image_192.webp": "2886da5185966e1a2447079e00a7197dd3058143c7aa342982b7820a3dd7b85c",
+    "frontend/android/src/main/res/drawable-nodpi/art_diya_cutout_image_256.webp": "20a367d162e9e7ecdc0edcdccdf03a38abfa736b70dbf7caa569491d96814333",
+    "frontend/android/src/main/res/drawable-nodpi/art_diya_cutout_image_320.webp": "f455d82ea6bc3af01504c16619adfa4192b73f850b6da712e991df03af525519",
+    "frontend/android/src/main/res/drawable-nodpi/art_diya_cutout_image_448.webp": "5022c44482554ff053369dd7a5d47af8668418f08670a8f111de7b20580ac1a2",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_image_640.webp": "6e71d7f91abf72c91c211fbe195df9c1e1704032dd8b35999995a508cb75aded",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_image_960.webp": "b0e882b298a230133834422d1bc8fe5854febe5b0244ddfc0eeb633f6388e9b3",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_image_1024.webp": "d345f9d9e5feeb584a769abc32a55ad97b8c32ba2120c9aabb1a6c645aa6329f",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_thumb_128.webp": "8e0284ebdcd0681ed85d372cbb8dc2339a7a643ea92cc7a9c91fafe01ae4772d",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_thumb_192.webp": "6192c2695349a0f85d3f036914bf90465224db54e5b33f1945049f63ab7eb31f",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_thumb_256.webp": "c75cbb7f9baa857be90288dd3600036416d6adcf8e3a6d6dc1d9c4a70a11ebd0",
+    "frontend/android/src/main/res/drawable-nodpi/art_family_hands_thumb_320.webp": "977d64f424e2422711e19ee68c8f97d4b6e9afc2be477dea98ff7a49e1fdffc1",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_128.webp": "a88938a4401c1a4788e4bac3a007584189f81340a484d19838108f4c3bb6f747",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_192.webp": "070ca220bd14476b20ed7546e56b6c1b14becac02ace8afe9fc5e048b032cddc",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_256.webp": "63ae991ffbea98017d7ef2b142e1050e4aa7d6b2b6646add4109e5cbf707a622",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_320.webp": "51242a9c75c45432bdea83a64eb3d2fce70f19d3d6d1a129218e50dee8141410",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_448.webp": "80e803e30e87a01e9021ca40732e9782b9557fa86dda972b47e749a642a4d462",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_640.webp": "9c9267a20bf930c7a8d85ad07e9e713f73766424adecbaefbb2c02d99bffdd11",
+    "frontend/android/src/main/res/drawable-nodpi/art_gayatri_practice_book_image_896.webp": "85b9360a8b8389e5475f1304451ab4981f3f3b15c9e805625aaa8987dabc9e29",
+    "frontend/android/src/main/res/drawable-nodpi/art_google_g_image_48.webp": "d1a2f9054794e28ba9cefbd9939ac7e342d14ef609a6a7d2113b24933cf67863",
+    "frontend/android/src/main/res/drawable-nodpi/art_google_g_image_64.webp": "1e1a65a7d65acd6e33a3104097a4face5db59c3224091c792d2dfc597cf104ff",
+    "frontend/android/src/main/res/drawable-nodpi/art_google_g_image_80.webp": "3942498c0fd288d3da240b579775dae15a926470f621898873fdf7c5c1592900",
+    "frontend/android/src/main/res/drawable-nodpi/art_google_g_image_96.webp": "2ba2c903e830d37c3630e8ba8a42cddf7ffe6db2fba9f602f0c7e30708a01049",
+    "frontend/android/src/main/res/drawable-nodpi/art_jasmine_sprig_image_256.webp": "230272688659380214d330408a9cd1bdf3f0e8e6b552b4faad0f3c31b90d7e74",
+    "frontend/android/src/main/res/drawable-nodpi/art_jasmine_sprig_image_384.webp": "4fbdc89e0dbb4443a71d4f3f360f962f60ee689e9bfeb663e3176750727cef13",
+    "frontend/android/src/main/res/drawable-nodpi/art_jasmine_sprig_image_512.webp": "5a9827d6ffda8293f7f937d78768a63c904a170a4a8c1e7ef68d71b6fded6148",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_128.webp": "976d35c8d8d0bd9f01ff7f77718053b361185d6f8464bd4e417efe622765d8c0",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_192.webp": "e31cfee7a8bccba7b3bf62180ac4e98ad7c0eff8f3939e061d2c13c795eeae46",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_256.webp": "bbd9cd21ac9d164834da059fccaf9abc903897298ef4463d33b9a3b3d738cfdf",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_320.webp": "00bbbbd01f27e1340ca0ca6cb53d4ba4d07491beef1155183379d5ac14b5c368",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_448.webp": "d0aea5a5d25338446ed66ec47d113a9a71d056d875e94db7ff95893383c4fe14",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_emblem_image_640.webp": "3b9a3c3f9b2002debdd42d08ad4341b7449186d0cd0b9a86e19336d0ffab20d5",
+    "frontend/android/src/main/res/drawable-mdpi/art_launcher.webp": "102b2f01ee7021c2a87453f502b90f6b266e3acba1c64f85192913ea43d74a0e",
+    "frontend/android/src/main/res/drawable-hdpi/art_launcher.webp": "2c32d25ea9769a7190e7836fd7ba2a5dd1a270ddff8d5db1fe1541c5e01b91fa",
+    "frontend/android/src/main/res/drawable-xhdpi/art_launcher.webp": "b1d824e72921e996c0b25edfcd2c9d631ee5e99445a59ae6be14de690e413065",
+    "frontend/android/src/main/res/drawable-xxhdpi/art_launcher.webp": "22693624fba0e48444a20232137c0cb2266decd7b4a22d279798b92462e1f5fa",
+    "frontend/android/src/main/res/drawable-xxxhdpi/art_launcher.webp": "7aab827db4632c50f1f44ee6bbecb835c07cc55cd8783057353ddffbfc1062bf",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_image_640.webp": "481d2df3fb5b1af2b2a74cef918d209938b3dc49187f4b783d6c5980287eb037",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_image_960.webp": "f64a460d9a3cabbbfb5d50c19a07010775ffa3de24a7908b21eb5f280f5b49ab",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_image_1280.webp": "c8c5e437b7fa06571a09def2ffef123d25490052fdb92b310ac69eddbddc6e5f",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_image_1536.webp": "fd1a396915bc9088319444173951220b1073960d187985559ae6472757d15ab5",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_thumb_128.webp": "2ffc3237d0283d107ea6ae824e230c4e8f62638a6e9342f98f7818580de6ea05",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_thumb_192.webp": "b4203f2c0d4a832c3aabf750c68025f2240c2fa5c11f587f77eb1bdd79acc341",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_thumb_256.webp": "1a75961b8cd595245dbddf912f8b08245fc90e4ef47faba0ed1e7a9029a00a6e",
+    "frontend/android/src/main/res/drawable-nodpi/art_lotus_morning_thumb_320.webp": "56c374229b09e826e42fb66833c963744e209e5c1dde3ada68c7cc6e0d84c3da",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_image_640.webp": "294837e0c0adedae023864aed2a75a2a557d392c847b339ab0b115efc687a7ff",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_image_960.webp": "c8123715cfdf6921d0ca774802b96dac03136497e49eae11cda24ba9a95a74a8",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_image_1280.webp": "c64f056c9202b2801159e010a5ec409d3df8c4305eb4f073cf337df7a5a51e43",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_image_1536.webp": "cbf38b68e7e26d8078a17c1eabe62d27032497877b729c9285a924de866274f4",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_thumb_128.webp": "b2432cdce482d39c506434103f55c19faa2cb8d5cfe3442bbda34af82c7a4ee0",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_thumb_192.webp": "2ca0e01ffc52add395717164e03b28c83fcc1da92902da60dfb98e48c03a0f92",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_thumb_256.webp": "b3d3b8cb87dd795086f4bfa85ec7e9f5666b9e9ae4a3ffaedb022fb63886397e",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_thumb_320.webp": "2eee3ab3bc8fe95c328223bb670cf02dbb17192e7c6293d9cc652b2a0e9e2d20",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_banner_640.webp": "35c7d815d5181198c675ad7a9af73d65633903cda5bbc6733c921811ff83c998",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_banner_960.webp": "70eba8de0096b86b84fd36c324899bbe6b70b310d1bc452715dd4051bdf243ba",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_banner_1280.webp": "ac78e77527de23acc8a91690e0fd6e61f106cf9eb814a18b9ec9643ed5cadf40",
+    "frontend/android/src/main/res/drawable-nodpi/art_messages_morning_notes_banner_1536.webp": "f10a8f2490854613018c39fd6e9098aba70ccd9d9f346099566427d4cdb15db8",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_128.webp": "5d7deec6597d4d6eaa2384caa2d02cca506cacb444dcd552c0601e0414977f90",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_192.webp": "52c46e30f8692e9a347c91b5a965b58fb852e5be733342fcc8096debc29695f5",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_256.webp": "54d18dafbc3c9bad97276505efa6bffaf718a1d8fe22ec0ad6eff4dd99e40ba3",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_320.webp": "ef34b0aeb2f78aa104bfb0b046d520fffaa552f76007f47e4f6c1448521bcfc4",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_448.webp": "1ee9fa633d9adf76a8956701434b61d337bdf4d69c5f91dbf79e43009d1f0934",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_640.webp": "34abf536d911decc6791762e3df2e03d12963dca28199a09025661030631e1c1",
+    "frontend/android/src/main/res/drawable-nodpi/art_purashcharana_mala_image_896.webp": "089ed07aaf15fdadd130c3ee051ecda91bf78528674ade2afaf21089f41eb61f",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_image_640.webp": "f73b7b7a818db438cda26b52a60b332707c576680dd6c5622a1f7840c908215a",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_image_960.webp": "2697afe9b6aa4706cbc39323f28a5ebada8487d81b0aa12e83c59216a04f674c",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_image_1280.webp": "8c285352c6d59282759b8789e304d6dbfd37db44bd7a10d14e3cd61461d101a0",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_image_1536.webp": "90be1f5c2a8350f2c023a0b799508a84013f400280eb02cc50bca4e144ff65dd",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_thumb_128.webp": "2377232509cc0db54d95ee74d8113d83761da22f35f4e817f8769e9fe2adde86",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_thumb_192.webp": "86fc16b107eca9b041270ea091ef5782c2a5fe925e047d31b1557c4ec1934eb3",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_thumb_256.webp": "3649718196beefa66a3836c4e0e1d7beb91f41b0747c3ecaa2e3650743278753",
+    "frontend/android/src/main/res/drawable-nodpi/art_ritual_still_life_thumb_320.webp": "9d6dcda9905f729c48c57b1c8ba43189d283c8321706ca9412073c684550f5c2",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_image_640.webp": "7d9b836e31e48ec788dc38d1e97d36d7e6c21b208835f44b700a5c0960e08a19",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_image_960.webp": "fe739fa30d77952f61b6f656e1c442381bec30729e9e4b65539c69270299bfed",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_image_1280.webp": "743d04fabc275c9f59d5fff9f9ef4d4bac3d26c8394ff4555621896529c86799",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_image_1536.webp": "17f6937fb1d7206192dc21b271e54c527486adeacd88737344d15960a91803d4",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_thumb_128.webp": "6089ec53dbaf6b41739a884230a9ca2828387d87daa437157d22c1a1d062e18e",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_thumb_192.webp": "2139885cc2501841e3c0855e4873e231a8049b5a9de458b3ade551586bd62493",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_thumb_256.webp": "f2aa219c59fc37756fc91477ef9ea429b216c9011b7e498c9094b4009504a5f6",
+    "frontend/android/src/main/res/drawable-nodpi/art_river_dawn_thumb_320.webp": "98fe7421b535d70d604d2dab0b8b0b5d5b7e7accc87294f9364d8fb44c4cc2b2",
+    "frontend/android/src/main/res/drawable-nodpi/art_sandhya_vessel_image_128.webp": "1c948f3af69ee34005201fa1c62f50623245eebf0f6f02d92815614c7011c36d",
+    "frontend/android/src/main/res/drawable-nodpi/art_sandhya_vessel_image_192.webp": "4f1c694370de3a553e37416cbd46e51321cb3a2af3460a270334a4e23ade5bb5",
+    "frontend/android/src/main/res/drawable-nodpi/art_sandhya_vessel_image_256.webp": "91075453e17c9e1f2c749ae67c05eef2555dd7194d2b2bee2cd368b6c816a638",
+    "frontend/android/src/main/res/drawable-nodpi/art_sandhya_vessel_image_320.webp": "2c0478c863bad258187983f01a5b9539d96116e79b7844aa27897c9047522473",
+    "frontend/android/src/main/java/com/mantrasiddhi/presentation/components/ArtworkCatalog.kt": "e6121e33edd2212a4790b7147725849f39ca130ad401ac698058ccb04c4063a9"
+  }
+}

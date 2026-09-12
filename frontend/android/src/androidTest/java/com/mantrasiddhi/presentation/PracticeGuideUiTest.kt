@@ -30,6 +30,7 @@ class PracticeGuideUiTest {
             }
         }
         compose.onNodeWithText(text(R.string.guide_intro)).assertDoesNotExist()
+        compose.onNode(hasScrollToIndexAction()).performScrollToKey("home_section_7")
         compose.onNodeWithText(text(R.string.guide_learn)).performScrollTo().performClick()
         openSection(R.string.guide_methods_title)
         listOf(R.string.guide_vaikhari, R.string.guide_upamsu, R.string.guide_manasika).forEach {
@@ -37,6 +38,7 @@ class PracticeGuideUiTest {
         }
         compose.onNodeWithText("I have read this").assertDoesNotExist()
         compose.onNodeWithContentDescription(text(R.string.guide_close)).assertIsDisplayed().performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToKey("home_section_7")
         compose.onNodeWithText(text(R.string.guide_learn)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.guide_intro)).assertIsDisplayed()
     }
@@ -80,6 +82,7 @@ class PracticeGuideUiTest {
                 if (visible) PracticeGuideSheet(onDismiss = { visible = false }, onPractice = { practice++ })
             }
         }
+        compose.onNode(hasScrollToIndexAction()).performScrollToKey("home_section_7")
         compose.onNodeWithText(text(R.string.guide_learn)).performScrollTo().performClick()
         compose.onNodeWithText(text(R.string.guide_pronunciation)).performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, practice) }

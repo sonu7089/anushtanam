@@ -44,6 +44,7 @@ class VoiceModelManager @Inject constructor(
     /** Uncertain metadata is not evidence that the pack is missing. */
     suspend fun checkStatus(): VoiceModelStatus = withContext(Dispatchers.Main) {
         checkMutex.withLock {
+            com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("voice.status.check")
             val candidates = mutableListOf<Selection>()
             for (backend in factory.availableBackends()) {
                 val status = querySupport(backend)
@@ -94,6 +95,7 @@ class VoiceModelManager @Inject constructor(
         return try {
             val rec = factory.create(backend)
             recognizer = rec
+            com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("voice.support.query")
             withTimeoutOrNull(CHECK_TIMEOUT_MS) {
                 suspendCancellableCoroutine { continuation ->
                     rec.checkRecognitionSupport(recognitionIntent(VoiceModelSupport.REQUIRED_LANGUAGE),

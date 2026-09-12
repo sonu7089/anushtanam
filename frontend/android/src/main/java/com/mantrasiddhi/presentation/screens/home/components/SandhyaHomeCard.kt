@@ -1,6 +1,7 @@
 package com.mantrasiddhi.presentation.screens.home.components
 
-import androidx.compose.foundation.Image
+import com.mantrasiddhi.presentation.components.AppArtwork
+import com.mantrasiddhi.presentation.components.AppArt
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -9,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,7 +23,7 @@ fun SandhyaHomeCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         IllustratedCardContent(artwork = {
-            Image(painterResource(com.mantrasiddhi.R.drawable.sandhya_vessel), null, it)
+            AppArtwork(AppArt.VESSEL, it)
         }) {
             Text(stringResource(R.string.home_sandhya_title), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold)

@@ -1,4 +1,4 @@
-"""Inventory current bundled PNGs without decoding or modifying their pixels."""
+"""Inventory retained artwork masters without decoding or modifying their pixels."""
 
 from collections import Counter
 import csv
@@ -8,7 +8,7 @@ import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSETS = ROOT / "frontend/android/src/main/res/drawable-nodpi"
+ASSETS = ROOT / "frontend/android/design/artwork/masters"
 OUTPUT = Path(__file__).with_name("image-inventory.csv")
 PIXEL_CHUNKS = {"IHDR", "IDAT", "IEND", "PLTE", "tRNS"}
 

@@ -16,13 +16,15 @@ class SyncSignedInUserUseCaseTest {
     private val session = mockk<SessionRepository>(relaxed = true)
     private val preferences = mockk<UserPreferencesDataStore>(relaxed = true)
     private val auth = mockk<FirebaseAuth>()
+    private val reminders = mockk<SandhyaScheduler>(relaxed = true)
+    private val recovery = mockk<com.mantrasiddhi.data.sync.JapaCloudSync>(relaxed = true)
     private val records = mutableMapOf<Long, UserProfile>()
     private val account = AuthAccount("owner", AccountRole.INDIVIDUAL, "Google name",
         photoUrl = "https://example.com/photo", googleLinked = true, photoSource = "GOOGLE")
     private val sync = SyncSignedInUserUseCase(users, session, preferences,
         mockk<SandhyaPreferences>(relaxed = true), mockk<TargetRepository>(relaxed = true),
         mockk<TargetSyncRepository>(relaxed = true), mockk<PurashcharanaRepository>(relaxed = true),
-        mockk<PurashcharanaSyncRepository>(relaxed = true), auth, mockk<SandhyaScheduler>(relaxed = true), mockk(relaxed = true))
+        mockk<PurashcharanaSyncRepository>(relaxed = true), auth, reminders, recovery)
 
     init {
         every { auth.currentUser } returns mockk { every { uid } returns "owner" }
@@ -83,5 +85,25 @@ class SyncSignedInUserUseCaseTest {
         assertTrue(runCatching { sync(account) }.isFailure)
         assertTrue(records.isEmpty())
         coVerify(exactly = 0) { session.login(any()) }
+        verify(exactly = 0) { reminders.requestStartupRearm(any()) }
+    }
+
+    @Test fun `entry records durable recovery and requests reminders without waiting for scheduler`() = runTest {
+        coEvery { reminders.scheduleAll() } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        assertEquals(100L, sync(account))
+        coVerifyOrder {
+            session.login(any())
+            recovery.requestRecovery("owner")
+            reminders.requestStartupRearm(100L)
+        }
+        coVerify(exactly = 0) { reminders.scheduleAll() }
+    }
+
+    @Test fun `account change during association cannot enqueue stale reminder maintenance`() = runTest {
+        coEvery { preferences.setLocalProfileId(any(), any()) } answers {
+            every { auth.currentUser } returns null
+        }
+        assertTrue(runCatching { sync(account) }.isFailure)
+        verify(exactly = 0) { reminders.requestStartupRearm(any()) }
     }
 }

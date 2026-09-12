@@ -67,6 +67,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Reveal the already-laid-out Home frame directly; the system splash's default
+        // exit animation otherwise overlaps it with a second whole-window reveal.
+        splashScreen.setOnExitAnimationListener { it.remove() }
         if (savedInstanceState?.getBoolean("messageHandled") != true) messageId = readMessage(intent)
         if (savedInstanceState?.getBoolean("homeNotificationHandled") != true) {
             homeNotificationId = com.mantrasiddhi.presentation.navigation.HomeNotificationTarget.from(intent)

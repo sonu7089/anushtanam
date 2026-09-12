@@ -1,0 +1,107 @@
+{
+  "date": "2026-09-12",
+  "rawDirectory": "build/perf-baseline/20260912-183452",
+  "device": "Pixel 7 Pro",
+  "densityDpi": 560,
+  "resolution": "1440x3120",
+  "iterations": 20,
+  "compilation": "None",
+  "thermalBefore": 1,
+  "thermalAfter": 2,
+  "baselineThermal": 2,
+  "startupObservedLaunchToUsableMs": {
+    "cold": {
+      "n": 20,
+      "median": 2747.534,
+      "p95": 3853.886
+    },
+    "warm": {
+      "n": 20,
+      "median": 293.726,
+      "p95": 350.018
+    },
+    "hot": {
+      "n": 20,
+      "median": 91.627,
+      "p95": 114.315
+    }
+  },
+  "navigationObservedTapToUsableMs": {
+    "home": {
+      "n": 20,
+      "median": 262.832,
+      "p95": 345.147
+    },
+    "progress": {
+      "n": 20,
+      "median": 295.709,
+      "p95": 323.587
+    },
+    "settings": {
+      "n": 20,
+      "median": 286.868,
+      "p95": 351.02
+    }
+  },
+  "idleCpuPercentOfOneCore": 0.33280085197018106,
+  "packaging": {
+    "debug": {
+      "apkBytes": 69336791,
+      "artworkFiles": 84,
+      "artworkBytes": 4500370,
+      "sha256": "e61451ae98d17e573801c54756b7a941954d68751232a4a8a99392e314bb2dc8",
+      "allDerivativesMatch": true,
+      "masterHashesPresent": false
+    },
+    "benchmark": {
+      "apkBytes": 14467398,
+      "artworkFiles": 84,
+      "artworkBytes": 4500370,
+      "sha256": "1daa49b0c949c77a1c03c5614f3703e451e68a3155ede30469dd927b11cc16d7",
+      "allDerivativesMatch": true,
+      "masterHashesPresent": false
+    }
+  },
+  "unitTests": {
+    "frontend/android": {
+      "tests": 114,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core/data": {
+      "tests": 140,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "core/domain": {
+      "tests": 364,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "comparisonLimit": "Cumulative steps 01-10 versus step-00 baseline, not isolated step-10 A/B; same physical device and harness, evolving app state and thermal conditions.",
+  "deviceTests": 32,
+  "benchmarkTests": 5,
+  "decodedAppVariants": 79,
+  "launcherDensityVariants": 5,
+  "visualComparisons": 210,
+  "deviceScreenshots": 24,
+  "voiceAndReminderCounts": {
+    "before": {
+      "reminder.startup.rearm": 1
+    },
+    "entered": {
+      "reminder.startup.rearm": 1,
+      "voice.status.check": 1,
+      "voice.support.query": 1
+    },
+    "resumed": {
+      "reminder.startup.rearm": 1,
+      "voice.status.check": 2,
+      "voice.support.query": 2
+    }
+  }
+}

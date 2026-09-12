@@ -1,6 +1,6 @@
 # Placement-aware image delivery proposal
 
-This is a proposed system for the Android app, accompanying the [UI audit](README.md). No production images have been converted in this pass.
+**Implemented in step 10:** [actual variants, encoded savings, device decoding/visual checks and limitations](step-10-startup-images.md). The [artwork manifest and exporter instructions](../../frontend/android/design/artwork/README.md) describe the shipped pipeline. The original proposal and source-size evidence below are retained for context; proposed tiers are not the final generated inventory.
 
 ## What the files show
 
@@ -36,7 +36,7 @@ Android `dp` is a logical size. Pixel demand is `ceil(dp × density)`, measured 
 | [SandhyaSettingsEntry](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/settings/SandhyaSettingsScreen.kt) | Vessel at 48 dp | 128, 192, 256 tiers shared with cards |
 | [Messages list](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/messages/MessagesScreen.kt), `MessageListCard` | Cropped 72 dp square | Dedicated square crops at 128, 192, 256, 320; separate from hero images |
 | [MessagesHomeEntry](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/messages/MessagesScreen.kt) | Full card width, 124 dp high | Wide banner crop at 640/960/1280 widths as required; measure card bounds separately from full-bleed headers |
-| [Welcome](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/auth/WelcomeScreen.kt), [empty state](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/components/EmptyState.kt), current [splash](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/SplashActivity.kt) | Emblem at 48, 140, 160 dp; other uses 72/96 dp | 192, 320, 448, 640; keep transparent canvas/petal placement |
+| [Welcome](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/auth/WelcomeScreen.kt), [empty state](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/components/EmptyState.kt), former custom splash (removed in step 10) | Emblem at 48, 140, 160 dp; other uses 72/96 dp | 192, 320, 448, 640; keep transparent canvas/petal placement |
 | [Recitation](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/recitation/RecitationScreen.kt) | Diya at 104 dp | 192, 320, 448 |
 | [Settings](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/settings/SettingsScreen.kt) | Jasmine at 22% of available width, 120 dp tall, Fit | Aspect-preserving 256/384/512 long-edge tiers; resolve both bounds |
 | [Purashcharana detail](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/purashcharana/PurashcharanaScreen.kt), [mala component](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/purashcharana/components/PurashcharanaMala.kt) | Mala at 208 dp; emblem overlay at 68% | Mala detail 448, 640, 896 plus card tiers; emblem chosen separately |

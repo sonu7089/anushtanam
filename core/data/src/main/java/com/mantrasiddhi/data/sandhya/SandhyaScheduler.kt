@@ -12,6 +12,8 @@ import com.mantrasiddhi.domain.repository.SandhyaLogRepository
 import com.mantrasiddhi.domain.solar.SolarCalculator
 import com.mantrasiddhi.domain.util.SandhyaDateKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
@@ -27,8 +29,35 @@ class SandhyaScheduler @Inject constructor(
     private val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val lock = Mutex()
 
-    suspend fun scheduleAll() = lock.withLock {
+    private val startupUser = MutableStateFlow<Long?>(null)
+    private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        // Process-owned: leaving the entry screen cannot cancel reminder re-arming.
+        // Account replacements cancel stale work; the lock guards the current owner check.
+        startupScope.launch {
+            startupUser.collectLatest { userId ->
+                if (userId == null) return@collectLatest
+                try {
+                    com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("reminder.startup.rearm")
+                    scheduleFor(userId)
+                }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (failure: Exception) {
+                    startupUser.compareAndSet(userId, null)
+                    Log.w("SandhyaReminder", "Startup re-arm failed", failure)
+                }
+            }
+        }
+    }
+
+    fun requestStartupRearm(userId: Long) { startupUser.value = userId }
+
+    suspend fun scheduleAll() = scheduleFor(null)
+
+    private suspend fun scheduleFor(expectedUserId: Long?) = lock.withLock {
         val settings = preferences.current()
+        if (expectedUserId != null && settings.userId != expectedUserId) return@withLock
         SandhyaPeriod.entries.forEach { period ->
             // Remove pre-MF-06 alarms, whose identity had no stage.
             PendingIntent.getBroadcast(context, period.requestCode, Intent(context, SandhyaAlarmReceiver::class.java),
@@ -42,6 +71,7 @@ class SandhyaScheduler @Inject constructor(
     }
 
     fun cancelAll() {
+        startupUser.value = null
         SandhyaPeriod.entries.forEach { period ->
             PendingIntent.getBroadcast(context, period.requestCode, Intent(context, SandhyaAlarmReceiver::class.java),
                 PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)?.let { alarms.cancel(it); it.cancel() }
@@ -79,6 +109,9 @@ class SandhyaScheduler @Inject constructor(
 
     private suspend fun schedule(period: SandhyaPeriod, stage: SandhyaReminderStage, settings: SandhyaSettings, afterEvent: Long = 0) {
         val next = next(period, stage, settings, System.currentTimeMillis(), afterEvent)
+        currentCoroutineContext().ensureActive()
+        // A sign-out/account switch may have happened during the log query.
+        if (preferences.current().userId != settings.userId) return
         if (next == null) { cancel(period, stage); return }
         val intent = alarmIntent(period, stage).apply {
             putExtra(SandhyaContract.EXTRA_PERIOD, period.name)

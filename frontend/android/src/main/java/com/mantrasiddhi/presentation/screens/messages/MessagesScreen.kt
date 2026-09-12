@@ -45,7 +45,8 @@ fun MessagesHomeEntry(onClick: () -> Unit) {
     LotusCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         val surface = MaterialTheme.colorScheme.surfaceContainerLow
         Box(Modifier.fillMaxWidth().height(124.dp)) {
-            LotusArtwork(LotusArt.MESSAGES, Modifier.matchParentSize())
+            LotusArtwork(LotusArt.MESSAGES, Modifier.matchParentSize(),
+                usage = com.mantrasiddhi.presentation.components.ArtUsage.Banner)
             Box(Modifier.matchParentSize().background(Brush.verticalGradient(
                 0f to Color.Transparent, 0.65f to Color.Transparent, 1f to surface)))
         }
@@ -192,7 +193,8 @@ private fun MessageListCard(message: TeachingMessage, onClick: () -> Unit) {
                         Text(message.title, style = MaterialTheme.typography.headlineSmall)
                     }
                     if (showPicture) LotusArtwork(messageArt(message.art),
-                        Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)))
+                        Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)),
+                        usage = com.mantrasiddhi.presentation.components.ArtUsage.Thumbnail)
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(message.summary, style = MaterialTheme.typography.bodyMedium,

@@ -37,18 +37,19 @@
         <service android:name="com.mantrasiddhi.data.messages.TeachingDeliveryJob"
             android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
         <activity
+            android:name=".presentation.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MantraSiddhi" />
+        <!-- Retain the installed launcher component/shortcuts; Android supplies the splash. -->
+        <activity-alias
             android:name=".presentation.SplashActivity"
-            android:exported="true"
-            android:theme="@style/Theme.MantraSiddhi.Splash">
+            android:targetActivity=".presentation.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name=".presentation.MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MantraSiddhi" />
+        </activity-alias>
 
         <!-- Fires preparation and event reminders; logs, notifies, re-arms. -->
         <receiver

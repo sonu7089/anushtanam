@@ -1,11 +1,13 @@
 package com.mantrasiddhi.presentation.screens.home
 
+import com.mantrasiddhi.presentation.components.AppArtwork
+import com.mantrasiddhi.presentation.components.AppArt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.rememberScrollState
@@ -33,11 +35,17 @@ import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel,
+    viewModel: HomeViewModel?,
     onNavigateToRecitation: () -> Unit,
     onNavigateToPractice: () -> Unit,
     onNavigateToTargets: () -> Unit,
@@ -49,14 +57,24 @@ fun HomeScreen(
     onOpenReflection: (String) -> Unit = {},
     onUsable: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val reflection by viewModel.reflection.collectAsStateWithLifecycle()
+    // The same screen stays composed while the verified-profile producer becomes available.
+    val uiState = viewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: HomeUiState.Loading
+    val reflection = viewModel?.reflection?.collectAsStateWithLifecycle()?.value
+    var placed by remember { mutableStateOf(false) }
+    val ready = uiState is HomeUiState.Success
+    LaunchedEffect(placed, ready) {
+        if (placed && ready) {
+            withFrameNanos { }
+            onUsable()
+        }
+    }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(owner) {
+    LaunchedEffect(owner, viewModel) {
+        val model = viewModel ?: return@LaunchedEffect
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.refreshReflection()
-            try { kotlinx.coroutines.awaitCancellation() } finally { viewModel.stopReflection() }
+            model.refreshReflection()
+            try { kotlinx.coroutines.awaitCancellation() } finally { model.stopReflection() }
         }
     }
     LaunchedEffect(owner, reflection) {
@@ -72,24 +90,23 @@ fun HomeScreen(
             } finally { /* Deadline cancelled while hidden. */ }
         }
     }
-    when (val state = uiState) {
-        HomeUiState.Loading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+    if (uiState is HomeUiState.Error) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(uiState.messageResId), color = MaterialTheme.colorScheme.error)
         }
-        is HomeUiState.Error -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(stringResource(state.messageResId), color = MaterialTheme.colorScheme.error)
-        }
-        is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
+    } else {
+        val state = uiState as? HomeUiState.Success
+        HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToSandhya,
-            onNavigateToPurashcharana, modifier.testTag("perf_home_ready").onGloballyPositioned { onUsable() }, onOpenGuide, onMessages,
-            reflection?.takeIf { it.isVisible(now) }, onOpenReflection, viewModel::retry)
+            onNavigateToPurashcharana, modifier.onGloballyPositioned { placed = true }, onOpenGuide, onMessages,
+            reflection?.takeIf { it.isVisible(now) }, onOpenReflection, { viewModel?.retry() })
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun HomeContent(
-    state: HomeUiState.Success,
+    state: HomeUiState.Success?,
     onRecitation: () -> Unit, onPractice: () -> Unit, onTargets: () -> Unit,
     onSandhya: () -> Unit,
     onPurashcharana: () -> Unit, modifier: Modifier = Modifier,
@@ -99,65 +116,66 @@ internal fun HomeContent(
     onOpenReflection: (String) -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
-    Scaffold(modifier = modifier, topBar = {
-        LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
-            actions = { ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp),
-                photoUrl = state.user.photoUrl.takeIf { state.user.useGooglePhoto }) })
+    val listState = rememberLazyListState()
+    val opening = stringResource(R.string.home_opening_profile)
+    val summaryHeight = with(LocalDensity.current) { MaterialTheme.typography.displaySmall.lineHeight.toDp() }.coerceAtLeast(44.dp)
+    Scaffold(modifier = modifier.testTag(if (state == null) "perf_entry_shell" else "perf_home_ready"), topBar = {
+        LotusTopAppBar(modifier = Modifier.testTag("home_header"),
+            title = { Text(if (state == null) stringResource(R.string.title_home) else stringResource(R.string.home_greeting, state.user.name),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { if (state == null) stateDescription = opening }) },
+            actions = {
+                if (state == null) Box(Modifier.padding(end = 20.dp).size(40.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest))
+                else ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp),
+                    photoUrl = state.user.photoUrl.takeIf { state.user.useGooglePhoto })
+            })
     }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(horizontal = 24.dp),
+        LazyColumn(Modifier.fillMaxSize().padding(padding), state = listState, contentPadding = PaddingValues(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
             item(key = "home_section_1") {
-                Box(Modifier.fillMaxWidth()) {
-                    AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(224.dp))
-                    Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                HomeHero()
             }
             item(key = "home_section_2") {
-                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(Modifier.widthIn(min = 160.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.home_today_summary), style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (state.japaLoading || state.japaFailed) HomeSectionStatus(state.japaLoading, state.japaFailed, onRetry)
-                            else Text(state.todayJapa ?: state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
+                        Row(Modifier.heightIn(min = summaryHeight), verticalAlignment = Alignment.CenterVertically) {
+                            if (state == null || state.japaLoading || state.japaFailed) HomeSectionStatus(state == null || state.japaLoading, state?.japaFailed == true, onRetry,
+                                Modifier.width(64.dp).testTag("home_today_loading"))
+                            else Text(state.todayJapa ?: state.todayCount.toString(), Modifier.widthIn(min = 64.dp).testTag("home_today_value"),
+                                style = MaterialTheme.typography.displaySmall)
                             Spacer(Modifier.width(12.dp))
                             Text(stringResource(R.string.lotus_japa_completed), modifier = Modifier.widthIn(max = 132.dp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    if (state.streakDays > 0) {
-                        Surface(modifier = Modifier.align(Alignment.CenterVertically),
+                    // Reserve the optional streak slot so its arrival cannot wrap the summary row.
+                    Box(Modifier.width(96.dp).heightIn(min = 56.dp), contentAlignment = Alignment.CenterEnd) {
+                    if (state != null && state.streakDays > 0) {
+                        Surface(
                             shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
                             Text(stringResource(R.string.home_streak, state.streakDays),
                                 Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                maxLines = 2, overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         }
+                    }
                     }
                 }
             }
             item(key = "home_section_4") {
-                Column {
-                    SectionLabel(stringResource(R.string.lotus_daily_practice))
-                    AdaptivePair(first = { cardModifier ->
-                        PracticeEntry(stringResource(R.string.title_practice), stringResource(R.string.lotus_listen_learn),
-                            onPractice, cardModifier, false)
-                    }, second = { cardModifier ->
-                        PracticeEntry(stringResource(R.string.title_recitation), stringResource(R.string.lotus_begin_recitation),
-                            onRecitation, cardModifier, true)
-                    })
-                }
+                HomePracticeEntries(onPractice, onRecitation, enabled = state != null)
             }
             item(key = "home_section_5") {
-                LotusCard(onClick = onTargets, modifier = Modifier.fillMaxWidth()) {
+                LotusCard(onClick = onTargets, enabled = state != null, modifier = Modifier.fillMaxWidth().testTag("home_goal")) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(stringResource(if (state.activeTarget?.isCompleted == true)
+                                Text(stringResource(if (state?.activeTarget?.isCompleted == true)
                                     R.string.targets_completed_goal_title else R.string.home_active_target),
                                     style = MaterialTheme.typography.titleMedium)
                                 Text(stringResource(R.string.home_active_target_gloss), style = MaterialTheme.typography.bodySmall,
@@ -166,9 +184,10 @@ internal fun HomeContent(
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(Modifier.height(16.dp))
-                        val target = state.activeTarget
-                        if (state.statsLoading || state.statsFailed) {
-                            HomeSectionStatus(state.statsLoading, state.statsFailed, onRetry)
+                        Column(Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
+                        val target = state?.activeTarget
+                        if (state == null || state.statsLoading || state.statsFailed) {
+                            HomeSectionStatus(state == null || state.statsLoading, state?.statsFailed == true, onRetry)
                         } else if (target == null) {
                             Text(stringResource(R.string.no_active_targets), style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -189,9 +208,11 @@ internal fun HomeContent(
                                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
                             }
                         }
+                        }
                     }
                 }
             }
+            if (state != null) {
             item(key = "home_section_6") {
                 SandhyaHomeCard(onSandhya)
             }
@@ -208,6 +229,7 @@ internal fun HomeContent(
             item(key = "home_section_10") {
                 com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry(onMessages)
             }
+            }
             item(key = "home_section_11") {
                 Spacer(Modifier.height(12.dp))
             }
@@ -216,14 +238,40 @@ internal fun HomeContent(
 }
 
 @Composable
-private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, modifier: Modifier, primary: Boolean) {
-    LotusCard(onClick = onClick, modifier = modifier, border = null,
+internal fun HomeHero() {
+    Box(Modifier.fillMaxWidth().testTag("home_hero")) {
+        AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(224.dp))
+        Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+internal fun HomePracticeEntries(onPractice: () -> Unit, onRecitation: () -> Unit, enabled: Boolean = true) {
+    Column(Modifier.testTag("home_practice_entries")) {
+        SectionLabel(stringResource(R.string.lotus_daily_practice))
+        AdaptivePair(first = { cardModifier ->
+            PracticeEntry(stringResource(R.string.title_practice), stringResource(R.string.lotus_listen_learn),
+                onPractice, cardModifier, false, enabled)
+        }, second = { cardModifier ->
+            PracticeEntry(stringResource(R.string.title_recitation), stringResource(R.string.lotus_begin_recitation),
+                onRecitation, cardModifier, true, enabled)
+        })
+    }
+}
+
+@Composable
+private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, modifier: Modifier,
+    primary: Boolean, enabled: Boolean) {
+    LotusCard(onClick = onClick, modifier = modifier, enabled = enabled, border = null,
         colors = CardDefaults.cardColors(
             containerColor = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer)) {
+            contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondaryContainer,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f))) {
         Box(Modifier.fillMaxWidth().fillMaxHeight()) {
-            Image(painterResource(if (primary) com.mantrasiddhi.R.drawable.purashcharana_mala
-                else com.mantrasiddhi.R.drawable.gayatri_practice_book), contentDescription = null,
+            AppArtwork(if (primary) AppArt.MALA else AppArt.BOOK,
                 modifier = Modifier.matchParentSize().padding(start = 28.dp, top = 8.dp, end = 6.dp, bottom = 4.dp)
                     .alpha(0.08f), contentScale = ContentScale.Fit, alignment = Alignment.BottomEnd)
             Column(Modifier.fillMaxWidth().fillMaxHeight().padding(18.dp).heightIn(min = 100.dp), verticalArrangement = Arrangement.SpaceBetween) {
@@ -240,7 +288,7 @@ private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, 
 }
 
 @Composable
-private fun HomeSectionStatus(loading: Boolean, failed: Boolean, onRetry: () -> Unit) {
-    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+private fun HomeSectionStatus(loading: Boolean, failed: Boolean, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    if (loading) HomeValuePlaceholder(modifier.fillMaxWidth().height(32.dp))
     if (failed) TextButton(onClick = onRetry) { Text(stringResource(R.string.section_retry)) }
 }

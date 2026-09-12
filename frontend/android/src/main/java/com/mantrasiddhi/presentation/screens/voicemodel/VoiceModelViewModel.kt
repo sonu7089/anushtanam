@@ -65,6 +65,13 @@ class VoiceModelViewModel @Inject constructor(
     val uiState: StateFlow<VoiceModelUiState> = _uiState.asStateFlow()
 
     private var refreshJob: Job? = null
+    private var refreshAgain = false
+    private var resumed = false
+
+    /** Initialization owns the first resume; subsequent resumes invalidate availability. */
+    fun onResume() {
+        if (resumed) refresh() else resumed = true
+    }
 
     init {
         refresh()
@@ -77,22 +84,30 @@ class VoiceModelViewModel @Inject constructor(
      * if the model has actually gone missing.
      */
     fun refresh() {
-        refreshJob?.cancel()
+        if (refreshJob?.isActive == true) {
+            refreshAgain = true
+            return
+        }
         refreshJob = viewModelScope.launch {
-            val activeDownload = currentDownload() as? DownloadUiState.InProgress
-            if (activeDownload == null && _uiState.value !is VoiceModelUiState.Ready) {
-                _uiState.value = VoiceModelUiState.Checking
-            }
-            val status = voiceModelManager.checkStatus()
-            lastKnownReady = status.state == VoiceModelState.READY ||
-                (status.state == VoiceModelState.CHECK_UNAVAILABLE && voiceModelManager.trialAllowed)
-            _uiState.value = when {
-                lastKnownReady -> VoiceModelUiState.Ready
-                else -> VoiceModelUiState.NeedsModel(
-                    state = status.state,
-                    download = activeDownload ?: DownloadUiState.Idle
-                )
-            }
+            do {
+                refreshAgain = false
+                val activeDownload = currentDownload() as? DownloadUiState.InProgress
+                if (activeDownload == null && _uiState.value !is VoiceModelUiState.Ready) {
+                    _uiState.value = VoiceModelUiState.Checking
+                }
+                val status = voiceModelManager.checkStatus()
+                // A settings/download event invalidated this result while it was in flight.
+                if (refreshAgain) continue
+                lastKnownReady = status.state == VoiceModelState.READY ||
+                    (status.state == VoiceModelState.CHECK_UNAVAILABLE && voiceModelManager.trialAllowed)
+                _uiState.value = when {
+                    lastKnownReady -> VoiceModelUiState.Ready
+                    else -> VoiceModelUiState.NeedsModel(
+                        state = status.state,
+                        download = currentDownload() ?: activeDownload ?: DownloadUiState.Idle
+                    )
+                }
+            } while (refreshAgain)
         }
     }
 

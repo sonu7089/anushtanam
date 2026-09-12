@@ -1,16 +1,16 @@
 package com.mantrasiddhi.presentation.screens.settings
 
+import com.mantrasiddhi.presentation.components.AppArtwork
+import com.mantrasiddhi.presentation.components.AppArt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,8 +87,7 @@ internal fun SandhyaSettingsEntry(onOpen: () -> Unit) {
     LotusCard(onClick = onOpen, modifier = Modifier.fillMaxWidth().testTag("sandhya-settings-entry")) {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Image(painterResource(com.mantrasiddhi.R.drawable.sandhya_vessel),
-                contentDescription = null, modifier = Modifier.size(48.dp))
+            AppArtwork(AppArt.VESSEL, modifier = Modifier.size(48.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.sandhya_settings_title), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.sandhya_settings_summary), style = MaterialTheme.typography.bodyMedium,

@@ -10,12 +10,7 @@ import android.app.Application
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.data.sync.CloudSyncCoordinator
 import com.mantrasiddhi.data.sandhya.SandhyaNotifier
-import com.mantrasiddhi.data.sandhya.SandhyaScheduler
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -27,7 +22,6 @@ class MantraSiddhiApplication : Application() {
     }
 
     @Inject lateinit var sandhyaNotifier: SandhyaNotifier
-    @Inject lateinit var sandhyaScheduler: SandhyaScheduler
     @Inject lateinit var goalNotifier: GoalNotifier
     @Inject lateinit var cloudSyncCoordinator: CloudSyncCoordinator
     @Inject lateinit var teachingNotifications: com.mantrasiddhi.data.messages.TeachingNotifications
@@ -40,10 +34,6 @@ class MantraSiddhiApplication : Application() {
         sandhyaNotifier.ensureChannel()
         // Create the parent-goal channel up front for the same reason.
         goalNotifier.ensureChannel()
-        // Re-arm reminders on cold start — the resilient backstop if alarms were lost
-        // (process death, app update). No-ops when the feature is disabled.
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            runCatching { sandhyaScheduler.scheduleAll() }
-        }
+        // Profile opening requests one background reminder re-arm after identity checks.
     }
 }

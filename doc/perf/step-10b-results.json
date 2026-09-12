@@ -1,0 +1,61 @@
+{
+  "date": "2026-09-12",
+  "device": "Pixel 7 Pro",
+  "sdk": 37,
+  "iterationsPerMode": 10,
+  "compilation": "None",
+  "thermalStatusBefore": 0,
+  "thermalStatusAfter": 1,
+  "resolution": "1440x3120",
+  "densityDpi": 560,
+  "fontScale": 0.85,
+  "readiness": "perf_home_ready, not perf_entry_shell",
+  "rawEvidence": "build/step10b",
+  "modes": {
+    "cold": {
+      "observedLaunchToUsableMs": {
+        "median": 2610.304,
+        "p95NearestRank": 4045.099,
+        "samples": [
+          2605.048748,
+          3943.844362,
+          2505.366538,
+          3941.093548,
+          4045.098961,
+          2615.559083,
+          2596.025148,
+          2562.204672,
+          2511.232545,
+          3867.640749
+        ]
+      },
+      "androidInitialDisplayMedianMs": 271.838,
+      "androidFullyDrawnMedianMs": 2379.943
+    },
+    "warm": {
+      "observedLaunchToUsableMs": {
+        "median": 327.441,
+        "p95NearestRank": 390.448,
+        "samples": [
+          332.946412,
+          389.980591,
+          282.082967,
+          214.094116,
+          390.447632,
+          239.205485,
+          349.775147,
+          329.045573,
+          322.518717,
+          325.835775
+        ]
+      },
+      "androidInitialDisplayMedianMs": 68.256,
+      "androidFullyDrawnMedianMs": 173.065
+    }
+  },
+  "limitations": [
+    "Focused verification, not a controlled A/B; step 10 used 20 samples per mode and thermal state differed.",
+    "Initial display is Android window timing, not a separately instrumented first-shell-layout measurement.",
+    "Profile opening still determines usable readiness; no claim of faster account or database work."
+  ]
+}

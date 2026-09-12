@@ -122,6 +122,9 @@ private fun ReviewNavigation(initialPage: String, dark: Boolean, onDarkChange: (
 @Composable
 private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -> Unit) {
                     when (page) {
+                        "entry" -> HomeEntryPlaceholder()
+                        "entry-recovery" -> com.mantrasiddhi.presentation.navigation.AppEntryContent(
+                            com.mantrasiddhi.presentation.AuthGateState.NeedsRecovery, {}, {})
                         "ripple" -> {
                             var pulse by remember { mutableLongStateOf(0L) }
                             Box(Modifier.fillMaxSize()) {

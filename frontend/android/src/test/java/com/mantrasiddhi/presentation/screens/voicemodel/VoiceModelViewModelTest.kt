@@ -37,7 +37,7 @@ class VoiceModelViewModelTest {
         assertEquals(VoiceModelState.NOT_INSTALLED, (vm.uiState.value as VoiceModelUiState.NeedsModel).state)
     }
 
-    @Test fun `a slow earlier check cannot replace a newer ready result`() = runTest(dispatcher) {
+    @Test fun `retry joins a slow check then revalidates without cancellation`() = runTest(dispatcher) {
         val old = CompletableDeferred<VoiceModelStatus>()
         var calls = 0
         coEvery { manager.checkStatus() } coAnswers {
@@ -45,8 +45,31 @@ class VoiceModelViewModelTest {
         }
         val vm = VoiceModelViewModel(manager)
         runCurrent(); vm.refresh(); runCurrent()
+        assertEquals(1, calls)
         old.complete(VoiceModelStatus(VoiceModelState.NOT_INSTALLED))
         runCurrent()
+        assertEquals(VoiceModelUiState.Ready, vm.uiState.value)
+        assertEquals(2, calls)
+    }
+
+    @Test fun `initial resume never repeats a completed initialization query`() = runTest(dispatcher) {
+        coEvery { manager.checkStatus() } returns VoiceModelStatus(VoiceModelState.READY)
+        val vm = VoiceModelViewModel(manager)
+        runCurrent(); vm.onResume(); runCurrent()
+        coVerify(exactly = 1) { manager.checkStatus() }
+        coEvery { manager.checkStatus() } returns VoiceModelStatus(VoiceModelState.NOT_INSTALLED)
+        vm.onResume(); runCurrent()
+        coVerify(exactly = 2) { manager.checkStatus() }
+        assertEquals(VoiceModelState.NOT_INSTALLED, (vm.uiState.value as VoiceModelUiState.NeedsModel).state)
+    }
+
+    @Test fun `initial resume joins an in-flight initialization query`() = runTest(dispatcher) {
+        val result = CompletableDeferred<VoiceModelStatus>()
+        coEvery { manager.checkStatus() } coAnswers { result.await() }
+        val vm = VoiceModelViewModel(manager)
+        runCurrent(); vm.onResume(); runCurrent()
+        result.complete(VoiceModelStatus(VoiceModelState.READY)); runCurrent()
+        coVerify(exactly = 1) { manager.checkStatus() }
         assertEquals(VoiceModelUiState.Ready, vm.uiState.value)
     }
 }

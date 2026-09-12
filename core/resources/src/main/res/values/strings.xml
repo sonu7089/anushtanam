@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Anushtanam</string>
     <string name="title_home">Home</string>
+    <string name="home_opening_profile">Opening your practice…</string>
     <string name="title_practice">Practice</string>
     <string name="title_recitation">Japa</string>
     <string name="title_progress">Progress</string>

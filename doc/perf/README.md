@@ -28,12 +28,12 @@ The original UI audit traced source code and inspected all 12 PNG files under `f
 
 | ID | Priority | Finding | Affected experience | Evidence level |
 | --- | --- | --- | --- | --- |
-| UI-01 | P1 | Splash finishes an 800 ms animation and then waits another 1,000 ms | Launcher startup | Confirmed intentional delay |
-| UI-02 | P1 | Large raster resources decode synchronously during composition | First page entry, scroll, transitions | Confirmed loader and dimensions; jank unmeasured |
+| UI-01 | P1 | Splash finishes an 800 ms animation and then waits another 1,000 ms | Launcher startup | Resolved in step 10; native launcher and measured startup |
+| UI-02 | P1 | Large raster resources decode synchronously during composition | First page entry, scroll, transitions | Resolved in step 10; sized async decoding and visual review |
 | UI-03 | P1 | Home eagerly composes cards and their artwork below the viewport | First usable Home screen | Confirmed composition structure |
 | UI-04 | P1 | Progress and Home repeatedly process complete history | Navigation with established accounts | Confirmed unbounded queries and downstream CPU work |
 | UI-05 | P1 | Messages waits for server before returning cached feed/detail | Opening Messages on slow/offline connections | Confirmed server-first order; 8 s timeout |
-| UI-06 | P1 | Startup account resolution and ancillary work gate Home | Returning signed-in startup | Confirmed dependency chain; duration conditional |
+| UI-06 | P1 | Startup account resolution and ancillary work gate Home | Returning signed-in startup | Resolved across steps 05/10; required identity gates retained |
 | UI-07 | P2 | Notification maintenance performs synchronous storage work on UI entry paths | Launch, resume, notification toggle | Confirmed calls; cost unmeasured |
 | UI-08 | P2 | Home computes child progress that its current layout never displays | Parent Home loading and background work | Confirmed unused data dependency |
 | UI-09 | P2 | Eager ViewModel collection can outlive visible pages | Navigation after visiting several tabs | Confirmed lifecycle pattern; retained workload needs tracing |
@@ -45,7 +45,9 @@ P1 means implement in the first performance pass; P2 follows or accompanies rela
 
 ### UI-01 — Artificial splash delay
 
-[SplashActivity.kt](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/SplashActivity.kt), `SplashScreenContent`, lines 67–79, awaits an 800 ms `animateTo`, then `delay(1000)`, and only then starts `MainActivity`. [AndroidManifest.xml](../../frontend/android/src/main/AndroidManifest.xml), lines 38–50, declares this separate activity as the launcher.
+**Resolved in step 10:** [native launcher entry, device checks and startup measurements](step-10-startup-images.md). The following evidence describes the removed custom splash.
+
+The former `SplashActivity.kt`, `SplashScreenContent`, lines 67–79, awaited an 800 ms `animateTo`, then `delay(1000)`, and only then started `MainActivity`. The launcher component in [AndroidManifest.xml](../../frontend/android/src/main/AndroidManifest.xml) is now an alias targeting Main.
 
 Whenever this splash is created, it intentionally withholds Main for approximately 1.8 seconds, in addition to process creation, composition, image decoding and subsequent account loading. This does not apply to every warm resume or to notification intents that go directly to Main.
 
@@ -54,6 +56,8 @@ Whenever this splash is created, it intentionally withholds Main for approximate
 **Verify:** launcher cold/warm starts, signed-out Welcome, returning local profile, child setup, recovery and notification entry. Removing this path removes its explicit wait; it does not promise a particular total startup time.
 
 ### UI-02 — Full-resolution raster decoding on the UI thread
+
+**Resolved in step 10:** [generated derivatives, off-Main decoder verification, image review and source-resolution limits](step-10-startup-images.md). Original audit evidence follows.
 
 [LotusDesign.kt](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/components/LotusDesign.kt), lines 33–45, routes eight artwork types through `painterResource`. Direct raster calls also occur in Home's `PracticeEntry`, `PracticeGuideArtwork`, `GoalArtwork`, `SandhyaHomeCard`, `SandhyaSettingsEntry`, and `PurashcharanaMala`.
 
@@ -105,7 +109,7 @@ Home reflection already attempts cache first and is outside the dashboard's load
 
 ### UI-06 — Account and reminder work extends the entry gate
 
-**Account-sharing portion resolved in step 05:** [implementation, gate regressions and device counts](step-05-account-state.md). One resolved account producer serves startup and other consumers; unresolved, recovery and child-setup gates remain explicit. Ancillary startup/reminder work remains open for steps 10/11. The following paragraphs retain the original evidence.
+**Resolved across steps 05 and 10:** [shared account state and gate regressions](step-05-account-state.md), [background startup reminder re-arming](step-10-startup-images.md). One resolved account producer serves startup and other consumers; unresolved, recovery and child-setup gates remain explicit. General notification/reminder scheduling coalescing remains step 11. The following paragraphs retain the original evidence.
 
 [FirebaseAuthRepositoryImpl.kt](../../core/data/src/main/java/com/mantrasiddhi/data/remote/FirebaseAuthRepositoryImpl.kt), lines 74–98 and 401–422, loads the Firestore user document before emitting the account, with a 4,000 ms timeout around default-source `get()`. A stalled request can consume that budget before fallback. It is not a guaranteed four-second wait; cached/default-source behavior can finish earlier.
 

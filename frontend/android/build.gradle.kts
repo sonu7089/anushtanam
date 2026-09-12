@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -213,3 +214,42 @@ tasks.withType<Test> {
         events("passed", "skipped", "failed", "standardOut", "standardError")
     }
 }
+
+// Fast, encoder-free CI guard. Re-export intentionally with scripts/generate-artwork.py.
+val verifyArtwork by tasks.registering {
+    val design = file("design/artwork")
+    inputs.dir(design)
+    inputs.files(fileTree("src/main/res") { include("**/art_*.webp", "drawable-nodpi/*.png") })
+    inputs.file("src/main/java/com/mantrasiddhi/presentation/components/ArtworkCatalog.kt")
+    doLast {
+        fun sha(file: File) = MessageDigest.getInstance("SHA-256")
+            .digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+        val parser = groovy.json.JsonSlurper()
+        val manifest = parser.parse(File(design, "manifest.json")) as Map<*, *>
+        (manifest["assets"] as List<*>).forEach {
+            val asset = it as Map<*, *>
+            check(sha(File(design, "masters/${asset["file"]}")) == asset["sha256"]) {
+                "Artwork master changed; update manifest and regenerate derivatives."
+            }
+        }
+        val generated = parser.parse(File(design, "generated.json")) as Map<*, *>
+        check(sha(File(design, "manifest.json")) == generated["manifestSha256"] &&
+            sha(rootProject.file("scripts/generate-artwork.py")) == generated["generatorSha256"]) {
+            "Artwork manifest/exporter changed; regenerate the committed outputs."
+        }
+        val files = generated["files"] as Map<*, *>
+        files.forEach { (path, hash) ->
+            val output = rootProject.file(path.toString())
+            check(output.isFile && sha(output) == hash) { "Regenerate artwork: $path" }
+        }
+        val resources = fileTree("src/main/res") { include("**/art_*.webp") }.files
+        check(resources.map { it.relativeTo(rootDir).invariantSeparatorsPath }.toSet() ==
+            files.keys.map { it.toString() }.filter { it.endsWith(".webp") }.toSet()) {
+            "Unexpected or missing generated artwork resources."
+        }
+        check(fileTree("src/main/res/drawable-nodpi") { include("*.png") }.isEmpty) {
+            "Full-size artwork masters must remain outside Android resources."
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyArtwork) }

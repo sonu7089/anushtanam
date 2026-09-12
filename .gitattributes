@@ -1,0 +1,5 @@
+# Byte-for-byte artwork checks must be stable on Windows and Unix checkouts.
+/frontend/android/design/artwork/manifest.json text eol=lf
+/frontend/android/design/artwork/generated.json text eol=lf
+/frontend/android/src/main/java/com/mantrasiddhi/presentation/components/ArtworkCatalog.kt text eol=lf
+/scripts/generate-artwork.py text eol=lf

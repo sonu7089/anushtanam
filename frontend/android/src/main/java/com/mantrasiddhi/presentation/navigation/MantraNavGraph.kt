@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.filled.Home
@@ -33,6 +32,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
+import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -55,6 +56,7 @@ import com.mantrasiddhi.presentation.screens.childprogress.ChildProgressScreen
 import com.mantrasiddhi.presentation.screens.family.FamilyScreen
 import com.mantrasiddhi.presentation.screens.family.FamilyViewModel
 import com.mantrasiddhi.presentation.screens.home.HomeScreen
+import com.mantrasiddhi.presentation.screens.home.HomeEntryPlaceholder
 import com.mantrasiddhi.presentation.screens.home.HomeViewModel
 import com.mantrasiddhi.presentation.screens.guide.PracticeGuideViewModel
 import com.mantrasiddhi.presentation.screens.guide.PracticeGuideSheet
@@ -101,6 +103,8 @@ private fun isTabSwitch(initialRoute: String?, targetRoute: String?): Boolean =
     initialRoute in BottomNavRoutes && targetRoute in BottomNavRoutes
 
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.enterScreenTransition(pop: Boolean = false): EnterTransition {
+    if (initialState.destination.route == targetState.destination.route) return EnterTransition.None
+    if (initialState.destination.route == Screen.AuthGate.route) return EnterTransition.None
     val tab = isTabSwitch(initialState.destination.route, targetState.destination.route)
     val forward = (NavigationRouteOrder[targetState.destination.route] ?: 0) >
         (NavigationRouteOrder[initialState.destination.route] ?: 0)
@@ -112,6 +116,8 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.enterScreenTransi
 }
 
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.exitScreenTransition(pop: Boolean = false): ExitTransition {
+    if (initialState.destination.route == targetState.destination.route) return ExitTransition.None
+    if (initialState.destination.route == Screen.AuthGate.route) return ExitTransition.None
     val tab = isTabSwitch(initialState.destination.route, targetState.destination.route)
     val forward = (NavigationRouteOrder[targetState.destination.route] ?: 0) >
         (NavigationRouteOrder[initialState.destination.route] ?: 0)
@@ -123,7 +129,6 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.exitScreenTransit
 }
 
 @Composable
-@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 fun MantraApp(
     mainViewModel: MainViewModel,
     navController: NavHostController = rememberNavController(),
@@ -135,7 +140,37 @@ fun MantraApp(
     onHomeNotificationHandled: () -> Unit = {},
     onStartupReady: () -> Unit = {}
 ) {
+    ResolvedMantraApp(mainViewModel, navController, reminderTarget, onReminderHandled,
+        messageId, onMessageHandled, homeNotificationId, onHomeNotificationHandled, onStartupReady)
+}
+
+/** Also covers a restored back stack: no personal screen or guide is composed while verifying. */
+@Composable
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+internal fun AppEntryBoundary(state: AuthGateState, onRetry: () -> Unit, onSignOut: () -> Unit,
+    showNavigation: Boolean = true,
+    content: @Composable () -> Unit) {
+    if (state == AuthGateState.Loading || state == AuthGateState.NeedsRecovery) {
+        Box(Modifier.semantics { testTagsAsResourceId = true }) { AppEntryContent(state, onRetry, onSignOut, showNavigation) }
+    } else content()
+}
+
+@Composable
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+private fun ResolvedMantraApp(
+    mainViewModel: MainViewModel,
+    navController: NavHostController,
+    reminderTarget: SandhyaReminderTarget?,
+    onReminderHandled: () -> Unit,
+    messageId: String?,
+    onMessageHandled: () -> Unit,
+    homeNotificationId: String?,
+    onHomeNotificationHandled: () -> Unit,
+    onStartupReady: () -> Unit
+) {
+    val entryState by mainViewModel.authGateState.collectAsStateWithLifecycle()
     val currentUser by mainViewModel.currentUser.collectAsStateWithLifecycle(initialValue = null)
+    val accountScreensReady = accountScreensReady(entryState, currentUser != null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     // Activity scope shares the open guide across every entry point.
@@ -143,8 +178,18 @@ fun MantraApp(
     val guide by guideViewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val authRoutes = setOf(Screen.AuthGate.route, Screen.Welcome.route, Screen.ParentAuth.route, Screen.ChildAuth.route, Screen.Login.route)
-    LaunchedEffect(homeNotificationId, currentRoute) {
-        if (homeNotificationId != null && currentRoute != null && currentRoute !in authRoutes) {
+    LaunchedEffect(accountScreensReady, currentRoute, entryState) {
+        if (!accountScreensReady && entryState != AuthGateState.Loading && entryState != AuthGateState.NeedsRecovery &&
+            currentRoute != null && currentRoute !in authRoutes) {
+            // A restored protected route must still honor signed-out/child-setup decisions.
+            navController.navigate(Screen.AuthGate.route) {
+                popUpTo(navController.graph.id) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
+    LaunchedEffect(homeNotificationId, currentRoute, accountScreensReady) {
+        if (accountScreensReady && homeNotificationId != null && currentRoute != null && currentRoute !in authRoutes) {
             navController.navigate(Screen.Home.route) {
                 popUpTo(Screen.Home.route) { inclusive = false }
                 launchSingleTop = true
@@ -152,13 +197,14 @@ fun MantraApp(
             onHomeNotificationHandled()
         }
     }
-    LaunchedEffect(messageId, currentRoute) {
-        if (messageId != null && currentRoute != null && currentRoute !in authRoutes) {
+    LaunchedEffect(messageId, currentRoute, accountScreensReady) {
+        if (accountScreensReady && messageId != null && currentRoute != null && currentRoute !in authRoutes) {
             navController.navigate("messages/$messageId") { launchSingleTop = true }
             onMessageHandled()
         }
     }
-    LaunchedEffect(reminderTarget, currentUser?.id, currentRoute, guide.profileId) {
+    LaunchedEffect(reminderTarget, currentUser?.id, currentRoute, guide.profileId, accountScreensReady) {
+        if (!accountScreensReady) return@LaunchedEffect
         val target = reminderTarget ?: return@LaunchedEffect
         val user = currentUser ?: return@LaunchedEffect
         if (currentRoute == null || currentRoute in authRoutes) return@LaunchedEffect
@@ -190,14 +236,16 @@ fun MantraApp(
         Screen.Targets.route,
         Screen.Purashcharana.route
     )
-    val showBottomBar = currentRoute != null && currentRoute !in detailRoutes
+    val showBottomBar = currentRoute == null || currentRoute !in detailRoutes
     val showFamily = currentUser?.profileType?.let { it != ProfileType.INDIVIDUAL } == true
 
     Scaffold(
         modifier = Modifier.semantics { testTagsAsResourceId = true },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (showBottomBar) {
+            if (showBottomBar && !accountScreensReady) {
+                FloatingNavigationBar(navigationDestinations(false), Screen.Home.route, {}, enabled = false)
+            } else if (showBottomBar) {
                 MantraBottomBar(
                     navController = navController,
                     showFamily = showFamily
@@ -207,7 +255,8 @@ fun MantraApp(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.AuthGate.route,
+            // Home owns the initial layout too; account readiness updates its values in place.
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
             // Opaque horizontal motion avoids exposing the scaffold during a crossfade.
             enterTransition = { enterScreenTransition() },
@@ -215,6 +264,14 @@ fun MantraApp(
             popEnterTransition = { enterScreenTransition(pop = true) },
             popExitTransition = { exitScreenTransition(pop = true) }
         ) {
+            fun NavGraphBuilder.accountScreen(route: String,
+                screen: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit) {
+                composable(route) { entry ->
+                    AppEntryBoundary(entryState, mainViewModel::retryOpeningProfile, mainViewModel::signOutFromRecovery, showNavigation = false) {
+                        AccountScreenBoundary(accountScreensReady) { screen(entry) }
+                    }
+                }
+            }
             // Entry gate: decides Auth vs Home from the persisted Firebase session.
             composable(Screen.AuthGate.route) {
                 AuthGate(
@@ -273,7 +330,7 @@ fun MantraApp(
                 )
             }
 
-            composable(Screen.Family.route) {
+            accountScreen(Screen.Family.route) {
                 val familyViewModel: FamilyViewModel = hiltViewModel()
                 FamilyScreen(
                     viewModel = familyViewModel,
@@ -296,7 +353,10 @@ fun MantraApp(
             }
 
             composable(Screen.Home.route) {
-                val homeViewModel: HomeViewModel = hiltViewModel()
+                val homeViewModel: HomeViewModel? = if (accountScreensReady) hiltViewModel() else null
+                if (entryState == AuthGateState.NeedsRecovery) {
+                    AppEntryContent(entryState, mainViewModel::retryOpeningProfile, mainViewModel::signOutFromRecovery)
+                } else {
                 HomeScreen(
                     onUsable = onStartupReady,
                     viewModel = homeViewModel,
@@ -309,37 +369,38 @@ fun MantraApp(
                     onMessages = { navController.navigate("messages") },
                     onOpenReflection = { navController.navigate("messages/$it") }
                 )
+                }
             }
 
-            composable("messages") {
+            accountScreen("messages") {
                 com.mantrasiddhi.presentation.screens.messages.MessagesScreen(
                     onBack = { navController.popBackStack() },
                     onOpen = { navController.navigate("messages/$it") })
             }
-            composable("messages/{contentId}") { entry ->
+            accountScreen("messages/{contentId}") { entry ->
                 com.mantrasiddhi.presentation.screens.messages.MessagesScreen(
                     contentId = entry.arguments?.getString("contentId"),
                     onBack = { navController.popBackStack() },
                     onOpen = { navController.navigate("messages/$it") })
             }
 
-            composable(Screen.Practice.route) {
+            accountScreen(Screen.Practice.route) {
                 VoiceModelGate {
                     PracticeScreen()
                 }
             }
 
-            composable(Screen.Recitation.route) {
+            accountScreen(Screen.Recitation.route) {
                 VoiceModelGate {
                     RecitationScreen()
                 }
             }
 
-            composable(Screen.Progress.route) {
+            accountScreen(Screen.Progress.route) {
                 ProgressScreen()
             }
 
-            composable(Screen.Targets.route) {
+            accountScreen(Screen.Targets.route) {
                 TargetsScreen(
                     onBack = { navController.popBackStack() },
                     onContinueJapa = {
@@ -351,29 +412,29 @@ fun MantraApp(
                 )
             }
 
-            composable(Screen.ChildProgress.route) {
+            accountScreen(Screen.ChildProgress.route) {
                 ChildProgressScreen(onBack = { navController.popBackStack() })
             }
 
-            composable(Screen.Sandhya.route) {
+            accountScreen(Screen.Sandhya.route) {
                 SandhyaScreen(viewModel = hiltViewModel(), onOpenGuide = { guideViewModel.open() },
                     onOpenSettings = { navController.navigate(Screen.SandhyaSettings.route) { launchSingleTop = true } },
                     reminderTarget = reminderTarget?.takeIf { it.userId == currentUser?.id && it.stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.EVENT },
                     onReminderHandled = onReminderHandled)
             }
 
-            composable(Screen.Purashcharana.route) {
+            accountScreen(Screen.Purashcharana.route) {
                 PurashcharanaScreen(
                     viewModel = hiltViewModel(),
                     onBack = { navController.popBackStack() }
                 )
             }
 
-            composable(Screen.SandhyaSettings.route) {
+            accountScreen(Screen.SandhyaSettings.route) {
                 com.mantrasiddhi.presentation.screens.settings.SandhyaSettingsScreen(onBack = { navController.popBackStack() })
             }
 
-            composable(Screen.Settings.route) {
+            accountScreen(Screen.Settings.route) {
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
                 SettingsScreen(
                     viewModel = settingsViewModel,
@@ -387,7 +448,7 @@ fun MantraApp(
             }
         }
     }
-    if (guide.visible) {
+    if (accountScreensReady && guide.visible) {
         key(guide.profileId) {
             PracticeGuideSheet(onDismiss = guideViewModel::dismiss, onPractice = {
                 guideViewModel.dismiss()
@@ -397,8 +458,18 @@ fun MantraApp(
     }
 }
 
+// Interactive auth owns profile opening after SignedOut, and intentionally leaves the entry
+// decision Unauthenticated. Its opened local session is the readiness signal in that flow.
+internal fun accountScreensReady(state: AuthGateState, hasSession: Boolean): Boolean =
+    state == AuthGateState.Authenticated || (state == AuthGateState.Unauthenticated && hasSession)
+
+@Composable
+internal fun AccountScreenBoundary(ready: Boolean, content: @Composable () -> Unit) {
+    if (ready) content() else HomeEntryPlaceholder(showNavigation = false)
+}
+
 /**
- * Splash-like gate shown as the app's start destination. It observes the persisted
+ * Neutral Home shell shown as the app's start destination. It observes the persisted
  * Firebase auth state (resolved by [MainViewModel]) and routes to Home when a session
  * exists, or to the Welcome/auth flow otherwise.
  */
@@ -410,7 +481,13 @@ private fun AuthGate(
     onChildSetup: () -> Unit
 ) {
     val state by mainViewModel.authGateState.collectAsStateWithLifecycle()
+    AppEntryRoute(state, onAuthenticated, onUnauthenticated, onChildSetup,
+        mainViewModel::retryOpeningProfile, mainViewModel::signOutFromRecovery)
+}
 
+@Composable
+internal fun AppEntryRoute(state: AuthGateState, onAuthenticated: () -> Unit,
+    onUnauthenticated: () -> Unit, onChildSetup: () -> Unit, onRetry: () -> Unit, onSignOut: () -> Unit) {
     LaunchedEffect(state) {
         when (state) {
             is AuthGateState.Authenticated -> onAuthenticated()
@@ -421,6 +498,11 @@ private fun AuthGate(
         }
     }
 
+    AppEntryContent(state, onRetry, onSignOut)
+}
+
+@Composable
+internal fun AppEntryContent(state: AuthGateState, onRetry: () -> Unit, onSignOut: () -> Unit, showNavigation: Boolean = true) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -428,13 +510,13 @@ private fun AuthGate(
         if (state == AuthGateState.NeedsRecovery) {
             androidx.compose.foundation.layout.Column(Modifier.padding(24.dp)) {
                 androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.auth_profile_retry))
-                androidx.compose.material3.Button(mainViewModel::retryOpeningProfile) {
+                androidx.compose.material3.Button(onRetry) {
                     androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.auth_retry_profile))
                 }
-                androidx.compose.material3.TextButton(mainViewModel::signOutFromRecovery) {
+                androidx.compose.material3.TextButton(onSignOut) {
                     androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.mantrasiddhi.resources.R.string.settings_switch_profile))
                 }
             }
-        } else CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        } else HomeEntryPlaceholder(showNavigation = showNavigation)
     }
 }
