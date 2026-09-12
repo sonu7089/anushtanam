@@ -54,9 +54,10 @@ import com.mantrasiddhi.data.local.entity.UserProfileEntity
         BackupStateEntity::class,
         BackupConflictEntity::class,
         BackupQuarantineEntity::class,
-        com.mantrasiddhi.data.local.entity.IdentityRepairEntity::class
+        com.mantrasiddhi.data.local.entity.IdentityRepairEntity::class,
+        com.mantrasiddhi.data.local.entity.ChangedRecordEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -74,6 +75,24 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
+
+        val MIGRATION_16_17: Migration = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS changed_records (userId INTEGER NOT NULL, kind TEXT NOT NULL, recordId TEXT NOT NULL, PRIMARY KEY(userId,kind,recordId))")
+                for ((table, kind) in listOf("targets" to "target", "purashcharana" to "vow")) {
+                    db.execSQL("INSERT OR IGNORE INTO changed_records SELECT userId, 'project_$kind', stableId FROM $table")
+                }
+                db.execSQL("INSERT OR IGNORE INTO changed_records SELECT id, 'repair', 'targets' FROM user_profiles")
+                db.execSQL("INSERT OR IGNORE INTO changed_records SELECT userId, 'period', dateKey || ':' || period FROM japa_entries WHERE period IS NOT NULL")
+                db.execSQL("CREATE INDEX index_targets_userId_isActive_isCompleted_startedAtMillis_stableId ON targets(userId,isActive,isCompleted,startedAtMillis,stableId)")
+                db.execSQL("DROP INDEX index_japa_entries_targetId")
+                db.execSQL("DROP INDEX index_japa_entries_vowId")
+                db.execSQL("CREATE INDEX index_japa_entries_userId_targetId_id ON japa_entries(userId,targetId,id)")
+                db.execSQL("CREATE INDEX index_japa_entries_userId_vowId_id ON japa_entries(userId,vowId,id)")
+                db.execSQL("CREATE INDEX index_japa_entries_userId_createdAtMillis_id ON japa_entries(userId,createdAtMillis,id)")
+                ChangedRecordJournal.install(db)
+            }
+        }
 
         val MIGRATION_14_15: Migration = IdentityRepairMigration
 
@@ -359,7 +378,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                     }, java.util.concurrent.Executor { it.run() })
                 }
             }
-            // Contiguous v1 to v16 migration chain. No destructive fallback: a missing or
+            .addCallback(ChangedRecordJournal)
+            // Contiguous v1 to v17 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -378,7 +398,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_12_13,
                 MIGRATION_13_14,
                 MIGRATION_14_15,
-                MIGRATION_15_16
+                MIGRATION_15_16,
+                MIGRATION_16_17
             )
             .build()
         }

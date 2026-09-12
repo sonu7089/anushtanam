@@ -15,8 +15,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class CloudSyncNetwork @Inject constructor(@ApplicationContext private val context: Context) {
-    fun isConnected(): Boolean {
+open class CloudSyncNetwork @Inject constructor(@ApplicationContext private val context: Context) {
+    open fun isConnected(): Boolean {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
         val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
@@ -68,7 +68,7 @@ class CloudSyncRunner @Inject constructor(
                 japaSync.capture(uid)
                 if (auth.currentUser?.uid != uid) return false
                 val pending = dao.hasPending(uid)
-                if (!pending && !japaSync.needsRestore(uid)) { gate.succeeded(uid); return false }
+                if (!pending && !japaSync.needsRestore(uid)) { gate.succeeded(uid); return japaSync.hasLocalChanges(uid) }
                 if (!network.isConnected()) return true
                 if (pending) {
                     // Persist the follow-up before any acknowledgement can empty the queue.
@@ -106,7 +106,7 @@ class CloudSyncRunner @Inject constructor(
                 return auth.currentUser?.uid == uid
             }
             gate.succeeded(uid)
-            return auth.currentUser?.uid == uid && (dao.hasPending(uid) || japaSync.needsRestore(uid))
+            return auth.currentUser?.uid == uid && (dao.hasPending(uid) || japaSync.needsRestore(uid) || japaSync.hasLocalChanges(uid))
         } finally {
             _activeUid.value = null
             lock.unlock()

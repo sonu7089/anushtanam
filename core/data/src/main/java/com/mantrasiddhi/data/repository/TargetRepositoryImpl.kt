@@ -32,11 +32,11 @@ class TargetRepositoryImpl @Inject constructor(
         val result = database.withTransaction {
             require(database.userDao().getById(target.userId) != null) { "Unknown target owner" }
             targetDao.getByStableId(target.userId, target.stableId)?.let { return@withTransaction it.id }
-            val before = database.japaDao().entries(target.userId)
+
             targetDao.closePrevious(target.userId, target.startedAtMillis)
             val id = targetDao.insert(TargetEntity.fromDomain(target))
-            database.japaDao().project(target.userId, target.startedAtMillis)
-            sync.enqueue(target.userId, before)
+            database.japaDao().project(target.userId, target.startedAtMillis, repair = false)
+            sync.enqueue(target.userId)
             id
         }
         sync.schedule()
@@ -47,7 +47,10 @@ class TargetRepositoryImpl @Inject constructor(
         database.withTransaction {
             val old = requireNotNull(targetDao.getById(target.id)) { "Unknown target" }
             require(old.userId == target.userId && old.stableId == target.stableId && old.mantraId == target.mantraId && old.setByUserId == target.setByUserId) { "Target ownership and identity are immutable" }
-            targetDao.update(TargetEntity.fromDomain(target))
+            val row = TargetEntity.fromDomain(target)
+            if (old != row) targetDao.update(row)
+            database.japaDao().project(target.userId, System.currentTimeMillis(), repair = false)
+            sync.enqueue(target.userId)
         }
     }
 
@@ -64,23 +67,17 @@ class TargetRepositoryImpl @Inject constructor(
     }
 
     private suspend fun refreshGoalCredit(userId: Long) {
-        val changed = database.withTransaction {
-            val dao = database.japaDao()
-            val before = dao.entries(userId)
-            val now = System.currentTimeMillis()
-            if (!dao.creditUnassignedTargetEntries(userId, now)) return@withTransaction false
-            dao.project(userId, now)
-            sync.enqueue(userId, before)
-            true
+        database.withTransaction {
+            database.japaDao().project(userId, System.currentTimeMillis(), repair = false)
+            sync.enqueue(userId)
         }
-        if (changed) sync.schedule()
     }
 
     override suspend fun delete(targetId: Long) = withContext(ioDispatcher) {
         database.withTransaction {
             val target = targetDao.getById(targetId)?.userId
             targetDao.deleteById(targetId)
-            if (target != null) sync.enqueue(target, database.japaDao().entries(target))
+            if (target != null) sync.enqueue(target)
         }
         sync.schedule()
     }

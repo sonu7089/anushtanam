@@ -23,8 +23,8 @@ P1 means address early because work scales with subscribers/history or occurs on
 | RW-03 | P1 | Home computes unused child details and rebuilds their subscriptions | Confirmed for a local parent with children |
 | RW-04 | P1 | Selecting child details accumulates collectors | Resolved in step 04; counted unit regressions and three physical-device UI tests pass |
 | RW-05 | P1 | Screen-owned work outlives visible screens; child goals have two consumers | Confirmed ownership structure; retained lifetimes depend on navigation |
-| RW-06 | P1 | Target reads scan the ledger; projection rewrites unchanged goals | Confirmed; second repair pass occurs when the first changed entries |
-| RW-07 | P1 | One durable save can lead to several broad backup passes | Confirmed independent triggers; number/timing varies |
+| RW-06 | P1, resolved locally | Target reads scan the ledger; projection rewrites unchanged goals | Confirmed; second repair pass occurs when the first changed entries |
+| RW-07 | P1, resolved locally | One durable save can lead to several broad backup passes | Confirmed independent triggers; number/timing varies |
 | RW-08 | P2 | Voice-model initial and resume checks cancel/restart each other | Confirmed call sites; overlap depends on callback timing |
 | RW-09 | P2 | Notification refresh repeats registration and maintenance | Confirmed on startup/resume; successful remote writes depend on connectivity |
 | RW-10 | P2 | Reminder and calendar work repeats without relevant changes | Confirmed; detailed timer inventory is in polling audit |
@@ -112,6 +112,8 @@ There is a second duplication for signed-in children: Main's notification observ
 
 ## RW-06 — Reading a target can trigger repeated repair scans
 
+**Step 08 (12 September 2026):** [Changed-record implementation, query measurements and verification](step-08-changed-records.md) replaces the broad local capture/projection work described below. DB-10’s remaining UI paging/query candidates continue in step 09.
+
 **Evidence:** [TargetRepositoryImpl](../../core/data/src/main/java/com/mantrasiddhi/data/repository/TargetRepositoryImpl.kt), lines 52–77; [JapaDao](../../core/data/src/main/java/com/mantrasiddhi/data/local/dao/JapaDao.kt), `creditUnassignedTargetEntries` and `project`.
 
 Every `getActiveForUser` and every fresh `getAllForUser` subscription calls `refreshGoalCredit`. Even if no repair is needed, it reads the whole ledger into `before`, then `creditUnassignedTargetEntries` reads the ledger again and loads targets. When repair does change entries, `refreshGoalCredit` calls `project`, which invokes `creditUnassignedTargetEntries` again before reading entries/targets for projection. The calls occur in the same outer transaction, so the second repair can reuse knowledge from the first.
@@ -123,6 +125,8 @@ Every `getActiveForUser` and every fresh `getAllForUser` subscription calls `ref
 **Verify:** repeated reads of an unchanged active target should cause no writes and no full-ledger repair scans after initialization. Tests must preserve overshoot/correction, late goal creation, original allocations and restore behavior.
 
 ## RW-07 — Durable saves are followed by broad capture and reserialization
+
+**Step 08 (12 September 2026):** [Changed-record implementation, query measurements and verification](step-08-changed-records.md) replaces the broad local capture/projection work described below. DB-10’s remaining UI paging/query candidates continue in step 09.
 
 **Evidence:** [RecitationRepositoryImpl](../../core/data/src/main/java/com/mantrasiddhi/data/repository/RecitationRepositoryImpl.kt), `saveSession`; [JapaCloudSync](../../core/data/src/main/java/com/mantrasiddhi/data/sync/JapaCloudSync.kt), `enqueue`/`capture`; [PracticeBackupStore](../../core/data/src/main/java/com/mantrasiddhi/data/sync/PracticeBackupStore.kt); [CloudSyncCoordinator](../../core/data/src/main/java/com/mantrasiddhi/data/sync/CloudSyncCoordinator.kt); [CloudSyncRunner](../../core/data/src/main/java/com/mantrasiddhi/data/sync/CloudSyncRunner.kt).
 

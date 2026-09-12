@@ -27,8 +27,9 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
                 val previous = database.backupDao().conflict(uid, id)
                 @Suppress("UNCHECKED_CAST") val first = value["first"] as Map<String, Any?>
                 @Suppress("UNCHECKED_CAST") val second = value["second"] as Map<String, Any?>
-                database.backupDao().putConflict(BackupConflictEntity(uid, id, value.text("entryId"),
-                    JSONObject(first).toString(), JSONObject(second).toString(), previous?.resolved == true || value["resolved"] == true))
+                val conflict = BackupConflictEntity(uid, id, value.text("entryId"),
+                    JSONObject(first).toString(), JSONObject(second).toString(), previous?.resolved == true || value["resolved"] == true)
+                if (conflict != previous) database.backupDao().putConflict(conflict)
             }
         }
         database.backupDao().clearQuarantine(uid, source)
@@ -66,8 +67,14 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
             // Long is the exact domain bound for a manual period, including merged replicas.
             // Preserve excess input in quarantine; never clamp or truncate performed quantities.
             if (value["period"] != null && JapaSyncPolicy.newer(value, old?.payload())) {
-                val total = database.japaDao().periodEntries(userId, value.text("dateKey"), value.text("period"))
-                    .filter { it.id != value.text("id") }.fold(BigInteger.valueOf(value.number("quantity"))) { sum, e -> sum + BigInteger.valueOf(e.quantity) }
+                var time = Long.MAX_VALUE
+                var after = "\uffff"
+                var total = BigInteger.valueOf(value.number("quantity"))
+                do {
+                    val page = database.japaDao().periodPage(userId, value.text("dateKey"), value.text("period"), time, after)
+                    for (entry in page) if (entry.id != value.text("id")) total += BigInteger.valueOf(entry.quantity)
+                    page.lastOrNull()?.let { time = it.createdAtMillis; after = it.id }
+                } while (page.size == 200)
                 if (total > BigInteger.valueOf(Long.MAX_VALUE)) return "Merged period exceeds Long.MAX_VALUE; correct the source count and sync again"
             }
         }
@@ -76,11 +83,15 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
             val id = value.text("id")
             val mantra = value.text("mantraId")
             val oldMantra = if (target) database.targetDao().getByStableId(userId, id)?.mantraId
-                else database.japaDao().vows(userId).firstOrNull { it.stableId == id }?.mantraId
+                else database.japaDao().vow(userId, id)?.mantraId
             if (oldMantra != null && oldMantra != mantra) return "Goal mantra identity is immutable"
-            if (database.japaDao().entries(userId).any {
-                (if (target) it.targetId == id else it.vowId == id) && it.mantraId != mantra
-            }) return "Goal disagrees with an existing entry allocation"
+            var after = ""
+            do {
+                val page = if (target) database.japaDao().targetEntries(userId, id, after)
+                    else database.japaDao().vowEntries(userId, id, after)
+                if (page.any { it.mantraId != mantra }) return "Goal disagrees with an existing entry allocation"
+                after = page.lastOrNull()?.id ?: after
+            } while (page.size == 200)
         }
         if (type == "practice") {
             if (value["type"] == "session") {

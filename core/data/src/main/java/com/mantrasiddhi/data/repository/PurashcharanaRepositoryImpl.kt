@@ -63,7 +63,7 @@ class PurashcharanaRepositoryImpl @Inject constructor(
                     require(database.userDao().getById(userId) != null) { "Unknown vow owner" }
                     check(purashcharanaDao.getActiveForUser(userId) == null)
                     val row = entity.copy(id = purashcharanaDao.insert(entity))
-                    sync.enqueue(userId, database.japaDao().entries(userId))
+                    sync.enqueue(userId)
                     row.toDomain()
                 }
                 sync.schedule()
@@ -90,7 +90,7 @@ class PurashcharanaRepositoryImpl @Inject constructor(
         runCatching {
             database.withTransaction {
                 purashcharanaDao.deactivateForUser(userId)
-                sync.enqueue(userId, database.japaDao().entries(userId))
+                sync.enqueue(userId)
             }
             sync.schedule()
         }
@@ -104,15 +104,14 @@ class PurashcharanaRepositoryImpl @Inject constructor(
                 require(database.userDao().getById(userId) != null) { "Unknown vow owner" }
                 val restored = sankalpa.copy(userId = userId, isActive = true)
                 val existing = purashcharanaDao.getActiveForUser(userId)
-                if (existing != null && database.japaDao().entries(userId).any { it.vowId == existing.stableId }) return@runCatching Unit
+                if (existing != null && database.japaDao().vowEntries(userId, existing.stableId).isNotEmpty()) return@runCatching Unit
                 if (existing == null) {
                     purashcharanaDao.insert(PurashcharanaEntity.fromDomain(restored.copy(id = 0L)))
                 } else {
                     // Update in place rather than insert, so the restore cannot produce a
                     // second active row for the same sadhak.
-                    purashcharanaDao.update(
-                        PurashcharanaEntity.fromDomain(restored.copy(id = existing.id))
-                    )
+                    val row = PurashcharanaEntity.fromDomain(restored.copy(id = existing.id))
+                    if (row != existing) purashcharanaDao.update(row)
                 }
                 Unit
             }

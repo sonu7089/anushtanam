@@ -51,7 +51,7 @@ class MantraSiddhiDatabaseTest {
     @Before
     fun createDb() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java)
+        db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal)
             .allowMainThreadQueries()
             .build()
         userDao = db.userDao()

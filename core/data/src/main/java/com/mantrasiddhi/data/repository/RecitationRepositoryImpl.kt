@@ -48,11 +48,10 @@ class RecitationRepositoryImpl @Inject constructor(
                     childGoalEligible = old.childGoalEligible) == old) { "Saved assessments are immutable" }
                 return@withTransaction old.id
             }
-            val before = database.japaDao().entries(session.userId)
+
             val id = recitationDao.insert(row)
             database.japaDao().recordAudio(id, row)
-            if (session.isCorrect && session.mode == com.mantrasiddhi.domain.model.RecitationMode.NORMAL) sync.enqueue(session.userId, before)
-            sync.enqueueSession(session.userId, id)
+            sync.enqueue(session.userId)
             id
         }
         sync.schedule()

@@ -6,6 +6,31 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BackupDao {
+    @Query("SELECT * FROM changed_records WHERE userId = :userId AND kind IN ('entry','target','vow','session','log','change') ORDER BY kind, recordId LIMIT 200")
+    suspend fun changed(userId: Long): List<ChangedRecordEntity>
+    @Delete suspend fun clearChanged(record: ChangedRecordEntity)
+    @Query("SELECT EXISTS(SELECT 1 FROM changed_records WHERE userId = :userId AND kind IN ('entry','target','vow','session','log','change'))")
+    suspend fun hasChanges(userId: Long): Boolean
+    @Query("SELECT DISTINCT u.firebaseUid FROM user_profiles u JOIN changed_records c ON u.id = c.userId WHERE u.firebaseUid IS NOT NULL AND c.kind IN ('entry','target','vow','session','log','change')")
+    fun changedAccounts(): Flow<List<String>>
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'entry', id FROM japa_entries WHERE userId = :userId")
+    suspend fun seedEntries(userId: Long)
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'target', CAST(id AS TEXT) FROM targets WHERE userId = :userId")
+    suspend fun seedTargets(userId: Long)
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'vow', CAST(id AS TEXT) FROM purashcharana WHERE userId = :userId")
+    suspend fun seedVows(userId: Long)
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'session', CAST(id AS TEXT) FROM recitation_sessions WHERE userId = :userId")
+    suspend fun seedSessions(userId: Long)
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'log', CAST(id AS TEXT) FROM sandhya_logs WHERE userId = :userId")
+    suspend fun seedLogs(userId: Long)
+    @Query("INSERT OR IGNORE INTO changed_records SELECT userId, 'change', id FROM sandhya_count_changes WHERE userId = :userId")
+    suspend fun seedChanges(userId: Long)
+    @Query("SELECT * FROM targets WHERE userId = :userId AND id = :id")
+    suspend fun targetById(userId: Long, id: Long): TargetEntity?
+    @Query("SELECT * FROM purashcharana WHERE userId = :userId AND id = :id")
+    suspend fun vowById(userId: Long, id: Long): PurashcharanaEntity?
+    @Query("SELECT * FROM sandhya_logs WHERE userId = :userId AND id = :id")
+    suspend fun logById(userId: Long, id: Long): SandhyaLogEntity?
     @Upsert suspend fun quarantine(record: BackupQuarantineEntity)
     @Query("DELETE FROM backup_quarantine WHERE uid = :uid AND source = :source")
     suspend fun clearQuarantine(uid: String, source: String)

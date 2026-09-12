@@ -33,20 +33,6 @@ class CloudSyncCoordinator @Inject constructor(
         started = true
         application.registerActivityLifecycleCallbacks(this)
         auth.addAuthStateListener { uid.value = it.currentUser?.uid }
-        val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1,
-            onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST)
-        database.invalidationTracker.addObserver(object : androidx.room.InvalidationTracker.Observer(
-            "recitation_sessions", "sandhya_logs", "sandhya_count_changes", "japa_entries", "targets", "purashcharana") {
-            override fun onInvalidated(tables: Set<String>) { changes.tryEmit(Unit) }
-        })
-        scope.launch {
-            @OptIn(FlowPreview::class)
-            changes.debounce(750).collect {
-                val account = auth.currentUser?.uid ?: return@collect
-                // Capture participates in the same gate as every other attempt.
-                requests.request(account)
-            }
-        }
         scope.launch {
             combine(uid, foreground) { account, visible -> account.takeIf { visible } }
                 .distinctUntilChanged().collectLatest { account ->
@@ -63,9 +49,10 @@ class CloudSyncCoordinator @Inject constructor(
                 }
         }
         scope.launch {
-            combine(dao.pendingAccounts(), database.backupDao().pendingRestoreAccounts(), uid, foreground) {
-                uploads, restores, account, visible ->
-                account?.takeIf { it in uploads || it in restores } to visible
+            combine(dao.pendingAccounts(), database.backupDao().pendingRestoreAccounts(),
+                database.backupDao().changedAccounts(), uid, foreground) {
+                uploads, restores, changes, account, visible ->
+                account?.takeIf { it in uploads || it in restores || it in changes } to visible
             }.distinctUntilChanged().collectLatest { (account, visible) ->
                 if (account == null) { scheduler.cancelIdle(); return@collectLatest }
                 scheduler.schedule()
@@ -74,7 +61,7 @@ class CloudSyncCoordinator @Inject constructor(
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (_: Exception) { CloudSyncRunner.INTERVAL_MS }
                     if (remaining > 0) { delay(remaining.coerceAtMost(CloudSyncRunner.INTERVAL_MS)); continue }
-                    if (!dao.hasPending(account) && !japaSync.needsRestore(account)) break
+                    if (!dao.hasPending(account) && !japaSync.needsRestore(account) && !japaSync.hasLocalChanges(account)) break
                     // Leaving the app cancels this wait, not the actual sync request.
                     requests.request(account).join()
                 }

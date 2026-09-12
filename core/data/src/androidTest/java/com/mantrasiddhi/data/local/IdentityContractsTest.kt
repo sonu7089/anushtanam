@@ -20,7 +20,7 @@ import java.util.UUID
 
 class IdentityContractsTest {
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
-    private fun db() = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+    private fun db() = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
     private fun session(id: String = "session") = RecitationSessionEntity(userId = 7, mantraId = "gayatri",
         mode = "NORMAL", overallScore = .9, wordScoresJson = "om:0.9", transcription = "om", isCorrect = true,
         durationMs = 1000, createdAt = 100, stableId = id)

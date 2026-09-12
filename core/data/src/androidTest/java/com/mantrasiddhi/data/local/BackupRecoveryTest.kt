@@ -39,7 +39,7 @@ class BackupRecoveryTest {
         val auth = FirebaseAuth.getInstance(app).apply { useEmulator(host, (args.getString("firebaseAuthPort") ?: "29099").toInt()) }
         val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator(host, port) }
         val uid = auth.signInAnonymously().awaitResult().user!!.uid
-        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         val outbox = CloudSyncOutbox(context, db.cloudSyncDao(), CloudSyncScheduler(context))
         val sync = JapaCloudSync(db, cloud, auth, outbox, PracticeBackupStore(db, outbox))
         fun entry(id: String, quantity: Long) = JapaEntryEntity(id, 7, "gayatri", "20260910", "UTC", "SAYAM", quantity, 1, 10, null, null, "SANDHYA").payload()
@@ -141,8 +141,8 @@ class BackupRecoveryTest {
         val auth = FirebaseAuth.getInstance(app).apply { useEmulator(emulatorHost, (args.getString("firebaseAuthPort") ?: "29099").toInt()) }
         val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator(emulatorHost, (args.getString("firebaseFirestorePort") ?: "28080").toInt()) }
         val uid = auth.signInAnonymously().awaitResult().user!!.uid
-        val first = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
-        val second = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val first = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
+        val second = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         fun sync(db: MantraSiddhiDatabase): JapaCloudSync {
             val outbox = CloudSyncOutbox(context, db.cloudSyncDao(), CloudSyncScheduler(context))
             return JapaCloudSync(db, cloud, auth, outbox, PracticeBackupStore(db, outbox))

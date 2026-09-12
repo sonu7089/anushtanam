@@ -63,7 +63,7 @@ class HistoryBaselineTest {
                 check(name != MantraSiddhiDatabase.DATABASE_NAME)
                 context.deleteDatabase(name)
                 val queries = AtomicLong()
-                val db = Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name)
+                val db = Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal)
                     .setQueryCallback({ sql, _ ->
                         if (sql.trimStart().startsWith("SELECT", true)) queries.incrementAndGet()
                     }, java.util.concurrent.Executor { it.run() }).build()

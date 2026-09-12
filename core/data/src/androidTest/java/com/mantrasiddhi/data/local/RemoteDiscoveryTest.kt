@@ -37,11 +37,14 @@ class RemoteDiscoveryTest {
             .setApplicationId("1:123456789:android:discovery").setApiKey("fake-emulator-key").build(), "discovery-${UUID.randomUUID()}")
         val auth = FirebaseAuth.getInstance(app).apply { useEmulator(host, (args.getString("firebaseAuthPort") ?: "49099").toInt()) }
         val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator(host, (args.getString("firebaseFirestorePort") ?: "48080").toInt()) }
-        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         val outbox = CloudSyncOutbox(context, db.cloudSyncDao(), CloudSyncScheduler(context))
         val sync = JapaCloudSync(db, cloud, auth, outbox, PracticeBackupStore(db, outbox))
         val clock = TestClock(context)
-        val runner = CloudSyncRunner(db.cloudSyncDao(), auth, CloudSyncNetwork(context), CloudSyncTransport(cloud, auth, sync),
+        // Emulator traffic uses ADB loopback even when Android cannot validate public Wi-Fi.
+        // The fixture above rejects non-loopback hosts; production retains its real network gate.
+        val network = object : CloudSyncNetwork(context) { override fun isConnected() = true }
+        val runner = CloudSyncRunner(db.cloudSyncDao(), auth, network, CloudSyncTransport(cloud, auth, sync),
             CloudSyncRetryGate(db.cloudSyncDao(), clock), sync)
         return Replica(app, auth, cloud, db, sync, runner, CloudSyncDiscovery(cloud, auth, db, sync), clock)
     }

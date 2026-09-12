@@ -17,23 +17,23 @@ internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
                 val id = goal.text("id")
                 val end = goal.numberOrNull("endedAtMillis")
                 if (goal.text("kind") == "target") {
-                    val old = dao.targets(userId).firstOrNull { it.stableId == id }
+                    val old = dao.target(userId, id)
                     val effectiveEnd = listOfNotNull(end, old?.endedAtMillis).minOrNull()
                     val row = TargetEntity(id = old?.id ?: 0, userId = userId, setByUserId = userId,
                         targetRecitationCount = goal.number("targetCount").toInt(), currentRecitationCount = old?.currentRecitationCount ?: 0,
                         rewardType = goal.text("rewardType"), rewardDescription = goal.text("rewardDescription"), isCompleted = old?.isCompleted ?: false,
                         stableId = id, mantraId = goal.text("mantraId"), startedAtMillis = goal.number("startedAtMillis"),
                         endedAtMillis = effectiveEnd, isActive = effectiveEnd == null, baselineCount = goal.number("baselineCount"))
-                    if (old == null) database.targetDao().insert(row) else dao.putTarget(row)
+                    if (old == null) database.targetDao().insert(row) else if (row != old) dao.putTarget(row)
                 } else {
-                    val old = dao.vows(userId).firstOrNull { it.stableId == id }
+                    val old = dao.vow(userId, id)
                     val effectiveEnd = listOfNotNull(end, old?.endedAtMillis).minOrNull()
                     val row = PurashcharanaEntity(id = old?.id ?: 0, userId = userId, mantraId = goal.text("mantraId"),
                         mantraAksharaCount = goal.number("aksharas").toInt(), targetJapaCount = goal.number("targetCount"),
                         currentJapaCount = old?.currentJapaCount ?: 0, startedAtMillis = goal.number("startedAtMillis"),
                         completedAtMillis = listOfNotNull(old?.completedAtMillis, goal.numberOrNull("completedAtMillis")).maxOrNull(), isActive = effectiveEnd == null,
                         stableId = id, endedAtMillis = effectiveEnd, baselineCount = goal.number("baselineCount"))
-                    if (old == null) database.purashcharanaDao().insert(row) else dao.putVow(row)
+                    if (old == null) database.purashcharanaDao().insert(row) else if (row != old) dao.putVow(row)
                 }
             }
             // Two devices may enroll while offline. Keep only the newest goal active.
@@ -57,9 +57,9 @@ internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
             }
             if (!project) return@withTransaction false
             database.sandhyaCountDao().rebuildPeriods(userId, recordHistory = false)
-            val beforeProjection = dao.entries(userId)
-            dao.project(userId, System.currentTimeMillis())
-            beforeProjection != dao.entries(userId)
+            val repaired = dao.creditPendingTargetEntries(userId, System.currentTimeMillis())
+            dao.project(userId, System.currentTimeMillis(), repair = false)
+            repaired
         }
     }
 }

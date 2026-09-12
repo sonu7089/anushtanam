@@ -31,40 +31,9 @@ class JapaCloudSync @Inject constructor(
         projections.deliver(uid, payload, event)
 
     /** Called inside the same Room transaction as the practice or goal change. */
-    suspend fun enqueue(userId: Long, before: List<JapaEntryEntity> = emptyList()) {
-        val uid = database.userDao().getById(userId)?.firebaseUid ?: return
-        val dao = database.japaDao()
-        val previous = before.associateBy { it.id }
-        for (entry in dao.entries(userId)) if (entry != previous[entry.id]) {
-            val session = entry.sessionId?.let { database.backupDao().sessionByLocalId(it) }
-            backup.enqueue(uid, SyncKind.JAPA_ENTRY, entry.payload() + ("sessionStableId" to (session?.stableId ?: entry.sessionStableId)))
-        }
-        for (target in dao.targets(userId).filter { it.userId == it.setByUserId }) {
-            backup.enqueue(uid, SyncKind.JAPA_GOAL, mapOf(
-                "id" to target.stableId, "kind" to "target", "mantraId" to target.mantraId,
-                "startedAtMillis" to target.startedAtMillis, "endedAtMillis" to target.endedAtMillis,
-                "baselineCount" to target.baselineCount, "targetCount" to target.targetRecitationCount,
-                "rewardType" to target.rewardType, "rewardDescription" to target.rewardDescription))
-        }
-        for (vow in dao.vows(userId)) {
-            backup.enqueue(uid, SyncKind.JAPA_GOAL, mapOf(
-                "id" to vow.stableId, "kind" to "vow", "mantraId" to vow.mantraId,
-                "startedAtMillis" to vow.startedAtMillis, "endedAtMillis" to vow.endedAtMillis,
-                "baselineCount" to vow.baselineCount, "targetCount" to vow.targetJapaCount,
-                "aksharas" to vow.mantraAksharaCount, "completedAtMillis" to vow.completedAtMillis))
-        }
-    }
+    suspend fun enqueue(userId: Long) = backup.drain(userId)
 
     suspend fun schedule() = outbox.schedule()
-
-    /** Performance and its upload are saved in the same transaction as the recitation. */
-    suspend fun enqueueSession(userId: Long, sessionId: Long) {
-        val uid = database.userDao().getById(userId)?.firebaseUid ?: return
-        val row = database.backupDao().sessionByLocalId(sessionId) ?: return
-        check(row.userId == userId)
-        val entry = database.japaDao().audioEntry(userId, sessionId)
-        backup.enqueue(uid, SyncKind.PRACTICE_RECORD, PracticeRecordCodec.session(row, entry?.id))
-    }
 
     /** Explicit recovery includes settled installations and is retained across process removal. */
     suspend fun requestRecovery(uid: String) {
@@ -77,7 +46,6 @@ class JapaCloudSync @Inject constructor(
     }
 
     suspend fun importOwnedProfile(userId: Long) {
-        database.withTransaction { enqueue(userId) }
         val uid = database.userDao().getById(userId)?.firebaseUid ?: return
         backup.capture(userId) { auth.currentUser?.uid == uid }
         schedule()
@@ -85,15 +53,15 @@ class JapaCloudSync @Inject constructor(
 
     suspend fun capture(uid: String) {
         val user = database.userDao().getByFirebaseUid(uid) ?: return
-        database.withTransaction {
-            check(auth.currentUser?.uid == uid)
-            enqueue(user.id)
-        }
         backup.capture(user.id) { auth.currentUser?.uid == uid }
         if (database.cloudSyncDao().hasPending(uid)) schedule()
     }
 
     suspend fun needsRestore(uid: String): Boolean = database.backupDao().state(uid)?.restorePending != false
+
+    suspend fun hasLocalChanges(uid: String): Boolean = database.userDao().getByFirebaseUid(uid)?.let {
+        database.backupDao().hasChanges(it.id)
+    } == true
 
     suspend fun hasQuarantinedRecords(uid: String): Boolean = database.backupDao().quarantineCount(uid) > 0
 
@@ -103,7 +71,9 @@ class JapaCloudSync @Inject constructor(
 
     private suspend fun updateState(uid: String, update: (BackupStateEntity) -> BackupStateEntity) {
         database.withTransaction {
-            database.backupDao().putState(update(database.backupDao().state(uid) ?: BackupStateEntity(uid)))
+            val old = database.backupDao().state(uid)
+            val next = update(old ?: BackupStateEntity(uid))
+            if (next != old) database.backupDao().putState(next)
         }
     }
 
@@ -285,7 +255,7 @@ class JapaCloudSync @Inject constructor(
                     revision = Math.addExact(entry.revision, 1), updatedAtMillis = System.currentTimeMillis(),
                     operationId = java.util.UUID.randomUUID().toString()))
                 database.sandhyaCountDao().rebuildPeriods(user.id)
-                database.japaDao().project(user.id, System.currentTimeMillis())
+                database.japaDao().project(user.id, System.currentTimeMillis(), repair = false)
                 enqueue(user.id)
             }
             database.backupDao().putConflict(conflict.copy(resolved = true))

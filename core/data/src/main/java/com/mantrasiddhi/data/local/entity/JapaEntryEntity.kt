@@ -6,7 +6,8 @@ import androidx.room.PrimaryKey
 
 /** A contribution belongs to its original goals for its entire revision history. */
 @Entity(tableName = "japa_entries", indices = [Index(value = ["userId", "dateKey", "period"]),
-    Index(value = ["targetId"]), Index(value = ["vowId"]),
+    Index(value = ["userId", "targetId", "id"]), Index(value = ["userId", "vowId", "id"]),
+    Index(value = ["userId", "createdAtMillis", "id"]),
     Index(value = ["userId", "sessionId"], unique = true),
     Index(value = ["userId", "sessionStableId"], unique = true)])
 data class JapaEntryEntity(

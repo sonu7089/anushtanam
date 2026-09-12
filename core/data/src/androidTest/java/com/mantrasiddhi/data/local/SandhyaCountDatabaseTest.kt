@@ -29,7 +29,7 @@ class SandhyaCountDatabaseTest {
         "Asia/Kolkata", mode, quantity.toString(), base, revision, 1)
 
     @Test fun records740AndCorrectsWithoutDuplicatingOrMarkingObserved() = runTest {
-        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build().use { db ->
+        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build().use { db ->
             val dao = db.sandhyaCountDao()
             dao.save(draft(SandhyaPeriod.PRATAH, 108), 1)
             dao.save(draft(SandhyaPeriod.MADHYAHNA, 32), 2)
@@ -52,7 +52,7 @@ class SandhyaCountDatabaseTest {
     }
 
     @Test fun staleEditAndOverflowRollBackAndKeepDraft() = runTest {
-        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build().use { db ->
+        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build().use { db ->
             val dao = db.sandhyaCountDao()
             dao.save(draft(quantity = Long.MAX_VALUE), 1)
             val overflow = draft(quantity = 1, mode = SandhyaCountMode.ADD, base = Long.MAX_VALUE, revision = 1)
@@ -66,7 +66,7 @@ class SandhyaCountDatabaseTest {
     }
 
     @Test fun observedCountStaysUnknownAndZeroIsExplicit() = runTest {
-        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build().use { db ->
+        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build().use { db ->
             db.sandhyaLogDao().insertIgnore(SandhyaLogEntity(userId = 7, dateKey = "20260907",
                 period = "SAYAM", scheduledEpochMillis = 1, status = "OBSERVED", observedEpochMillis = 2))
             assertNull(db.sandhyaCountDao().getCount(7, "20260907", "SAYAM"))
@@ -80,10 +80,10 @@ class SandhyaCountDatabaseTest {
         val name = "sandhya-draft-${UUID.randomUUID()}"
         val draft = draft(quantity = 57, mode = SandhyaCountMode.COUNTER)
         try {
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().use {
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().use {
                 it.sandhyaCountDao().saveDraft(SandhyaCountDraftEntity.from(draft))
             }
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().use {
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().use {
                 val dao = it.sandhyaCountDao()
                 val recovered = dao.getDraft(7)!!.toDomain()
                 assertEquals(draft, recovered)

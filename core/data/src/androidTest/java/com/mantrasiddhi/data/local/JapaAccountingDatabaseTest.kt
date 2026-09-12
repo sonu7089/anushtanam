@@ -23,7 +23,7 @@ class JapaAccountingDatabaseTest {
     private val context get() = ApplicationProvider.getApplicationContext<Context>()
     @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(),
         MantraSiddhiDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
-    private fun db() = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+    private fun db() = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
     private fun draft(period: SandhyaPeriod = SandhyaPeriod.SAYAM, count: Long = 600, revision: Long = 0,
         mode: SandhyaCountMode = SandhyaCountMode.RECORD, date: String = "20260907") =
         SandhyaCountDraft(UUID.randomUUID().toString(), 7, date, period, "Asia/Kolkata", mode, count.toString(), null, revision, 100)
@@ -265,6 +265,10 @@ class JapaAccountingDatabaseTest {
             assertFalse(merger.merge(7, listOf(goal), listOf(entry.payload())) { true })
             assertEquals("afternoon-goal", db.japaDao().entries(7).single().targetId)
             assertEquals(108, db.japaDao().targets(7).single().currentRecitationCount)
+            val laterArrival = entry.copy(id = "offline-late-arrival", operationId = "offline-late-arrival")
+            assertTrue(merger.merge(7, emptyList(), listOf(laterArrival.payload())) { true })
+            assertFalse(merger.merge(7, emptyList(), listOf(laterArrival.payload())) { true })
+            assertEquals(216, db.japaDao().targets(7).single().currentRecitationCount)
         } finally { db.close() }
     }
 

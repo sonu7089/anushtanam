@@ -1,0 +1,148 @@
+{
+  "sqlite": "3.49.1",
+  "fixture": "10 interleaved users, 100 targets/user, 1000 entries/user; 7 write samples of 1000 inserts and one user-wide quantity update",
+  "queries": {
+    "active_target": {
+      "sql": "SELECT * FROM targets WHERE userId=? AND isCompleted=0 AND isActive=1 ORDER BY startedAtMillis DESC,stableId DESC LIMIT 1",
+      "params": [
+        7
+      ],
+      "before": {
+        "vm_steps": 757,
+        "rows": 1,
+        "plan": [
+          "SEARCH targets USING INDEX index_targets_userId_stableId (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      "after": {
+        "vm_steps": 45,
+        "rows": 1,
+        "plan": [
+          "SEARCH targets USING INDEX index_targets_userId_isActive_isCompleted_startedAtMillis_stableId (userId=? AND isActive=? AND isCompleted=?)"
+        ]
+      }
+    },
+    "target_page": {
+      "sql": "SELECT * FROM japa_entries WHERE userId=? AND targetId=? AND id>? ORDER BY id LIMIT 200",
+      "params": [
+        7,
+        "t-0099",
+        ""
+      ],
+      "before": {
+        "vm_steps": 16293,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_sessionStableId (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      "after": {
+        "vm_steps": 4215,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_targetId_id (userId=? AND targetId=? AND id>?)"
+        ]
+      }
+    },
+    "vow_page": {
+      "sql": "SELECT * FROM japa_entries WHERE userId=? AND vowId=? AND id>? ORDER BY id LIMIT 200",
+      "params": [
+        7,
+        "v-1",
+        ""
+      ],
+      "before": {
+        "vm_steps": 18631,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_sessionStableId (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      "after": {
+        "vm_steps": 4215,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_vowId_id (userId=? AND vowId=? AND id>?)"
+        ]
+      }
+    },
+    "unassigned_page": {
+      "sql": "SELECT * FROM japa_entries WHERE userId=? AND targetId IS NULL AND createdAtMillis>0 AND id>? ORDER BY id LIMIT 200",
+      "params": [
+        7,
+        ""
+      ],
+      "before": {
+        "vm_steps": 14644,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_sessionStableId (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      "after": {
+        "vm_steps": 4615,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_targetId_id (userId=? AND targetId=? AND id>?)"
+        ]
+      }
+    },
+    "ordered_history": {
+      "sql": "SELECT * FROM japa_entries WHERE userId=? ORDER BY createdAtMillis,id LIMIT 200",
+      "params": [
+        7
+      ],
+      "before": {
+        "vm_steps": 20872,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_sessionStableId (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      },
+      "after": {
+        "vm_steps": 4210,
+        "rows": 200,
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_createdAtMillis_id (userId=?)"
+        ]
+      }
+    }
+  },
+  "ddl": [
+    "CREATE INDEX index_targets_userId_isActive_isCompleted_startedAtMillis_stableId ON targets(userId,isActive,isCompleted,startedAtMillis,stableId)",
+    "DROP INDEX index_japa_entries_targetId",
+    "CREATE INDEX index_japa_entries_userId_targetId_id ON japa_entries(userId,targetId,id)",
+    "DROP INDEX index_japa_entries_vowId",
+    "CREATE INDEX index_japa_entries_userId_vowId_id ON japa_entries(userId,vowId,id)",
+    "CREATE INDEX index_japa_entries_userId_createdAtMillis_id ON japa_entries(userId,createdAtMillis,id)"
+  ],
+  "write_before": {
+    "median_ms": 5.936800000199582,
+    "samples_ms": [
+      6.280400000832742,
+      5.936800000199582,
+      6.038099996658275,
+      5.586300001596101,
+      5.818300000100862,
+      5.785199999081669,
+      6.024599999364
+    ]
+  },
+  "write_after": {
+    "median_ms": 6.602499997825362,
+    "samples_ms": [
+      7.204199999250704,
+      6.644300003245007,
+      6.8619000012404285,
+      6.602499997825362,
+      6.564300001627998,
+      6.57610000052955,
+      6.414700001187157
+    ]
+  }
+}

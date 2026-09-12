@@ -58,9 +58,9 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | DB-05 | P1, resolved locally | A settled device has no trigger to receive another device's ledger changes | Foreground feed discovery and idle refresh verified on Pixel/emulator; see step 07 |
 | DB-06 | P1, resolved locally | Legacy target identities collide if a profile has multiple unfinished targets | Room v15 repair before uniqueness; all supported migration starts verified (see step 03) |
 | DB-07 | P2, resolved locally | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
-| DB-08 | P2 | Projection and backup repeatedly scan/serialize full history | Confirmed query/call structure |
+| DB-08 | P2, resolved locally | Projection and backup repeatedly scan/serialize full history | Confirmed query/call structure |
 | DB-09 | P2 | Home/Progress day-dependent values do not necessarily refresh at midnight | Confirmed missing time input; device boundary test pending |
-| DB-10 | P2 | Missing lookup/order indexes; long lists remain unbounded | SQLite plans and instruction counts |
+| DB-10 | P2, database work resolved; UI step 09 | Missing lookup/order indexes; long lists remain unbounded | SQLite plans and instruction counts |
 | DB-11 | P2, resolved locally | Database constraints do not enforce several ledger identities/relationships | Unique identities/associations, immutable assessments and eventual-reference admission verified (see step 03) |
 | DB-12 | P2 boundary, fixed locally | Valid per-entry Long values can overflow a merged manual-period total | Exact Long aggregate admission bound; excess retained for repair |
 
@@ -162,6 +162,8 @@ The seed is also built on **every** `recordSession` call, even when the cloud do
 
 ### DB-08 — One count change causes broad reads and writes
 
+**Step 08 (12 September 2026):** [Changed-record implementation, query measurements and verification](step-08-changed-records.md) replaces the broad local capture/projection work described below. DB-10’s remaining UI paging/query candidates continue in step 09.
+
 [JapaDao.project](../../core/data/src/main/java/com/mantrasiddhi/data/local/dao/JapaDao.kt), lines 91–115, loads all entries and scans them once for each target and vow, then updates every projection even when unchanged. Approximate CPU work is `O(entries × goals)`. `creditUnassignedTargetEntries` adds further reads. [TargetRepositoryImpl.getAllForUser](../../core/data/src/main/java/com/mantrasiddhi/data/repository/TargetRepositoryImpl.kt) runs a credit-repair transaction at subscription start, so merely observing a page is not always read-only.
 
 [JapaCloudSync.enqueue/capture](../../core/data/src/main/java/com/mantrasiddhi/data/sync/JapaCloudSync.kt) scans ledger/goals; [PracticeBackupStore.capture](../../core/data/src/main/java/com/mantrasiddhi/data/sync/PracticeBackupStore.kt) restarts all history pages from the beginning, serializes each row and compares fingerprints. Each session adds an `audioEntry` query. The current index only narrows that query by user, making a full capture capable of quadratic session/entry lookup work. Paging at 200 bounds peak list size, not the total work of each capture.
@@ -177,6 +179,8 @@ The coordinator's table invalidation observer triggers another broad capture aft
 **Fix:** combine small date-dependent projections with a calendar-day signal, scheduled at the next relevant midnight and refreshed on resume/timezone/time changes. Keep original recorded entry dates intact and define the timezone policy for legacy audio fallback. Do not rescan history every second to reset a daily label. Verify midnight, device timezone changes and return from background without new practice.
 
 ### DB-10 — Query plans show targeted index opportunities
+
+**Step 08 (12 September 2026):** [Changed-record implementation, query measurements and verification](step-08-changed-records.md) replaces the broad local capture/projection work described below. DB-10’s remaining UI paging/query candidates continue in step 09.
 
 The synthetic fixture uses ten users, 1,000 sessions/ledger entries/changes/outbox rows per user and 100 targets per user. Counts below are **SQLite VM instructions**, not milliseconds, CPU percentages or expected phone speedups. Candidates were installed together in memory; no production indexes were added.
 

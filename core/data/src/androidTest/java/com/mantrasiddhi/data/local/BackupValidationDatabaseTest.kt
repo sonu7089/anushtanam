@@ -57,7 +57,7 @@ class BackupValidationDatabaseTest {
     }
 
     @Test fun oversizedMergedPeriodIsRetainedAndRecoversAfterCorrectionWithoutClamping() = runBlocking {
-        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         try {
             seed(db); val restore = restorer(db)
             db.withTransaction {
@@ -83,7 +83,7 @@ class BackupValidationDatabaseTest {
     }
 
     @Test fun cancelledPageRollsBackQuarantineRowsAndCursorAndDoesNotCatchDatabaseFailures() = runBlocking {
-        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         try {
             seed(db)
             assertTrue(runCatching { db.withTransaction {
@@ -100,7 +100,7 @@ class BackupValidationDatabaseTest {
     }
 
     @Test fun malformedPracticeAndCrossAccountIdentitiesDoNotBlockValidRecords() = runBlocking {
-        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
         try {
             seed(db)
             db.japaDao().putEntry(JapaEntryEntity("taken", 99, "gayatri", "20260910", "UTC", "SAYAM", 12, 1, 10, null, null, "SANDHYA"))

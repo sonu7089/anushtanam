@@ -37,7 +37,7 @@ class CloudSyncDatabaseTest {
 
     @Test fun newChangesDoNotPostponeFirstMinute_andConcurrentRunnersCannotClaimTwice() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build().useDb { db ->
+        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build().useDb { db ->
             val dao = db.cloudSyncDao()
             dao.enqueue(event())
             dao.enqueue(event(time = 30_000))
@@ -55,7 +55,7 @@ class CloudSyncDatabaseTest {
 
     @Test fun acknowledgingBatchPreservesNewChangesAndOtherAccounts() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build().useDb { db ->
+        Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build().useDb { db ->
             val dao = db.cloudSyncDao()
             dao.enqueue(event())
             dao.enqueue(event("other"))
@@ -75,10 +75,10 @@ class CloudSyncDatabaseTest {
         val name = "cloud-sync-restart-test"
         context.deleteDatabase(name)
         try {
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().useDb { db ->
                 db.cloudSyncDao().enqueue(event())
             }
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 assertEquals("device", dao.pending("owner").single().streamId)
                 val clock = TestClock(context)
@@ -114,7 +114,7 @@ class CloudSyncDatabaseTest {
         val name = "cloud-sync-manual-cooldown"
         context.deleteDatabase(name)
         try {
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 dao.enqueue(event())
                 val clock = TestClock(context).apply { time = 1000 }
@@ -123,7 +123,7 @@ class CloudSyncDatabaseTest {
                 assertTrue(gate.claim("owner", manual = true))
                 assertFalse(gate.claim("owner", manual = true))
             }
-            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
+            Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).addCallback(ChangedRecordJournal).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 assertEquals(1000L, dao.lastAttemptAt("owner"))
                 val clock = TestClock(context).apply { time = 60_999 }

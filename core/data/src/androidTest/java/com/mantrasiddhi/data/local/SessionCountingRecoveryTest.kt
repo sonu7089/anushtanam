@@ -100,7 +100,7 @@ class SessionCountingRecoveryTest {
                 assertEquals(1L, cloud.collection("progress").document(uid).get(Source.SERVER).awaitResult().getLong("totalSessions"))
                 assertEquals(1L, cloud.collection("goals").document("$uid-first").get(Source.SERVER).awaitResult().getLong("currentRecitationCount"))
                 assertEquals(0L, cloud.collection("goals").document("$uid-next").get(Source.SERVER).awaitResult().getLong("currentRecitationCount"))
-                val second = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+                val second = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).addCallback(ChangedRecordJournal).build()
                 try {
                     second.userDao().insert(UserProfileEntity(17, "Child", "CHILD", null, 0, uid))
                     val outbox = CloudSyncOutbox(context, second.cloudSyncDao(), CloudSyncScheduler(context))
