@@ -1,170 +1,140 @@
-/*
- * Anushtanam - Gayatri Mantra Recitation App
- * Copyright (c) 2026. All rights reserved.
- *
- * This is a demo application. Not for production use.
- */
 package com.mantrasiddhi.presentation.screens.progress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mantrasiddhi.domain.model.ProgressSummary
-import com.mantrasiddhi.domain.model.RecitationSession
-import com.mantrasiddhi.domain.repository.ProgressSyncRepository
-import com.mantrasiddhi.domain.usecase.DailyAccuracy
-import com.mantrasiddhi.domain.usecase.DailyAxisScores
-import com.mantrasiddhi.domain.usecase.DailyCount
-import com.mantrasiddhi.domain.usecase.GetAccuracyTrendUseCase
-import com.mantrasiddhi.domain.usecase.GetAxisTrendsUseCase
-import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
-import com.mantrasiddhi.domain.usecase.GetDailyRecitationCountsUseCase
-import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
-import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
-import com.mantrasiddhi.domain.usecase.RecitationOverviewStats
+import com.mantrasiddhi.domain.model.*
+import com.mantrasiddhi.domain.repository.*
+import com.mantrasiddhi.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
-import java.text.SimpleDateFormat
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Date
-import java.util.Locale
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
-/**
- * UI State for the Progress Screen.
- */
 sealed interface ProgressUiState {
     data object Loading : ProgressUiState
     data class Success(
-        val overviewStats: RecitationOverviewStats,
-        val dailyCounts: List<DailyCount>,
-        val accuracyTrend: List<DailyAccuracy>,
-        val sessions: List<RecitationSession>,
-        val axisTrends: List<DailyAxisScores>
+        val overviewStats: RecitationOverviewStats = RecitationOverviewStats(0, 0, 0.0, 0, 0.0),
+        val dailyCounts: List<DailyCount> = emptyList(),
+        val accuracyTrend: List<DailyAccuracy> = emptyList(),
+        val sessions: List<RecitationSession> = emptyList(),
+        val axisTrends: List<DailyAxisScores> = emptyList(),
+        val hasMore: Boolean = false, val appending: Boolean = false,
+        val refreshing: Boolean = false, val error: Boolean = false
     ) : ProgressUiState
     data class Error(val message: String) : ProgressUiState
 }
 
-/**
- * ViewModel to manage analytics and progress stats.
- *
- * Overview stats and the daily/accuracy charts prefer the cloud [ProgressSummary]
- * (so they survive reinstall / device switch) and fall back to the local Room
- * aggregates when no cloud summary exists. Session history and axis-trends are
- * device-local by design and always come from Room.
- */
+/** Only the selected tab owns upstream reads. Cached sections are scoped to profile + account. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ProgressViewModel @Inject constructor(
-    private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val getRecitationStatsUseCase: GetRecitationStatsUseCase,
-    private val getDailyRecitationCountsUseCase: GetDailyRecitationCountsUseCase,
-    private val getAccuracyTrendUseCase: GetAccuracyTrendUseCase,
-    private val getSessionsForUserUseCase: GetSessionsForUserUseCase,
-    private val getAxisTrendsUseCase: GetAxisTrendsUseCase,
-    private val progressSyncRepository: ProgressSyncRepository,
-    private val getJapaSummary: com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase
+    currentUser: GetCurrentUserUseCase,
+    private val stats: GetRecitationStatsUseCase,
+    private val sessions: RecitationRepository,
+    private val cloud: ProgressSyncRepository,
+    private val japa: GetJapaSummaryUseCase
 ) : ViewModel() {
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab = _selectedTab.asStateFlow()
+    private val retryRequest = MutableStateFlow(0)
+    private val appendRequest = MutableStateFlow(0)
+    private var owner: Pair<Long, String?>? = null
+    private val cache = mutableMapOf<Int, ProgressUiState.Success>()
+    fun selectTab(tab: Int) { require(tab in 0..3); _selectedTab.value = tab }
+    fun retry() { retryRequest.value++ }
+    fun loadMore() {
+        val current = uiState.value as? ProgressUiState.Success ?: return
+        if (_selectedTab.value == 3 && current.hasMore && !current.appending) appendRequest.value++
+    }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<ProgressUiState> = getCurrentUserUseCase()
-        .flatMapLatest { user ->
-            if (user == null) {
-                flowOf(ProgressUiState.Loading)
-            } else {
-                combine(
-                    combineCore(user.id),
-                    combineTrends(user.id),
-                    getJapaSummary(user.id)
-                ) { core, trends, japa ->
-                    ProgressUiState.Success(
-                        overviewStats = core.stats.copy(performedJapa = japa.lifetime.toString()),
-                        dailyCounts = core.dailyCounts.map { day ->
-                            val count = japa.on(java.time.Instant.ofEpochMilli(day.dateMillis).atZone(ZoneId.systemDefault()).toLocalDate())
-                            day.copy(count = count.min(java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong())).toInt(), performedJapa = count.toString())
-                        },
-                        accuracyTrend = core.accuracyTrend,
-                        sessions = trends.sessions,
-                        axisTrends = trends.axisTrends
-                    )
+    val uiState: StateFlow<ProgressUiState> = currentUser().distinctUntilChangedBy { it?.let { profile -> profile.id to profile.firebaseUid } }.flatMapLatest { user ->
+        val identity = user?.let { it.id to it.firebaseUid }
+        if (owner != identity) { cache.clear(); owner = identity }
+        if (user == null) flowOf(ProgressUiState.Loading) else
+            combine(_selectedTab, retryRequest) { tab, _ -> tab }.flatMapLatest { tab ->
+                flow<ProgressUiState> {
+                    emit(cache[tab]?.copy(refreshing = true, error = false) ?: ProgressUiState.Loading)
+                    emitAll(section(user.id, tab).onEach { cache[tab] = it })
+                }.catch { error ->
+                    if (error is CancellationException) throw error
+                    emit(cache[tab]?.copy(refreshing = false, appending = false, error = true)
+                        ?: ProgressUiState.Error("Unable to load this section."))
+                }
+            }
+    }.buffer(0).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0, replayExpirationMillis = 0), ProgressUiState.Loading)
+
+    private fun section(userId: Long, tab: Int): Flow<ProgressUiState.Success> = when (tab) {
+        0 -> {
+            val overview = cloud.summaryFlow().distinctUntilChanged().flatMapLatest { summary ->
+                if (summary == null) stats(userId) else flowOf(RecitationOverviewStats(
+                    summary.totalSessions.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                    summary.correctSessions.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                    summary.averageAccuracy, summary.currentStreak(LocalDate.now().toString()), summary.bestScore))
+            }
+            combine(overview, japa(userId)) { value, count ->
+                ProgressUiState.Success(overviewStats = value.copy(performedJapa = count.lifetime.toString()))
+            }
+        }
+        1 -> japa(userId).map { count ->
+            ProgressUiState.Success(dailyCounts = dates().map { day ->
+                val amount = count.on(day)
+                DailyCount(label(day), millis(day), amount.min(java.math.BigInteger.valueOf(Int.MAX_VALUE.toLong())).toInt(), amount.toString())
+            })
+        }
+        2 -> {
+            val dates = dates()
+            // Accuracy and all three axes share this one bounded aggregate query.
+            combine(sessions.observeScoreDays(userId, millis(dates.first()), millis(dates.last().plusDays(1))),
+                cloud.summaryFlow()) { days, summary ->
+                val byDate = days.associateBy { it.dateKey }
+                ProgressUiState.Success(accuracyTrend = dates.map { date ->
+                    val remote = summary?.daily?.get(date.toString())
+                    val average = if (summary != null) remote?.let { if (it.n > 0) it.s / it.n else 0.0 } ?: 0.0
+                        else byDate[date.toString()]?.average ?: 0.0
+                    DailyAccuracy(label(date), millis(date), average)
+                }, axisTrends = dates.map { date ->
+                    val local = byDate[date.toString()]
+                    DailyAxisScores(label(date), millis(date), local?.correctness ?: 0.0,
+                        local?.completeness ?: 0.0, local?.pronunciation ?: 0.0)
+                })
+            }
+        }
+        else -> history(userId)
+    }
+
+    private fun history(userId: Long): Flow<ProgressUiState.Success> = channelFlow {
+        sessions.observeHistoryPage(userId, Long.MAX_VALUE, Long.MAX_VALUE, PAGE_SIZE + 1).collectLatest { first ->
+            val head = first.take(PAGE_SIZE).map { it.toSession(userId) }
+            val saved = cache[3]
+            var current = if (saved != null && saved.sessions.take(PAGE_SIZE) == head)
+                saved.copy(refreshing = false, appending = false, error = false)
+                else ProgressUiState.Success(sessions = head, hasMore = first.size > PAGE_SIZE)
+            send(current)
+            appendRequest.drop(1).collect {
+                if (current.hasMore) {
+                    current = current.copy(appending = true, error = false)
+                    send(current)
+                    try {
+                        val last = current.sessions.last()
+                        val page = sessions.observeHistoryPage(userId, last.createdAt, last.id, PAGE_SIZE + 1).first()
+                        current = current.copy(sessions = (current.sessions + page.take(PAGE_SIZE).map { it.toSession(userId) }).distinctBy { it.id },
+                            hasMore = page.size > PAGE_SIZE, appending = false)
+                    } catch (error: CancellationException) { throw error
+                    } catch (_: Exception) { current = current.copy(appending = false, error = true) }
+                    send(current)
                 }
             }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ProgressUiState.Loading
-        )
-
-    private data class CoreStats(
-        val stats: RecitationOverviewStats,
-        val dailyCounts: List<DailyCount>,
-        val accuracyTrend: List<DailyAccuracy>
-    )
-
-    private data class TrendStats(
-        val sessions: List<RecitationSession>,
-        val axisTrends: List<DailyAxisScores>
-    )
-
-    private fun combineCore(userId: Long) = combine(
-        getRecitationStatsUseCase(userId),
-        getDailyRecitationCountsUseCase(userId),
-        getAccuracyTrendUseCase(userId),
-        progressSyncRepository.summaryFlow()
-    ) { stats, daily, accuracy, summary ->
-        if (summary == null) {
-            // No cloud summary (signed out / doc not created yet): local values as-is.
-            CoreStats(stats, daily, accuracy)
-        } else {
-            val todayKey = LocalDate.now().toString()
-            CoreStats(
-                stats = summary.toOverviewStats(todayKey),
-                dailyCounts = summary.toDailyCounts(todayKey),
-                accuracyTrend = summary.toAccuracyTrend(todayKey)
-            )
-        }
     }
 
-    private fun combineTrends(userId: Long) = combine(
-        getSessionsForUserUseCase(userId),
-        getAxisTrendsUseCase(userId)
-    ) { sessions, axisTrends -> TrendStats(sessions, axisTrends) }
-
-    private fun ProgressSummary.toOverviewStats(todayKey: String) = RecitationOverviewStats(
-        totalSessions = totalSessions.toInt(),
-        totalCorrectRecitations = correctSessions.toInt(),
-        averageAccuracy = averageAccuracy,
-        currentStreak = currentStreak(todayKey),
-        bestSessionScore = bestScore
-    )
-
-    private fun ProgressSummary.toDailyCounts(todayKey: String): List<DailyCount> =
-        dailyCounts(CHART_WINDOW_DAYS, todayKey).map { (dateKey, count) ->
-            val millis = dateKeyToMillis(dateKey)
-            DailyCount(dayLabel = dayLabel(millis), dateMillis = millis, count = count)
-        }
-
-    private fun ProgressSummary.toAccuracyTrend(todayKey: String): List<DailyAccuracy> =
-        accuracyTrend(CHART_WINDOW_DAYS, todayKey).map { (dateKey, average) ->
-            val millis = dateKeyToMillis(dateKey)
-            DailyAccuracy(dayLabel = dayLabel(millis), dateMillis = millis, averageScore = average)
-        }
-
-    private fun dateKeyToMillis(dateKey: String): Long =
-        LocalDate.parse(dateKey).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-    /** Same weekday label the local 7-day aggregates use ("EEE"). */
-    private fun dayLabel(dateMillis: Long): String =
-        SimpleDateFormat("EEE", Locale.getDefault()).format(Date(dateMillis))
-
-    private companion object {
-        /** The charts show the last 7 days, matching the local use-case defaults. */
-        const val CHART_WINDOW_DAYS = 7
-    }
+    private fun SessionHistoryRow.toSession(userId: Long) = RecitationSession(id, userId, "",
+        RecitationMode.valueOf(mode), overallScore, emptyMap(), "", isCorrect, durationMs,
+        createdAt = createdAt, stableId = "history:$id")
+    private fun dates() = (6L downTo 0L).map { LocalDate.now().minusDays(it) }
+    private fun millis(date: LocalDate) = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    private fun label(date: LocalDate) = date.format(DateTimeFormatter.ofPattern("EEE"))
+    companion object { const val PAGE_SIZE = 30 }
 }

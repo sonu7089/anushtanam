@@ -4,6 +4,8 @@
 
 Reviewed 12 September 2026 against commit `5c5aaba`.
 
+**Step 09 update:** UI-03/04/05/08/09 are implemented. See [visible-demand changes and verification](step-09-visible-demand.md). The findings below retain the original audit evidence.
+
 This review covers launcher-to-usable-screen latency, navigation, scrolling, and image loading in the Android Compose application. It contains findings and an implementation proposal; application code and production images have not been changed.
 
 The strongest starting points are the **1.8-second artificial splash wait**, synchronous decoding of oversized artwork, repeated full-history analytics, and server-first loading of Messages. Smaller images alone will not remove the other delays.

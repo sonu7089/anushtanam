@@ -4,6 +4,9 @@ import androidx.room.*
 import com.mantrasiddhi.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 
+data class BackupReviewRow(val id: String, val firstPayload: String, val secondPayload: String,
+    val dateKey: String?, val quantity: Long?, val operationId: String?)
+
 @Dao
 interface BackupDao {
     @Query("SELECT * FROM changed_records WHERE userId = :userId AND kind IN ('entry','target','vow','session','log','change') ORDER BY kind, recordId LIMIT 200")
@@ -51,6 +54,10 @@ interface BackupDao {
     suspend fun queued(uid: String, key: String): String?
     @Upsert suspend fun putQueued(state: BackupQueueState)
     @Upsert suspend fun putConflict(conflict: BackupConflictEntity)
+    @Query("SELECT COUNT(*) FROM backup_conflicts WHERE uid = :uid AND resolved = 0")
+    fun observeConflictCount(uid: String): Flow<Int>
+    @Query("SELECT c.id, c.firstPayload, c.secondPayload, e.dateKey, e.quantity, e.operationId FROM backup_conflicts c LEFT JOIN japa_entries e ON e.id = c.entryId AND e.userId = :userId WHERE c.uid = :uid AND c.resolved = 0 ORDER BY c.id LIMIT 1")
+    fun observeReview(uid: String, userId: Long): Flow<List<BackupReviewRow>>
     @Query("SELECT * FROM backup_conflicts WHERE uid = :uid AND resolved = 0 ORDER BY id")
     fun observeConflicts(uid: String): Flow<List<BackupConflictEntity>>
     @Query("SELECT * FROM backup_conflicts WHERE uid = :uid AND id = :id")

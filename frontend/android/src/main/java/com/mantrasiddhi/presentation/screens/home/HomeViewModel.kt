@@ -14,6 +14,9 @@ import com.mantrasiddhi.domain.usecase.GetDashboardStatsUseCase
 import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,48 +50,28 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    private val retryRequest = MutableStateFlow(0)
+    fun retry() { retryRequest.value++ }
+    fun stopReflection() { reflectionJob?.cancel(); reflectionJob = null }
 
-    init {
-        observeDashboardStats()
-    }
+    private data class Section<T>(val value: T? = null, val loading: Boolean = true, val failed: Boolean = false)
+    private fun <T> kotlinx.coroutines.flow.Flow<T>.section(): kotlinx.coroutines.flow.Flow<Section<T>> =
+        map { Section(value = it, loading = false) }.onStart { emit(Section()) }
+            .catch { emit(Section(loading = false, failed = true)) }
 
-    private fun observeDashboardStats() {
-        viewModelScope.launch {
-            getCurrentUserUseCase().flatMapLatest { user ->
-                if (user != null) {
-                    combine(
-                        getDashboardStatsUseCase(user.id).catch { emit(null) },
-                        // The Purashcharana is one card on a dashboard, so it may neither
-                        // break the page nor hold it up: `catch` degrades a failure to null,
-                        // and `onStart` seeds a null so `combine` can emit as soon as the
-                        // stats arrive instead of waiting on the sankalpa query.
-                        getActivePurashcharanaUseCase(user.id)
-                            .catch { emit(null) }
-                            .onStart { emit(null) },
-                        getJapaSummary(user.id)
-                    ) { stats, purashcharana, japa ->
-                        if (stats != null) {
-                            HomeUiState.Success(
-                                user = stats.user,
-                                todayCount = stats.todayRecitationCount,
-                                todayJapa = japa.on(java.time.LocalDate.now()).toString(),
-                                activeTarget = stats.activeTarget,
-                                streakDays = stats.streakDays,
-                                childrenProgress = stats.childrenProgress,
-                                purashcharana = purashcharana
-                            )
-                        } else {
-                            HomeUiState.Error(R.string.home_error_load_failed)
-                        }
-                    }
-                } else {
-                    flowOf(HomeUiState.Error(R.string.home_error_no_profile))
+    val uiState: StateFlow<HomeUiState> = getCurrentUserUseCase().flatMapLatest { user ->
+        if (user == null) flowOf(HomeUiState.Error(R.string.home_error_no_profile)) else
+            retryRequest.flatMapLatest {
+                combine(getDashboardStatsUseCase(user.id).section(),
+                    getActivePurashcharanaUseCase(user.id).section(), getJapaSummary(user.id).section()) { stats, vow, japa ->
+                    HomeUiState.Success(user = user, todayCount = stats.value?.todayRecitationCount ?: 0,
+                        todayJapa = japa.value?.on(java.time.LocalDate.now())?.toString(),
+                        activeTarget = stats.value?.activeTarget, streakDays = stats.value?.streakDays ?: 0,
+                        purashcharana = vow.value, statsLoading = stats.loading,
+                        statsFailed = stats.failed || (!stats.loading && stats.value == null),
+                        japaLoading = japa.loading, japaFailed = japa.failed,
+                        vowLoading = vow.loading, vowFailed = vow.failed)
                 }
-            }.collect { state ->
-                _uiState.value = state
             }
-        }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0, replayExpirationMillis = 0), HomeUiState.Loading)
 }

@@ -53,6 +53,8 @@ For recitation, use the verified account associated with the saved event rather 
 
 ## RW-02 — Progress computes results it then replaces
 
+**Resolved in step 09:** [implementation, query/ownership bounds and verification](step-09-visible-demand.md). Original audit evidence follows.
+
 **Evidence:** [ProgressViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/progress/ProgressViewModel.kt), `combineCore`, `combineTrends` and top-level `combine`; [RecitationRepositoryImpl](../../core/data/src/main/java/com/mantrasiddhi/data/repository/RecitationRepositoryImpl.kt), `getSessionsForUser`; [JapaHistoryRepositoryImpl](../../core/data/src/main/java/com/mantrasiddhi/data/repository/JapaHistoryRepositoryImpl.kt).
 
 One Progress subscription starts full-session flows for overview, daily counts, accuracy, history and axis trends, plus a sixth raw-session query in the japa fallback. The first five independently map Room entities to domain objects. Overview makes several passes and date conversions; daily/accuracy/axis use cases scan the session list for each chart day. The repository's `flowOn(IO)` covers its own mapping, not automatically every downstream use-case calculation.
@@ -69,6 +71,8 @@ The selected tab lives only in [ProgressScreen](../../frontend/android/src/main/
 **Verify:** count queries and entity conversions per tab and per saved attempt. With a valid cloud summary, the local fallback analytics branches should be inactive. Compare every displayed total/date/score before and after, including missing cloud data, manual japa, timezone changes and old audio-only history.
 
 ## RW-03 — Home builds child data that its UI never reads
+
+**Resolved in step 09:** [implementation, query/ownership bounds and verification](step-09-visible-demand.md). Original audit evidence follows.
 
 **Evidence:** [GetDashboardStatsUseCase](../../core/domain/src/main/kotlin/com/mantrasiddhi/domain/usecase/GetDashboardStatsUseCase.kt), lines 59–99; [GetChildProgressUseCase](../../core/domain/src/main/kotlin/com/mantrasiddhi/domain/usecase/GetChildProgressUseCase.kt); [HomeViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/home/HomeViewModel.kt); [HomeScreen](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/home/HomeScreen.kt).
 
@@ -95,6 +99,8 @@ Every selection launches a new untracked collecting coroutine combining child pr
 **Verify:** rapidly select A → B → A → close, then update both children. At most one detail pipeline may exist, and none after close; old results must never replace current selection. This is also a correctness fix, not just a CPU optimization.
 
 ## RW-05 — Screen lifetime and producer lifetime are mismatched
+
+**Resolved in step 09:** [implementation, query/ownership bounds and verification](step-09-visible-demand.md). Original audit evidence follows.
 
 **Partially resolved in step 05:** [account-keyed child-goal sharing](step-05-account-state.md) removes duplicate Main/Family mapping while preserving notification baselines. General visible-demand/lifecycle work remains step 09; the original evidence below records the broader finding.
 
@@ -197,6 +203,8 @@ The screen creates two skeleton cards with two shimmering blocks each, plus thre
 **Verify:** count animation owners and composition activity during prolonged loading. Retain skeleton dimensions so content arrival does not jump; inspect light/dark theme and large font layouts.
 
 ## RW-13 — Backup status updates rebuild hidden conflict details
+
+**Resolved in step 09:** [implementation, query/ownership bounds and verification](step-09-visible-demand.md). Original audit evidence follows.
 
 **Evidence:** [BackupViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/settings/BackupViewModel.kt), lines 37–53; [BackupStatusContent](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/settings/BackupStatusContent.kt), local `reviewing` flag and first-review dialog.
 

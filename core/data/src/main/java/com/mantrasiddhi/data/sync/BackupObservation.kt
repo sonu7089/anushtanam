@@ -8,6 +8,8 @@ class BackupObservation @Inject constructor(private val database: MantraSiddhiDa
     fun state(uid: String) = database.backupDao().observeState(uid)
     fun quarantined(uid: String) = database.backupDao().observeQuarantineCount(uid)
     fun pending(uid: String) = database.cloudSyncDao().observeCount(uid)
+    fun conflictCount(uid: String) = database.backupDao().observeConflictCount(uid)
+    fun review(uid: String, userId: Long) = database.backupDao().observeReview(uid, userId)
     fun conflicts(uid: String) = database.backupDao().observeConflicts(uid)
     fun entries(userId: Long) = database.japaDao().observeEntries(userId)
 }

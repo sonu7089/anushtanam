@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.practice
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.LotusArtwork
 import androidx.compose.foundation.layout.heightIn
@@ -32,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,11 +65,11 @@ fun PracticeScreen(
     modifier: Modifier = Modifier,
     viewModel: PracticeModeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val isPlayingBenchmark by viewModel.isPlayingBenchmark.collectAsState()
-    val benchmarkPositionMs by viewModel.benchmarkPositionMs.collectAsState()
-    val activeBenchmarkWordIndex by viewModel.activeBenchmarkWordIndex.collectAsState()
-    val hasSelfAudio by viewModel.hasSelfAudio.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isPlayingBenchmark by viewModel.isPlayingBenchmark.collectAsStateWithLifecycle()
+    val benchmarkPositionMs by viewModel.benchmarkPositionMs.collectAsStateWithLifecycle()
+    val activeBenchmarkWordIndex by viewModel.activeBenchmarkWordIndex.collectAsStateWithLifecycle()
+    val hasSelfAudio by viewModel.hasSelfAudio.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     var requestMicPermission by remember { mutableStateOf(false) }

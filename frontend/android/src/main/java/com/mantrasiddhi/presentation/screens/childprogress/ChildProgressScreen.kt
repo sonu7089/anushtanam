@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.childprogress
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.EmptyState
@@ -45,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,8 +75,8 @@ fun ChildProgressScreen(
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
-    val detailUiState by viewModel.detailUiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val detailUiState by viewModel.detailUiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     
     var showSetTargetDialog by remember { mutableStateOf(false) }

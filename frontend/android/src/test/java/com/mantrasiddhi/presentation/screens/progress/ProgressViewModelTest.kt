@@ -1,213 +1,129 @@
-/*
- * Anushtanam - Gayatri Mantra Recitation App
- * Copyright (c) 2026. All rights reserved.
- *
- * This is a demo application. Not for production use.
- */
 package com.mantrasiddhi.presentation.screens.progress
 
-import com.mantrasiddhi.domain.model.DayAggregate
-import com.mantrasiddhi.domain.model.ProfileType
-import com.mantrasiddhi.domain.model.ProgressSummary
-import com.mantrasiddhi.domain.model.UserProfile
-import com.mantrasiddhi.domain.repository.ProgressSyncRepository
-import com.mantrasiddhi.domain.usecase.GetAccuracyTrendUseCase
-import com.mantrasiddhi.domain.usecase.GetAxisTrendsUseCase
-import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
-import com.mantrasiddhi.domain.usecase.GetDailyRecitationCountsUseCase
-import com.mantrasiddhi.domain.usecase.GetRecitationStatsUseCase
-import com.mantrasiddhi.domain.usecase.GetSessionsForUserUseCase
-import com.mantrasiddhi.domain.usecase.RecitationOverviewStats
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
-
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import androidx.lifecycle.ViewModelStore
+import com.mantrasiddhi.domain.model.*
+import com.mantrasiddhi.domain.repository.*
+import com.mantrasiddhi.domain.usecase.*
+import io.mockk.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.test.*
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProgressViewModelTest {
-
-    private val testDispatcher = UnconfinedTestDispatcher()
-
-    private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
-    private lateinit var getRecitationStatsUseCase: GetRecitationStatsUseCase
-    private lateinit var getDailyRecitationCountsUseCase: GetDailyRecitationCountsUseCase
-    private lateinit var getAccuracyTrendUseCase: GetAccuracyTrendUseCase
-    private lateinit var getSessionsForUserUseCase: GetSessionsForUserUseCase
-    private lateinit var getAxisTrendsUseCase: GetAxisTrendsUseCase
-    private lateinit var progressSyncRepository: ProgressSyncRepository
-
-    private val japa = mockk<com.mantrasiddhi.domain.usecase.GetJapaSummaryUseCase> {
-        every { this@mockk.invoke(any()) } returns flowOf(com.mantrasiddhi.domain.usecase.JapaSummary(mapOf(java.time.LocalDate.now() to java.math.BigInteger.valueOf(740))))
+    private val dispatcher = UnconfinedTestDispatcher()
+    private val user = MutableStateFlow<UserProfile?>(UserProfile(1, "Fixture", ProfileType.INDIVIDUAL, avatarIndex = 0))
+    private val current = mockk<GetCurrentUserUseCase> { every { this@mockk.invoke() } returns user }
+    private val stats = mockk<GetRecitationStatsUseCase>()
+    private val sessions = mockk<RecitationRepository>()
+    private val cloud = mockk<ProgressSyncRepository>()
+    private val japa = mockk<GetJapaSummaryUseCase>()
+    private lateinit var vm: ProgressViewModel
+    private val active = mutableMapOf<String, Int>()
+    private fun <T> counted(key: String, value: T) = flow {
+        active[key] = (active[key] ?: 0) + 1
+        try { emit(value); awaitCancellation() } finally { active[key] = active.getValue(key) - 1 }
     }
-    private lateinit var viewModel: ProgressViewModel
-
-    private val testUser = UserProfile(
-        id = 1L,
-        name = "Aarav",
-        profileType = ProfileType.CHILD,
-        parentId = 2L,
-        avatarIndex = 2
-    )
-
-    @BeforeEach
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-        getCurrentUserUseCase = mockk()
-        getRecitationStatsUseCase = mockk()
-        getDailyRecitationCountsUseCase = mockk()
-        getAccuracyTrendUseCase = mockk()
-        getSessionsForUserUseCase = mockk()
-        getAxisTrendsUseCase = mockk()
-        progressSyncRepository = mockk()
-        // Default: no cloud summary -> the local aggregates drive the UI unchanged.
-        every { progressSyncRepository.summaryFlow() } returns flowOf(null)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
-    @Test
-    fun `should_initiallyEmitLoadingState_when_userIsNull`() = runTest {
-        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
-
-        viewModel = ProgressViewModel(
-            getCurrentUserUseCase,
-            getRecitationStatsUseCase,
-            getDailyRecitationCountsUseCase,
-            getAccuracyTrendUseCase,
-            getSessionsForUserUseCase,
-            getAxisTrendsUseCase,
-            progressSyncRepository, japa
-        )
-
-        assertTrue(viewModel.uiState.value is ProgressUiState.Loading)
-    }
-
-    @Test
-    fun `should_emitSuccessState_when_allDataLoadedForActiveUser`() = runTest {
-        val overview = RecitationOverviewStats(
-            totalSessions = 10,
-            totalCorrectRecitations = 8,
-            averageAccuracy = 0.88,
-            currentStreak = 5,
-            bestSessionScore = 0.98
-        )
-
-
-        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
-        coEvery { getRecitationStatsUseCase(testUser.id) } returns flowOf(overview)
-        coEvery { getDailyRecitationCountsUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getAccuracyTrendUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getSessionsForUserUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getAxisTrendsUseCase(testUser.id) } returns flowOf(emptyList())
-
-        viewModel = ProgressViewModel(
-            getCurrentUserUseCase,
-            getRecitationStatsUseCase,
-            getDailyRecitationCountsUseCase,
-            getAccuracyTrendUseCase,
-            getSessionsForUserUseCase,
-            getAxisTrendsUseCase,
-            progressSyncRepository, japa
-        )
-
-        val job = launch {
-            viewModel.uiState.collect {}
+    @BeforeEach fun setup() {
+        Dispatchers.setMain(dispatcher)
+        every { stats(any()) } returns counted("stats", RecitationOverviewStats(100, 80, .8, 3, .99))
+        every { cloud.summaryFlow() } returns counted("cloud", null)
+        every { japa(any()) } returns counted("japa", JapaSummary(mapOf(LocalDate.now() to java.math.BigInteger.valueOf(740))))
+        every { sessions.observeScoreDays(any(), any(), any()) } returns counted("scores", emptyList())
+        every { sessions.observeHistoryPage(any(), any(), any(), any()) } answers {
+            val before = thirdArg<Long>()
+            val rows = (1L..80L).reversed().filter { it < before }.take(arg(3))
+                .map { SessionHistoryRow(it, 100, "NORMAL", .9, true, 1000) }
+            counted("history", rows)
         }
-        runCurrent()
+        vm = ProgressViewModel(current, stats, sessions, cloud, japa)
+    }
+    @AfterEach fun cleanup() { ViewModelStore().apply { put("progress", vm); clear() }; Dispatchers.resetMain() }
+    private fun state() = vm.uiState.value as ProgressUiState.Success
 
-        val state = viewModel.uiState.value
-        assertTrue(state is ProgressUiState.Success)
-        val successState = state as ProgressUiState.Success
-        assertEquals(overview.copy(performedJapa = "740"), successState.overviewStats)
-        assertTrue(successState.dailyCounts.isEmpty())
-        assertTrue(successState.accuracyTrend.isEmpty())
-        assertTrue(successState.sessions.isEmpty())
-        job.cancel()
-
+    @Test fun `only selected projections run and hidden UI cancels every read`() = runTest(dispatcher) {
+        assertTrue(active.isEmpty())
+        val observer = backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        assertEquals("740", state().overviewStats.performedJapa)
+        verify(exactly = 0) { sessions.observeHistoryPage(any(), any(), any(), any()); sessions.observeScoreDays(any(), any(), any()) }
+        user.value = user.value!!.copy(name = "Renamed")
+        verify(exactly = 1) { stats(any()) }
+        vm.selectTab(2)
+        assertEquals(0, active["stats"])
+        assertEquals(0, active["japa"])
+        assertEquals(1, active["scores"])
+        assertEquals(7, state().axisTrends.size)
+        vm.selectTab(2)
+        verify(exactly = 1) { sessions.observeScoreDays(any(), any(), any()) }
+        observer.cancel(); runCurrent()
+        assertTrue(active.values.all { it == 0 })
     }
 
-    @Test
-    fun `should_preferCloudSummary_when_summaryFlowEmitsOne`() = runTest {
-        // Local aggregates carry different numbers than the cloud summary so the
-        // assertion proves the cloud values won.
-        val localOverview = RecitationOverviewStats(
-            totalSessions = 2,
-            totalCorrectRecitations = 1,
-            averageAccuracy = 0.5,
-            currentStreak = 1,
-            bestSessionScore = 0.6
-        )
-        val today = java.time.LocalDate.now().toString()
-        val cloudSummary = ProgressSummary(
-            totalSessions = 40L,
-            correctSessions = 30L,
-            scoreSum = 32.0,
-            bestScore = 0.97,
-            daily = mapOf(today to DayAggregate(n = 4L, c = 3L, s = 3.2))
-        )
+    @Test fun `history pages use stable cursor retain rows and retry failed append`() = runTest(dispatcher) {
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        vm.selectTab(3); runCurrent()
+        assertEquals(30, state().sessions.size)
+        vm.loadMore(); runCurrent()
+        assertEquals(60, state().sessions.size)
+        assertEquals(60, state().sessions.map { it.id }.distinct().size)
+        every { sessions.observeHistoryPage(1, 100, 21, 31) } returns flow { error("offline") }
+        vm.loadMore(); runCurrent()
+        assertEquals(60, state().sessions.size)
+        assertTrue(state().error)
+        every { sessions.observeHistoryPage(1, 100, 21, 31) } returns flowOf(
+            (20L downTo 1).map { SessionHistoryRow(it, 100, "NORMAL", .9, true, 1000) })
+        vm.loadMore(); runCurrent()
+        assertEquals(80, state().sessions.size)
+        assertFalse(state().hasMore)
+        vm.selectTab(0); vm.selectTab(3); runCurrent()
+        assertEquals(80, state().sessions.size)
+    }
 
-        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
-        coEvery { getRecitationStatsUseCase(testUser.id) } returns flowOf(localOverview)
-        coEvery { getDailyRecitationCountsUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getAccuracyTrendUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getSessionsForUserUseCase(testUser.id) } returns flowOf(emptyList())
-        coEvery { getAxisTrendsUseCase(testUser.id) } returns flowOf(emptyList())
-        every { progressSyncRepository.summaryFlow() } returns flowOf(cloudSummary)
-
-        viewModel = ProgressViewModel(
-            getCurrentUserUseCase,
-            getRecitationStatsUseCase,
-            getDailyRecitationCountsUseCase,
-            getAccuracyTrendUseCase,
-            getSessionsForUserUseCase,
-            getAxisTrendsUseCase,
-            progressSyncRepository, japa
-        )
-
-        val job = launch {
-            viewModel.uiState.collect {}
-        }
+    @Test fun `account replacement clears cached results before slow new account responds`() = runTest(dispatcher) {
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        assertEquals(100, state().overviewStats.totalSessions)
+        every { stats(2) } returns flow { awaitCancellation() }
+        user.value = user.value!!.copy(id = 2)
         runCurrent()
+        assertEquals(ProgressUiState.Loading, vm.uiState.value)
+        assertEquals(0, active["stats"])
+    }
 
-        val state = viewModel.uiState.value
-        assertTrue(state is ProgressUiState.Success)
-        val successState = state as ProgressUiState.Success
+    @Test fun `cloud overview bypasses local reads and daily count needs no history`() = runTest(dispatcher) {
+        every { cloud.summaryFlow() } returns flowOf(ProgressSummary(40, 30, 32.0, .97,
+            mapOf(LocalDate.now().toString() to DayAggregate(4, 3, 3.2))))
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        assertEquals(40, state().overviewStats.totalSessions)
+        verify(exactly = 0) { stats(any()) }
+        vm.selectTab(1)
+        assertEquals(740, state().dailyCounts.last().count)
+        verify(exactly = 0) { sessions.observeHistoryPage(any(), any(), any(), any()); sessions.observeScoreDays(any(), any(), any()) }
+    }
 
-        // Overview stats come from the cloud summary, not the local aggregates.
-        assertEquals(40, successState.overviewStats.totalSessions)
-        assertEquals(30, successState.overviewStats.totalCorrectRecitations)
-        assertEquals(0.8, successState.overviewStats.averageAccuracy, 1e-9)
-        assertEquals(0.97, successState.overviewStats.bestSessionScore, 1e-9)
-        assertEquals(1, successState.overviewStats.currentStreak)
+    @Test fun `initial failure retries without blocking tab navigation`() = runTest(dispatcher) {
+        every { stats(any()) } returns flow { error("failed") }
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        assertTrue(vm.uiState.value is ProgressUiState.Error)
+        vm.selectTab(1)
+        assertEquals(7, state().dailyCounts.size)
+        vm.selectTab(0)
+        every { stats(any()) } returns flowOf(RecitationOverviewStats(2, 1, .5, 1, .5))
+        vm.retry()
+        assertEquals(2, state().overviewStats.totalSessions)
+    }
 
-        // Charts are rebuilt from the summary: a 7-day zero-filled window with
-        // today's entry carrying the cloud values.
-        assertEquals(7, successState.dailyCounts.size)
-        assertEquals(740, successState.dailyCounts.last().count)
-        assertEquals("740", successState.overviewStats.performedJapa)
-        assertEquals(7, successState.accuracyTrend.size)
-        assertEquals(0.8, successState.accuracyTrend.last().averageScore, 1e-9)
-
-        // Session history stays local-only.
-        assertTrue(successState.sessions.isEmpty())
-        job.cancel()
+    @Test fun `cloud updates keep the same japa producer and cancel unused local fallback`() = runTest(dispatcher) {
+        val summary = MutableStateFlow<ProgressSummary?>(null)
+        every { cloud.summaryFlow() } returns summary
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        summary.value = ProgressSummary(40, 30, 32.0, .97, emptyMap())
+        summary.value = summary.value!!.copy(totalSessions = 41)
+        assertEquals(41, state().overviewStats.totalSessions)
+        assertEquals(0, active["stats"])
+        assertEquals(1, active["japa"])
+        verify(exactly = 1) { japa(1) }
     }
 }

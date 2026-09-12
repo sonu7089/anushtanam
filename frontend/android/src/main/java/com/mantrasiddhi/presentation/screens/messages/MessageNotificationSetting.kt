@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.messages
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -34,7 +36,7 @@ import com.mantrasiddhi.resources.R
 @Composable
 fun MessageNotificationSetting(viewModel: MessagesViewModel = hiltViewModel()) {
     val notifications = viewModel.notifications
-    val enabled by notifications.enabled.collectAsState()
+    val enabled by notifications.enabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
     val owner = LocalLifecycleOwner.current

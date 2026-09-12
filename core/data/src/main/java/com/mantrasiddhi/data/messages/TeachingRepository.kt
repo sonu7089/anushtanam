@@ -11,6 +11,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -26,12 +27,13 @@ internal suspend fun <T> Task<T>.messageAwait(): T = suspendCancellableCoroutine
 }
 
 data class TeachingPage(val messages: List<TeachingMessage>, val offline: Boolean,
-                        val cursor: DocumentSnapshot?, val hasMore: Boolean)
-data class TeachingDetail(val message: TeachingMessage?, val offline: Boolean)
+                        val cursor: DocumentSnapshot?, val hasMore: Boolean, val refreshing: Boolean = false)
+data class TeachingDetail(val message: TeachingMessage?, val offline: Boolean, val refreshing: Boolean = false)
 
 @Singleton
 class TeachingRepository @Inject constructor(private val firestore: FirebaseFirestore,
-    private val refreshClock: TeachingRefreshClock) {
+    private val refreshClock: TeachingRefreshClock,
+    private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.IO) {
     companion object { const val HOME_REFLECTION_ID = "home-reflection" }
 
     private val reflectionMutex = Mutex()
@@ -65,9 +67,40 @@ class TeachingRepository @Inject constructor(private val firestore: FirebaseFire
     val feedReadyAt = _feedReadyAt.asStateFlow()
     fun refreshDelayMillis() = (_feedReadyAt.value - refreshClock.now()).coerceAtLeast(0)
 
-    suspend fun page(after: DocumentSnapshot? = null): TeachingPage {
-        if (after != null) return fetchPage(after)
-        return feedMutex.withLock {
+    /** Cache emissions precede server work; successful refreshes replace removed/expired content. */
+    fun observePage(): kotlinx.coroutines.flow.Flow<TeachingPage> = kotlinx.coroutines.flow.flow {
+        val cached = firstPage ?: runCatching {
+            withTimeout(1_000) { pageQuery(null).get(Source.CACHE).messageAwait() }.let { snapshot ->
+                TeachingPage(snapshot.documents.mapNotNull(::decode), true, snapshot.documents.lastOrNull(), snapshot.size() == 30)
+            }
+        }.getOrNull()
+        currentCoroutineContext().ensureActive()
+        if (cached != null) emit(cached.copy(messages = cached.messages.filter { it.isVisible(System.currentTimeMillis()) }, refreshing = true))
+        // Retain the disk page if this refresh is cancelled after the cache emission.
+        feedMutex.withLock { if (firstPage == null && cached != null) firstPage = cached }
+        val refreshed = page()
+        emit(if (refreshed.offline && refreshed.messages.isEmpty() && cached != null)
+            cached.copy(messages = cached.messages.filter { it.isVisible(System.currentTimeMillis()) }, offline = true)
+            else refreshed)
+    }.flowOn(ioDispatcher)
+
+    fun observeDetail(id: String): kotlinx.coroutines.flow.Flow<TeachingDetail> = kotlinx.coroutines.flow.flow {
+        if (!TeachingDeliveryPolicy.validId(id)) { emit(TeachingDetail(null, false)); return@flow }
+        val cached = runCatching { withTimeout(1_000) { collection.document(id).get(Source.CACHE).messageAwait() } }.getOrNull()
+        currentCoroutineContext().ensureActive()
+        cached?.let(::decode)?.let { emit(TeachingDetail(it, true, refreshing = true)) }
+        emit(detail(id))
+    }.flowOn(ioDispatcher)
+
+    private fun pageQuery(after: DocumentSnapshot?): Query {
+        val query = collection.orderBy("pinned", Query.Direction.DESCENDING)
+            .orderBy("publishedAt", Query.Direction.DESCENDING).limit(30)
+        return if (after == null) query else query.startAfter(after)
+    }
+
+    suspend fun page(after: DocumentSnapshot? = null): TeachingPage = kotlinx.coroutines.withContext(ioDispatcher) {
+        if (after != null) return@withContext fetchPage(after)
+        feedMutex.withLock {
             val saved = firstPage
             if (saved != null && refreshDelayMillis() > 0) return@withLock saved.copy(
                 messages = saved.messages.filter { it.isVisible(System.currentTimeMillis()) })
@@ -85,9 +118,7 @@ class TeachingRepository @Inject constructor(private val firestore: FirebaseFire
     }
 
     private suspend fun fetchPage(after: DocumentSnapshot?): TeachingPage {
-        var query = collection.orderBy("pinned", Query.Direction.DESCENDING)
-            .orderBy("publishedAt", Query.Direction.DESCENDING).limit(30)
-        if (after != null) query = query.startAfter(after)
+        val query = pageQuery(after)
         val server = runCatching { withTimeout(8_000) { query.get(Source.SERVER).messageAwait() } }
         currentCoroutineContext().ensureActive()
         val snapshot = server.getOrNull() ?: query.get(Source.CACHE).messageAwait()
@@ -95,13 +126,13 @@ class TeachingRepository @Inject constructor(private val firestore: FirebaseFire
             server.isFailure, snapshot.documents.lastOrNull(), snapshot.size() == 30)
     }
 
-    suspend fun detail(id: String): TeachingDetail {
-        if (!TeachingDeliveryPolicy.validId(id)) return TeachingDetail(null, false)
+    suspend fun detail(id: String): TeachingDetail = kotlinx.coroutines.withContext(ioDispatcher) {
+        if (!TeachingDeliveryPolicy.validId(id)) return@withContext TeachingDetail(null, false)
         val document = collection.document(id)
         val server = runCatching { withTimeout(8_000) { document.get(Source.SERVER).messageAwait() } }
         currentCoroutineContext().ensureActive()
         val snapshot = server.getOrNull() ?: runCatching { document.get(Source.CACHE).messageAwait() }.getOrNull()
-        return TeachingDetail(snapshot?.let(::decode), server.isFailure)
+        TeachingDetail(snapshot?.let(::decode), server.isFailure)
     }
 
     private fun decode(doc: DocumentSnapshot): TeachingMessage? = runCatching {

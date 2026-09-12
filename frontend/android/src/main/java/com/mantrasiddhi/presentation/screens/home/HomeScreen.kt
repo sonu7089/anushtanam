@@ -1,6 +1,10 @@
 package com.mantrasiddhi.presentation.screens.home
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
@@ -45,27 +49,27 @@ fun HomeScreen(
     onOpenReflection: (String) -> Unit = {},
     onUsable: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val reflection by viewModel.reflection.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val reflection by viewModel.reflection.collectAsStateWithLifecycle()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val owner = LocalLifecycleOwner.current
-    DisposableEffect(owner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                now = System.currentTimeMillis()
-                viewModel.refreshReflection()
-            }
+    LaunchedEffect(owner) {
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.refreshReflection()
+            try { kotlinx.coroutines.awaitCancellation() } finally { viewModel.stopReflection() }
         }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(Unit) { viewModel.refreshReflection() }
-    LaunchedEffect(reflection) {
-        now = System.currentTimeMillis()
-        val end = reflection?.expiresAt ?: return@LaunchedEffect
-        if (end > now) {
-            delay((end - System.currentTimeMillis()).coerceAtLeast(1))
+    LaunchedEffect(owner, reflection) {
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             now = System.currentTimeMillis()
+            try {
+                val end = reflection?.expiresAt
+                if (end != null && end > now) {
+                    delay((end - System.currentTimeMillis()).coerceAtLeast(1))
+                    now = System.currentTimeMillis()
+                }
+                kotlinx.coroutines.awaitCancellation()
+            } finally { /* Deadline cancelled while hidden. */ }
         }
     }
     when (val state = uiState) {
@@ -78,7 +82,7 @@ fun HomeScreen(
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToSandhya,
             onNavigateToPurashcharana, modifier.testTag("perf_home_ready").onGloballyPositioned { onUsable() }, onOpenGuide, onMessages,
-            reflection?.takeIf { it.isVisible(now) }, onOpenReflection)
+            reflection?.takeIf { it.isVisible(now) }, onOpenReflection, viewModel::retry)
     }
 }
 
@@ -92,96 +96,121 @@ internal fun HomeContent(
     onOpenGuide: () -> Unit = {},
     onMessages: () -> Unit = {},
     reflection: TeachingMessage? = null,
-    onOpenReflection: (String) -> Unit = {}
+    onOpenReflection: (String) -> Unit = {},
+    onRetry: () -> Unit = {}
 ) {
     Scaffold(modifier = modifier, topBar = {
         LotusTopAppBar(title = { Text(stringResource(R.string.home_greeting, state.user.name)) },
             actions = { ProfileAvatar(state.user.avatarIndex, state.user.name, 40.dp, Modifier.padding(end = 20.dp),
                 photoUrl = state.user.photoUrl.takeIf { state.user.useGooglePhoto }) })
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Box(Modifier.fillMaxWidth()) {
-                AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(224.dp))
-                Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.widthIn(min = 160.dp)) {
-                    Text(stringResource(R.string.home_today_summary), style = MaterialTheme.typography.labelLarge,
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            item(key = "home_section_1") {
+                Box(Modifier.fillMaxWidth()) {
+                    AmbientArtwork(LotusArt.LOTUS, Modifier.fillMaxWidth().height(224.dp))
+                    Text(stringResource(R.string.home_blessed_day), style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(top = 192.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(state.todayJapa ?: state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.lotus_japa_completed), modifier = Modifier.widthIn(max = 132.dp),
-                            style = MaterialTheme.typography.bodySmall,
+                }
+            }
+            item(key = "home_section_2") {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.widthIn(min = 160.dp)) {
+                        Text(stringResource(R.string.home_today_summary), style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                if (state.streakDays > 0) {
-                    Surface(modifier = Modifier.align(Alignment.CenterVertically),
-                        shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Text(stringResource(R.string.home_streak, state.streakDays),
-                            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    }
-                }
-            }
-            Column {
-                SectionLabel(stringResource(R.string.lotus_daily_practice))
-                AdaptivePair(first = { cardModifier ->
-                    PracticeEntry(stringResource(R.string.title_practice), stringResource(R.string.lotus_listen_learn),
-                        onPractice, cardModifier, false)
-                }, second = { cardModifier ->
-                    PracticeEntry(stringResource(R.string.title_recitation), stringResource(R.string.lotus_begin_recitation),
-                        onRecitation, cardModifier, true)
-                })
-            }
-            LotusCard(onClick = onTargets, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(if (state.activeTarget?.isCompleted == true)
-                                R.string.targets_completed_goal_title else R.string.home_active_target),
-                                style = MaterialTheme.typography.titleMedium)
-                            Text(stringResource(R.string.home_active_target_gloss), style = MaterialTheme.typography.bodySmall,
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (state.japaLoading || state.japaFailed) HomeSectionStatus(state.japaLoading, state.japaFailed, onRetry)
+                            else Text(state.todayJapa ?: state.todayCount.toString(), style = MaterialTheme.typography.displaySmall)
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.lotus_japa_completed), modifier = Modifier.widthIn(max = 132.dp),
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Spacer(Modifier.height(16.dp))
-                    val target = state.activeTarget
-                    if (target == null) {
-                        Text(stringResource(R.string.no_active_targets), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.home_target_progress, target.currentRecitationCount,
-                                target.targetRecitationCount), style = MaterialTheme.typography.headlineSmall,
-                                modifier = Modifier.weight(1f))
-                            Text(stringResource(R.string.targets_percent_format, (target.progress * 100).toInt()),
-                                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        LinearProgressIndicator(progress = { target.progress }, modifier = Modifier.fillMaxWidth()
-                            .height(6.dp).clip(MaterialTheme.shapes.small), trackColor = MaterialTheme.colorScheme.surfaceContainerHighest)
-                        if (target.hasReward) {
-                            Spacer(Modifier.height(12.dp))
-                            Text(stringResource(R.string.target_reward_label, target.rewardType.emoji, target.rewardDescription),
-                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                    if (state.streakDays > 0) {
+                        Surface(modifier = Modifier.align(Alignment.CenterVertically),
+                            shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
+                            Text(stringResource(R.string.home_streak, state.streakDays),
+                                Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         }
                     }
                 }
             }
-            SandhyaHomeCard(onSandhya)
-            com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
-            PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
-            SadhanaWisdomCard(reflection = reflection, onReadMore = onOpenReflection)
-            com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry(onMessages)
-            Spacer(Modifier.height(12.dp))
+            item(key = "home_section_4") {
+                Column {
+                    SectionLabel(stringResource(R.string.lotus_daily_practice))
+                    AdaptivePair(first = { cardModifier ->
+                        PracticeEntry(stringResource(R.string.title_practice), stringResource(R.string.lotus_listen_learn),
+                            onPractice, cardModifier, false)
+                    }, second = { cardModifier ->
+                        PracticeEntry(stringResource(R.string.title_recitation), stringResource(R.string.lotus_begin_recitation),
+                            onRecitation, cardModifier, true)
+                    })
+                }
+            }
+            item(key = "home_section_5") {
+                LotusCard(onClick = onTargets, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(stringResource(if (state.activeTarget?.isCompleted == true)
+                                    R.string.targets_completed_goal_title else R.string.home_active_target),
+                                    style = MaterialTheme.typography.titleMedium)
+                                Text(stringResource(R.string.home_active_target_gloss), style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        val target = state.activeTarget
+                        if (state.statsLoading || state.statsFailed) {
+                            HomeSectionStatus(state.statsLoading, state.statsFailed, onRetry)
+                        } else if (target == null) {
+                            Text(stringResource(R.string.no_active_targets), style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.home_target_progress, target.currentRecitationCount,
+                                    target.targetRecitationCount), style = MaterialTheme.typography.headlineSmall,
+                                    modifier = Modifier.weight(1f))
+                                Text(stringResource(R.string.targets_percent_format, (target.progress * 100).toInt()),
+                                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            LinearProgressIndicator(progress = { target.progress }, modifier = Modifier.fillMaxWidth()
+                                .height(6.dp).clip(MaterialTheme.shapes.small), trackColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+                            if (target.hasReward) {
+                                Spacer(Modifier.height(12.dp))
+                                Text(stringResource(R.string.target_reward_label, target.rewardType.emoji, target.rewardDescription),
+                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            item(key = "home_section_6") {
+                SandhyaHomeCard(onSandhya)
+            }
+            item(key = "home_section_7") {
+                com.mantrasiddhi.presentation.screens.guide.PracticeGuideCard(onOpenGuide)
+            }
+            item(key = "home_section_8") {
+                if (state.vowLoading || state.vowFailed) HomeSectionStatus(state.vowLoading, state.vowFailed, onRetry)
+                else PurashcharanaHomeCard(state.purashcharana, onPurashcharana)
+            }
+            item(key = "home_section_9") {
+                SadhanaWisdomCard(reflection = reflection, onReadMore = onOpenReflection)
+            }
+            item(key = "home_section_10") {
+                com.mantrasiddhi.presentation.screens.messages.MessagesHomeEntry(onMessages)
+            }
+            item(key = "home_section_11") {
+                Spacer(Modifier.height(12.dp))
+            }
         }
     }
 }
@@ -208,4 +237,10 @@ private fun PracticeEntry(title: String, subtitle: String, onClick: () -> Unit, 
             }
         }
     }
+}
+
+@Composable
+private fun HomeSectionStatus(loading: Boolean, failed: Boolean, onRetry: () -> Unit) {
+    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (failed) TextButton(onClick = onRetry) { Text(stringResource(R.string.section_retry)) }
 }

@@ -1,6 +1,6 @@
 # Lazy and progressive loading
 
-Proposal added 12 September 2026. This extends the [UI performance audit](README.md); no application changes are implemented here.
+Proposal added 12 September 2026. This extends the [UI performance audit](README.md). Child-detail cancellation landed in step 04; Home/Progress/Messages/backup visible-demand loading and lifecycle ownership are implemented in [step 09](step-09-visible-demand.md). Startup and artwork delivery remain step 10. The proposal below retains its original rationale.
 
 The app should open the requested page promptly, show its available content and controls, and fill slower sections independently. Start expensive reads when the user needs their results. Keep valid cached content visible while refreshing it.
 

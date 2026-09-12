@@ -18,6 +18,18 @@ data class CorrectDayCount(val dateKey: String, val count: Int)
 
 @Dao
 interface RecitationDao {
+    @Query("SELECT COUNT(*) AS total, COALESCE(SUM(isCorrect), 0) AS correct, COALESCE(AVG(overallScore), 0.0) AS average, COALESCE(MAX(overallScore), 0.0) AS best FROM recitation_sessions WHERE userId = :userId")
+    fun observeTotals(userId: Long): Flow<com.mantrasiddhi.domain.model.SessionTotals>
+
+    @Query("SELECT date(createdAt / 1000, 'unixepoch', 'localtime') AS dateKey, COUNT(*) AS count FROM recitation_sessions WHERE userId = :userId AND isCorrect = 1 GROUP BY dateKey ORDER BY dateKey DESC")
+    fun observePracticeDays(userId: Long): Flow<List<com.mantrasiddhi.domain.model.PracticeDay>>
+
+    @Query("SELECT date(createdAt / 1000, 'unixepoch', 'localtime') AS dateKey, AVG(overallScore) AS average, AVG(correctness) AS correctness, AVG(completeness) AS completeness, AVG(pronunciation) AS pronunciation FROM recitation_sessions WHERE userId = :userId AND createdAt >= :since AND createdAt < :until GROUP BY dateKey")
+    fun observeScoreDays(userId: Long, since: Long, until: Long): Flow<List<com.mantrasiddhi.domain.model.ScoreDay>>
+
+    @Query("SELECT id, createdAt, mode, overallScore, isCorrect, durationMs FROM recitation_sessions WHERE userId = :userId AND (createdAt < :beforeTime OR (createdAt = :beforeTime AND id < :beforeId)) ORDER BY createdAt DESC, id DESC LIMIT :limit")
+    fun observeHistoryPage(userId: Long, beforeTime: Long, beforeId: Long, limit: Int): Flow<List<com.mantrasiddhi.domain.model.SessionHistoryRow>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(session: RecitationSessionEntity): Long
 

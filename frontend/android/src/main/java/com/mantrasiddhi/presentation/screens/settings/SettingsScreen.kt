@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,16 +24,16 @@ import com.mantrasiddhi.presentation.screens.auth.*
 fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier: Modifier = Modifier,
     onOpenSandhyaSettings: () -> Unit = {}) {
     val context = LocalContext.current
-    val currentUser by viewModel.currentUser.collectAsState()
-    val themeMode by viewModel.themeMode.collectAsState()
-    val languageDisplay by viewModel.languageDisplay.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val languageDisplay by viewModel.languageDisplay.collectAsStateWithLifecycle()
     val googleViewModel: GoogleAuthViewModel = hiltViewModel()
     val backupViewModel: BackupViewModel = hiltViewModel()
-    val backupState by backupViewModel.state.collectAsState()
-    val backupSaving by backupViewModel.saving.collectAsState()
-    val backupFailed by backupViewModel.failed.collectAsState()
-    val googleState by googleViewModel.state.collectAsState()
-    val observedAccount by googleViewModel.account.collectAsState()
+    val backupState by backupViewModel.state.collectAsStateWithLifecycle()
+    val backupSaving by backupViewModel.saving.collectAsStateWithLifecycle()
+    val backupFailed by backupViewModel.failed.collectAsStateWithLifecycle()
+    val googleState by googleViewModel.state.collectAsStateWithLifecycle()
+    val observedAccount by googleViewModel.account.collectAsStateWithLifecycle()
     val account = googleState.account ?: observedAccount
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -52,7 +54,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
         onOpenSandhyaSettings = onOpenSandhyaSettings,
         messagesContent = { com.mantrasiddhi.presentation.screens.messages.MessageNotificationSetting() },
         backupContent = { BackupStatusContent(backupState, backupSaving, backupFailed,
-            backupViewModel::resolve, backupViewModel::syncNow) })
+            backupViewModel::resolve, backupViewModel::syncNow, backupViewModel::setReviewing, backupViewModel::retryReview) })
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

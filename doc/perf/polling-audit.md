@@ -69,7 +69,7 @@ Keep segment-stop precision separate from cosmetic position labels. A coarser la
 
 ## POLL-06 — Lifecycle and clock semantics
 
-**Sync-clock portion resolved in step 07:** [persisted elapsed deadlines and clock/reboot tests](step-07-discovery-retries.md). UI lifecycle and calendar/expiry changes remain in steps 09/11.
+**Sync-clock portion resolved in step 07:** [persisted elapsed deadlines and clock/reboot tests](step-07-discovery-retries.md). UI lifecycle ownership is implemented in [step 09](step-09-visible-demand.md); calendar/expiry deadline changes remain step 11.
 
 `LaunchedEffect` follows composition lifetime, not automatically the visible/resumed lifecycle. Use lifecycle-scoped collection/timers for UI-only jobs. Similarly, replacing a composable collector cannot stop an unconditional `viewModelScope.launch` subscription. The previously documented child-detail collector leak and repeated cold auth subscriptions increase work without explicit polling.
 

@@ -5,6 +5,7 @@ import com.mantrasiddhi.domain.repository.RecitationRepository
 import com.mantrasiddhi.domain.repository.SandhyaCountRepository
 import com.mantrasiddhi.domain.util.SandhyaDateKey
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 import java.math.BigInteger
 import java.time.Instant
 import java.time.LocalDate
@@ -22,5 +23,5 @@ class GetJapaSummaryUseCase @Inject constructor(private val history: com.mantras
         JapaSummary(records.groupBy { it.date }.mapValues { (_, entries) ->
             entries.fold(BigInteger.ZERO) { sum, entry -> sum + BigInteger.valueOf(entry.quantity) }
         })
-    }
+    }.flowOn(kotlinx.coroutines.Dispatchers.Default)
 }

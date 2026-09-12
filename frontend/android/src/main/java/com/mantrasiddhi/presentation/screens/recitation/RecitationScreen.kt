@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.recitation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.layout.size
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.LotusArtwork
@@ -31,7 +33,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +61,7 @@ fun RecitationScreen(
     modifier: Modifier = Modifier,
     viewModel: RecitationViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var requestMicPermission by remember { mutableStateOf(false) }
     var showSetTargetDialog by remember { mutableStateOf(false) }

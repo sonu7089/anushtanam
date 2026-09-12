@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.targets
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,7 +25,7 @@ fun TargetsScreen(
     modifier: Modifier = Modifier,
     viewModel: TargetsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 

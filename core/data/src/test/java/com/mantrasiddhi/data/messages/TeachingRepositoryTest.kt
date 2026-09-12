@@ -46,7 +46,7 @@ class TeachingRepositoryTest {
         every { query.limit(30) } returns query
         every { query.get(Source.SERVER) } returns resultTask(failed)
         every { query.get(Source.CACHE) } returns resultTask(failed)
-        return TeachingRepository(firestore, clock)
+        return TeachingRepository(firestore, clock, kotlinx.coroutines.Dispatchers.Unconfined)
     }
 
     @Test fun `repeated concurrent refreshes and reopening reuse the first page for ten seconds`() = runTest {
@@ -93,5 +93,45 @@ class TeachingRepositoryTest {
         job.cancelAndJoin()
         assertTrue(repository.page().offline)
         verify(exactly = 1) { query.get(Source.SERVER) }
+    }
+
+    @Test fun `cached first page emits while server is suspended and successful deletion clears it`() = runTest {
+        val repository = repository()
+        val doc = mockk<DocumentSnapshot> {
+            every { id } returns "cached"
+            every { exists() } returns true
+            every { getLong("schemaVersion") } returns 1
+            every { getString("locale") } returns "en"
+            every { getBoolean("published") } returns true
+            every { getString("type") } returns "teaching"
+            every { getString("title") } returns "Cached title"
+            every { getString("body") } returns "Cached body"
+            every { getString("summary") } returns "Summary"
+            every { getString("attribution") } returns "Teacher"
+            every { getLong("revision") } returns 1
+            every { getLong("publishedAt") } returns 1
+            every { getLong("expiresAt") } returns Long.MAX_VALUE
+            every { getString("art") } returns "river"
+            every { getBoolean("pinned") } returns false
+        }
+        every { snapshot.documents } returns listOf(doc)
+        every { snapshot.size() } returns 1
+        val server = mockk<Task<QuerySnapshot>>()
+        val success = slot<OnSuccessListener<QuerySnapshot>>()
+        every { server.addOnSuccessListener(capture(success)) } returns server
+        every { server.addOnFailureListener(any<OnFailureListener>()) } returns server
+        every { query.get(Source.SERVER) } returns server
+        val results = mutableListOf<TeachingPage>()
+        val job = launch { repository.observePage().collect { results += it } }
+        runCurrent()
+        assertEquals("cached", results.single().messages.single().id)
+        assertTrue(results.single().refreshing)
+        val empty = mockk<QuerySnapshot> { every { documents } returns emptyList(); every { size() } returns 0 }
+        success.captured.onSuccess(empty)
+        runCurrent()
+        assertTrue(results.last().messages.isEmpty())
+        assertFalse(results.last().refreshing)
+        assertFalse(results.last().offline)
+        job.cancelAndJoin()
     }
 }

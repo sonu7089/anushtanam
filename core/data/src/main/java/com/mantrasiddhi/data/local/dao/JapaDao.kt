@@ -7,8 +7,16 @@ import com.mantrasiddhi.domain.util.SandhyaDateKey
 import kotlinx.coroutines.flow.Flow
 import java.time.ZoneId
 
+data class PerformedJapaRow(val dateKey: String?, val createdAt: Long?, val quantity: Long)
+
 @Dao
 abstract class JapaDao {
+    // Keep legacy unrepresented accepted audio, without reading word scores/transcription or summing Long quantities in SQLite.
+    @Query("SELECT dateKey, NULL AS createdAt, quantity FROM japa_entries WHERE userId = :userId UNION ALL " +
+        "SELECT NULL AS dateKey, r.createdAt, 1 AS quantity FROM recitation_sessions r WHERE r.userId = :userId AND r.isCorrect = 1 AND r.mode = 'NORMAL' " +
+        "AND NOT EXISTS (SELECT 1 FROM japa_entries e WHERE e.userId = r.userId AND e.sessionId = r.id)")
+    abstract fun observePerformed(userId: Long): Flow<List<PerformedJapaRow>>
+
     @Query("SELECT * FROM japa_entries WHERE userId = :userId ORDER BY createdAtMillis, id")
     abstract fun observeEntries(userId: Long): Flow<List<JapaEntryEntity>>
 

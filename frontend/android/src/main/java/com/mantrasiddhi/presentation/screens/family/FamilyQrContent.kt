@@ -1,5 +1,8 @@
 package com.mantrasiddhi.presentation.screens.family
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -33,10 +36,14 @@ internal fun ChildFamilyQr(state: FamilyUiState, onShow: () -> Unit) {
     val bringIntoView = remember { BringIntoViewRequester() }
     val invite = state.qrInvite
     var now by remember(invite?.token) { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(invite) {
-        while (invite != null && !invite.used && now < invite.expiresAtMillis) {
-            delay(1_000)
+    val lifecycle = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycle, invite) {
+        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             now = System.currentTimeMillis()
+            while (invite != null && !invite.used && now < invite.expiresAtMillis) {
+                delay(1_000)
+                now = System.currentTimeMillis()
+            }
         }
     }
     val active = invite != null && !invite.used && now < invite.expiresAtMillis

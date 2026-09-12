@@ -28,7 +28,10 @@ sealed interface HomeUiState {
          * the Home card simply falls back to its "not enrolled" invitation.
          */
         val purashcharana: Purashcharana? = null,
-        val todayJapa: String? = null
+        val todayJapa: String? = null,
+        val statsLoading: Boolean = false, val statsFailed: Boolean = false,
+        val japaLoading: Boolean = false, val japaFailed: Boolean = false,
+        val vowLoading: Boolean = false, val vowFailed: Boolean = false
     ) : HomeUiState
 
     /**

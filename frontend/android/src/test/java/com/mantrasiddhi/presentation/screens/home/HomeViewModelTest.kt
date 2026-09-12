@@ -18,12 +18,14 @@ import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
@@ -34,6 +36,11 @@ import org.junit.jupiter.api.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
+
+    private val observers = mutableListOf<kotlinx.coroutines.Job>()
+    private fun watch(vm: HomeViewModel) {
+        observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.uiState.collect {} }
+    }
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -69,13 +76,14 @@ class HomeViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
+        observers.forEach { it.cancel() }; Dispatchers.resetMain()
     }
 
     @Test
     fun `should_initiallyEmitLoadingState_when_created`() = runTest {
         coEvery { getCurrentUserUseCase() } returns MutableStateFlow(null)
         viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        watch(viewModel)
         assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
 
@@ -93,6 +101,7 @@ class HomeViewModelTest {
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(stats)
 
         viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        watch(viewModel)
 
         val state = viewModel.uiState.value
         assertTrue(state is HomeUiState.Success)
@@ -109,9 +118,31 @@ class HomeViewModelTest {
         coEvery { getDashboardStatsUseCase(testUser.id) } returns flowOf(null)
 
         viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        watch(viewModel)
 
         val state = viewModel.uiState.value
-        assertTrue(state is HomeUiState.Error)
-        assertEquals(R.string.home_error_load_failed, (state as HomeUiState.Error).messageResId)
+        assertTrue(state is HomeUiState.Success)
+        assertTrue((state as HomeUiState.Success).statsFailed)
+    }
+
+    @Test fun `slow sections leave navigation state usable and unsubscribe when hidden`() = runTest {
+        var active = 0
+        coEvery { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
+        every { getDashboardStatsUseCase(any()) } returns kotlinx.coroutines.flow.flow {
+            active++
+            try { kotlinx.coroutines.awaitCancellation() } finally { active-- }
+        }
+        every { japa(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings)
+        assertEquals(0, active)
+        watch(viewModel)
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(testUser, state.user)
+        assertTrue(state.statsLoading)
+        assertTrue(state.japaLoading)
+        assertEquals(null, state.todayJapa)
+        observers.forEach { it.cancel() }
+        runCurrent()
+        assertEquals(0, active)
     }
 }

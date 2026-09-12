@@ -48,7 +48,8 @@ import java.util.Locale
 fun SessionHistoryList(
     sessions: List<RecitationSession>,
     modifier: Modifier = Modifier,
-    isScrollable: Boolean = true
+    isScrollable: Boolean = true,
+    footer: @Composable () -> Unit = {}
 ) {
     if (sessions.isEmpty()) {
         Box(
@@ -74,6 +75,7 @@ fun SessionHistoryList(
             items(sessions, key = { it.id }) { session ->
                 SessionHistoryItem(session = session)
             }
+            item(key = "history_footer") { footer() }
         }
     } else {
         Column(

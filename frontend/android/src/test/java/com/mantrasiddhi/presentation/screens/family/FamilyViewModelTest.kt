@@ -6,6 +6,7 @@ import com.mantrasiddhi.domain.repository.LinkRepository
 import com.mantrasiddhi.resources.R
 import io.mockk.*
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
@@ -19,6 +20,11 @@ import org.junit.jupiter.api.Assertions.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FamilyViewModelTest {
+
+    private val observers = mutableListOf<kotlinx.coroutines.Job>()
+    private fun watch(vm: FamilyViewModel) {
+        observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.uiState.collect {} }
+    }
     private val dispatcher = UnconfinedTestDispatcher()
     private val account = MutableStateFlow<AuthAccount?>(AuthAccount("parent", AccountRole.PARENT, "Amma"))
     private val links = mockk<LinkRepository>()
@@ -37,8 +43,9 @@ class FamilyViewModelTest {
             observeChildGoalsUseCase = mockk { every { this@mockk.invoke(any()) } returns flowOf(emptyList()) },
             observeGoalsForChildUseCase = mockk(), links = links, scanner = scanner
         )
+        watch(model)
     }
-    @AfterEach fun teardown() { ViewModelStore().apply { put("family", model); clear() }; Dispatchers.resetMain() }
+    @AfterEach fun teardown() { ViewModelStore().apply { put("family", model); clear() }; observers.forEach { it.cancel() }; Dispatchers.resetMain() }
 
     @Test fun `cancelled scan makes no link and leaves form available`() = runTest(dispatcher) {
         coEvery { scanner.scan(context) } returns null

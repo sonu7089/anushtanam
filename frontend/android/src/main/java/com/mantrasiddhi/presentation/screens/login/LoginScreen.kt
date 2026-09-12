@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.login
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.LotusArtwork
 import com.mantrasiddhi.presentation.components.LotusCard
@@ -32,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +56,7 @@ fun LoginScreen(
     onNavigateToHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(key1 = Unit) {
         viewModel.uiEvent.collect { event ->

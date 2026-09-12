@@ -45,6 +45,12 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChildProgressViewModelTest {
 
+    private val observers = mutableListOf<kotlinx.coroutines.Job>()
+    private fun watch(vm: ChildProgressViewModel) {
+        observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.uiState.collect {} }
+        observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.detailUiState.collect {} }
+    }
+
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
@@ -113,7 +119,7 @@ class ChildProgressViewModelTest {
                 clear()
             }
         }
-        Dispatchers.resetMain()
+        observers.forEach { it.cancel() }; Dispatchers.resetMain()
     }
 
     @Test
@@ -126,6 +132,7 @@ class ChildProgressViewModelTest {
             createTargetUseCase = createTargetUseCase,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         val state = viewModel.uiState.value
         assertTrue(state is ChildProgressUiState.Success)
@@ -147,6 +154,7 @@ class ChildProgressViewModelTest {
             createTargetUseCase = createTargetUseCase,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         val state = viewModel.uiState.value
         assertTrue(state is ChildProgressUiState.Error)
@@ -163,6 +171,7 @@ class ChildProgressViewModelTest {
             createTargetUseCase = createTargetUseCase,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         assertEquals(ChildDetailUiState.Idle, viewModel.detailUiState.value)
 
@@ -186,6 +195,7 @@ class ChildProgressViewModelTest {
             createTargetUseCase = createTargetUseCase,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         viewModel.selectChild(childUser.id)
         assertTrue(viewModel.detailUiState.value is ChildDetailUiState.Success)
@@ -206,6 +216,7 @@ class ChildProgressViewModelTest {
             createTargetUseCase = createTargetUseCase,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
         runCurrent()
 
         val events = mutableListOf<ChildProgressEvent>()
@@ -268,6 +279,7 @@ class ChildProgressViewModelTest {
                 getCurrentUserUseCase, getChildrenUseCase, getChildProgressUseCase,
                 getChildWeakWordsUseCase, createTargetUseCase, goalNotifier
             )
+        watch(viewModel)
         }
 
         fun assertActiveDetails(a: Int, b: Int) {

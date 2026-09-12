@@ -41,6 +41,11 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class TargetsViewModelTest {
 
+    private val observers = mutableListOf<kotlinx.coroutines.Job>()
+    private fun watch(vm: TargetsViewModel) {
+        observers += kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch { vm.uiState.collect {} }
+    }
+
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var getCurrentUserUseCase: GetCurrentUserUseCase
@@ -86,7 +91,7 @@ class TargetsViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
+        observers.forEach { it.cancel() }; Dispatchers.resetMain()
     }
 
     @Test
@@ -104,6 +109,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         val state = viewModel.uiState.value
         assertTrue(state is TargetsUiState.Success)
@@ -128,6 +134,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
 
         val state = viewModel.uiState.value
         assertTrue(state is TargetsUiState.Error)
@@ -146,6 +153,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
         runCurrent()
 
         val events = mutableListOf<TargetsEvent>()
@@ -175,6 +183,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
         runCurrent()
 
         // Parent (testUser id 1) sets a goal FOR the child (id 2).
@@ -197,6 +206,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
         runCurrent()
 
         val events = mutableListOf<TargetsEvent>()
@@ -229,6 +239,7 @@ class TargetsViewModelTest {
             targetRepository = targetRepository,
             goalNotifier = goalNotifier
         )
+        watch(viewModel)
         runCurrent()
 
         val events = mutableListOf<TargetsEvent>()

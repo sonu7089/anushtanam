@@ -18,6 +18,7 @@ import com.mantrasiddhi.domain.repository.UserRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -44,11 +45,17 @@ class GetDashboardStatsUseCaseTest {
         targetRepository = mockk()
         recitationRepository = mockk()
         getChildProgressUseCase = mockk()
+        every { recitationRepository.observePracticeDays(any()) } answers {
+            recitationRepository.getSessionsForUser(firstArg()).map { rows ->
+                rows.filter { it.isCorrect }.groupBy { java.time.Instant.ofEpochMilli(it.createdAt)
+                    .atZone(ZoneId.systemDefault()).toLocalDate().toString() }
+                    .map { (date, entries) -> com.mantrasiddhi.domain.model.PracticeDay(date, entries.size) }
+            }
+        }
         getDashboardStatsUseCase = GetDashboardStatsUseCase(
             userRepository,
             targetRepository,
-            recitationRepository,
-            getChildProgressUseCase
+            recitationRepository
         )
     }
 
@@ -181,5 +188,14 @@ class GetDashboardStatsUseCaseTest {
             1,
             streakFor(listOf(session(daysAgo(0)), session(daysAgo(1), isCorrect = false)))
         )
+    }
+
+    @Test fun `parent Home uses only aggregate days and never opens child analytics or full sessions`() = runTest {
+        val parent = UserProfile(1, "Parent", ProfileType.PARENT, avatarIndex = 0)
+        coEvery { userRepository.getById(1) } returns parent
+        every { targetRepository.getAllForUser(1) } returns flowOf(emptyList())
+        every { recitationRepository.observePracticeDays(1) } returns flowOf(emptyList())
+        assertEquals(parent, getDashboardStatsUseCase(1).first()!!.user)
+        io.mockk.verify(exactly = 0) { userRepository.getChildrenOf(any()); recitationRepository.getSessionsForUser(any()) }
     }
 }

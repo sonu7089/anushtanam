@@ -7,6 +7,7 @@
 package com.mantrasiddhi.presentation.screens.childprogress
 
 import androidx.annotation.StringRes
+import com.mantrasiddhi.presentation.observeWhileSubscribed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
@@ -119,7 +120,7 @@ class ChildProgressViewModel @Inject constructor(
     }
 
     private fun observeChildrenProgress() {
-        viewModelScope.launch {
+        observeWhileSubscribed(_uiState, onStop = { clearSelectedChild(); _uiState.value = ChildProgressUiState.Loading }) {
             var parentIdentity: ParentIdentity? = null
             currentUser.onEach { user ->
                 val identity = user.parentIdentity()
@@ -180,7 +181,7 @@ class ChildProgressViewModel @Inject constructor(
     }
 
     private fun observeSelectedChild() {
-        viewModelScope.launch {
+        observeWhileSubscribed(_detailUiState, onStop = { clearSelectedChild() }) {
             selectedChild.flatMapLatest { selection ->
                 if (selection == null) return@flatMapLatest emptyFlow()
                 flow<ChildDetailUiState> {

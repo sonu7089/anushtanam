@@ -834,4 +834,6 @@
     <string name="backup_keep_current">Keep current count</string>
     <string name="backup_use_other">Use other count</string>
     <string name="backup_review_error">This entry may have changed again. Please check the counts and try once more.</string>
+    <string name="section_retry">Retry</string>
+    <string name="progress_load_more">Load more</string>
 </resources>

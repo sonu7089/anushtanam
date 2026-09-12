@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.purashcharana
 
+import com.mantrasiddhi.presentation.observeWhileSubscribed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
@@ -64,7 +65,7 @@ class PurashcharanaViewModel @Inject constructor(
     }
 
     private fun observeActiveSankalpa() {
-        viewModelScope.launch {
+        observeWhileSubscribed(_uiState, onStop = { activeUserId = null; _uiState.value = PurashcharanaUiState.Loading }) {
             getCurrentUserUseCase().flatMapLatest { user ->
                 activeUserId = user?.id
                 if (user == null) {

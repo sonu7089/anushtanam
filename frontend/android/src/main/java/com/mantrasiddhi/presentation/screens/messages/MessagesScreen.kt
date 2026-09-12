@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.messages
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.mantrasiddhi.domain.model.TeachingMessage
@@ -68,21 +71,20 @@ fun MessagesHomeEntry(onClick: () -> Unit) {
 @Composable
 fun MessagesScreen(onBack: () -> Unit, onOpen: (String) -> Unit,
                    contentId: String? = null, viewModel: MessagesViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
-    DisposableEffect(owner, contentId) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.refresh(contentId)
-        }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(contentId) { viewModel.refresh(contentId) }
-    // Expiry updates while a reader leaves the page open. No permanent network listener.
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
+    LaunchedEffect(owner, contentId) {
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.refresh(contentId)
+            try {
+                now = System.currentTimeMillis()
+                while (true) { delay(30_000); now = System.currentTimeMillis() }
+            } finally { viewModel.stop() }
+        }
+    }
     MessagesContent(state.copy(items = state.items.filter { it.isVisible(now) },
-        detail = state.detail?.takeIf { it.isVisible(now) }), contentId != null, onBack, onOpen,
+        detail = state.detail?.takeIf { it.id == contentId && it.isVisible(now) }), contentId != null, onBack, onOpen,
         { viewModel.refresh(contentId) }, { viewModel.refresh(more = true) })
 }
 
@@ -100,17 +102,20 @@ internal fun MessagesContent(state: MessagesState, isDetail: Boolean, onBack: ()
             if (!isDetail) item {
                 PageIntro(stringResource(R.string.messages_title), stringResource(R.string.messages_intro), LotusArt.MESSAGES,
                     titleAction = {
-                        val label = stringResource(if (state.loading) R.string.messages_refreshing else R.string.messages_refresh)
-                        OutlinedIconButton(onClick = onRefresh, enabled = !state.loading && state.refreshReady,
+                        val label = stringResource(if (state.loading || state.refreshing) R.string.messages_refreshing else R.string.messages_refresh)
+                        OutlinedIconButton(onClick = onRefresh, enabled = !state.loading && !state.refreshing && !state.appending && state.refreshReady,
                             modifier = Modifier.offset(y = 8.dp).size(48.dp).semantics { contentDescription = label }) {
-                            if (state.loading) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp,
+                            if (state.loading || state.refreshing) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             else Icon(painterResource(R.drawable.ic_sync), null, Modifier.size(24.dp))
                         }
                     })
             }
-            if (state.loading && isDetail) item {
+            if ((state.loading || state.refreshing) && isDetail) item {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+            if (state.refreshFailed) item {
+                TextButton(onClick = onRefresh, enabled = state.refreshReady && !state.refreshing) { Text(stringResource(R.string.section_retry)) }
             }
             if (state.offline && (state.items.isNotEmpty() || state.detail != null)) item {
                 Text(stringResource(R.string.messages_offline), style = MaterialTheme.typography.bodyMedium,
@@ -147,8 +152,12 @@ internal fun MessagesContent(state: MessagesState, isDetail: Boolean, onBack: ()
                 items(state.items, key = { it.id }) { message ->
                     MessageListCard(message, onClick = { onOpen(message.id) })
                 }
+                if (state.appending) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                if (state.appendFailed) item {
+                    TextButton(onClick = onMore, enabled = !state.appending) { Text(stringResource(R.string.section_retry)) }
+                }
                 if (state.hasMore) item {
-                    OutlinedButton(onClick = onMore, enabled = !state.loading, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = onMore, enabled = !state.loading && !state.refreshing && !state.appending, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.messages_more))
                     }
                 }

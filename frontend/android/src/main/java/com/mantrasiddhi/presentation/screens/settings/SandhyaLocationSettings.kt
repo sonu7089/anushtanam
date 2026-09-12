@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -51,7 +53,7 @@ internal fun SandhyaLocationSettings(settings: SandhyaSettings, locationViewMode
     )
 
     if (showRegionDialog) {
-        val searchState by locationViewModel.searchState.collectAsState()
+        val searchState by locationViewModel.searchState.collectAsStateWithLifecycle()
         RegionPickerDialog(
             searchState = searchState,
             onSearch = locationViewModel::searchLocations,

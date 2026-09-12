@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.progress
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
@@ -41,7 +43,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -75,7 +76,8 @@ fun ProgressScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgressViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -98,17 +100,7 @@ fun ProgressScreen(
             color = MaterialTheme.colorScheme.background
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                when (val state = uiState) {
-                    is ProgressUiState.Loading -> {
-                        ProgressLoadingSkeleton()
-                    }
-                    is ProgressUiState.Error -> {
-                        ProgressErrorScreen(message = state.message)
-                    }
-                    is ProgressUiState.Success -> {
-                        Box(Modifier.testTag("perf_progress_ready")) { ProgressContent(state = state) }
-                    }
-                }
+                ProgressContent(uiState, selectedTab, viewModel::selectTab, viewModel::retry, viewModel::loadMore)
             }
         }
     }
@@ -151,8 +143,11 @@ private fun ProgressErrorScreen(message: String) {
 }
 
 @Composable
-internal fun ProgressContent(state: ProgressUiState.Success) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+internal fun ProgressContent(state: ProgressUiState, selected: Int? = null,
+    onSelect: (Int) -> Unit = {}, onRetry: () -> Unit = {}, onMore: () -> Unit = {}) {
+    var localTab by rememberSaveable { mutableIntStateOf(0) }
+    val selectedTab = selected ?: localTab
+    val tabState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     val tabs = listOf(
         R.string.progress_tab_overview,
         R.string.progress_tab_daily_chart,
@@ -169,7 +164,7 @@ internal fun ProgressContent(state: ProgressUiState.Success) {
         tabs.forEachIndexed { index, titleRes ->
             Tab(
                 selected = selectedTab == index,
-                onClick = { selectedTab = index },
+                onClick = { localTab = index; onSelect(index) },
                 text = { Text(text = stringResource(titleRes), fontWeight = FontWeight.SemiBold) }
             )
         }
@@ -182,20 +177,25 @@ internal fun ProgressContent(state: ProgressUiState.Success) {
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        // Empty only when there is neither local history nor a cloud summary — after a
-        // reinstall the cloud-restored overview/charts must still show even though the
-        // local (Room) session list starts out empty.
-        if (state.sessions.isEmpty() && state.overviewStats.totalSessions == 0) {
-            EmptyState(
-                title = stringResource(R.string.progress_empty_title),
-                description = stringResource(R.string.progress_empty_description)
-            )
-        } else {
-            when (selectedTab) {
-                0 -> OverviewTab(state = state)
-                1 -> DailyChartTab(state = state)
-                2 -> AccuracyTab(state = state)
-                3 -> HistoryTab(state = state)
+        when (state) {
+            ProgressUiState.Loading -> ProgressLoadingSkeleton()
+            is ProgressUiState.Error -> Column {
+                Text(stringResource(R.string.error_unknown), color = MaterialTheme.colorScheme.error)
+                androidx.compose.material3.TextButton(onClick = onRetry) { Text(stringResource(R.string.section_retry)) }
+            }
+            is ProgressUiState.Success -> Column(Modifier.testTag("perf_progress_ready")) {
+                if (state.refreshing) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (state.error) androidx.compose.material3.TextButton(onClick = if (selectedTab == 3) onMore else onRetry) {
+                    Text(stringResource(R.string.section_retry))
+                }
+                tabState.SaveableStateProvider(selectedTab) {
+                    when (selectedTab) {
+                        0 -> OverviewTab(state)
+                        1 -> DailyChartTab(state)
+                        2 -> AccuracyTab(state)
+                        3 -> HistoryTab(state, onMore)
+                    }
+                }
             }
         }
     }
@@ -344,7 +344,7 @@ private fun AccuracyTab(state: ProgressUiState.Success) {
 }
 
 @Composable
-private fun HistoryTab(state: ProgressUiState.Success) {
+private fun HistoryTab(state: ProgressUiState.Success, onMore: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.progress_history_title),
@@ -356,7 +356,14 @@ private fun HistoryTab(state: ProgressUiState.Success) {
 
         SessionHistoryList(
             sessions = state.sessions,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            footer = {
+                if (state.appending) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (state.hasMore) androidx.compose.material3.OutlinedButton(onClick = onMore,
+                    enabled = !state.appending, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.progress_load_more))
+                }
+            }
         )
     }
 }

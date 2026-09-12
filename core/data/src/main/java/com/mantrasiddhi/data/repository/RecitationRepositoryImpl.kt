@@ -27,6 +27,18 @@ class RecitationRepositoryImpl @Inject constructor(
     private val sync: com.mantrasiddhi.data.sync.JapaCloudSync,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : RecitationRepository {
+    override fun observeTotals(userId: Long) = com.mantrasiddhi.domain.diagnostics.WorkProbe.observe(
+        "progress.totals", recitationDao.observeTotals(userId))
+    override fun observePracticeDays(userId: Long) = com.mantrasiddhi.domain.diagnostics.WorkProbe.observe(
+        "progress.days", recitationDao.observePracticeDays(userId))
+    override fun observeScoreDays(userId: Long, since: Long, until: Long) = com.mantrasiddhi.domain.diagnostics.WorkProbe.observe(
+        "progress.scores", recitationDao.observeScoreDays(userId, since, until))
+    override fun observeHistoryPage(userId: Long, beforeTime: Long, beforeId: Long, limit: Int) =
+        com.mantrasiddhi.domain.diagnostics.WorkProbe.observe("progress.historyPage",
+            recitationDao.observeHistoryPage(userId, beforeTime, beforeId, limit.coerceIn(1, 31)).map {
+                com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("progress.historyRows", it.size.toLong())
+                it
+            })
 
     override suspend fun saveSession(session: RecitationSession): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {

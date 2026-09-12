@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.mantrasiddhi.data.preferences.SandhyaSettings
@@ -34,8 +37,8 @@ import kotlinx.coroutines.delay
 
 @Composable
 internal fun SandhyaReminderSettings(viewModel: SettingsViewModel) {
-    val settings by viewModel.reminderSettings.collectAsState()
-    val asked by viewModel.reminderPermissionAsked.collectAsState()
+    val settings by viewModel.reminderSettings.collectAsStateWithLifecycle()
+    val asked by viewModel.reminderPermissionAsked.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     fun allowed(): Boolean {
@@ -71,8 +74,10 @@ internal fun SandhyaReminderSettings(viewModel: SettingsViewModel) {
         lifecycle.lifecycle.addObserver(observer)
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(settings) {
-        while (true) { viewModel.refreshReminders(); delay(60_000) }
+    LaunchedEffect(lifecycle, settings) {
+        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) { viewModel.refreshReminders(); delay(60_000) }
+        }
     }
     settings?.let { value ->
         ReminderPreferencesCard(value, notificationsAllowed = notificationsAllowed,

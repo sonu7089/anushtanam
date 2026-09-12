@@ -1,0 +1,93 @@
+{
+  "step": 9,
+  "date": "2026-09-12",
+  "device": "Pixel 7 Pro",
+  "unitSuites": {
+    "domain": {
+      "tests": 364,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "data": {
+      "tests": 138,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "app": {
+      "tests": 107,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "unitTestsTotal": 609,
+  "deviceTests": {
+    "room": 13,
+    "composeDistinct": 25,
+    "finalHomeProgressSmoke": 4,
+    "note": "The 20-test Compose set plus an 8-test set share 3 Progress tests; final smoke repeats 4 already counted tests."
+  },
+  "querySamples": [
+    {
+      "sessions": 0,
+      "overviewTotalsAndDaysMs": 30.730754,
+      "practiceDayRows": 0,
+      "scoreDayRows": 0,
+      "historyPageRowsIncludingLookahead": 0
+    },
+    {
+      "sessions": 1000,
+      "overviewTotalsAndDaysMs": 26.866333,
+      "practiceDayRows": 50,
+      "scoreDayRows": 7,
+      "historyPageRowsIncludingLookahead": 31
+    },
+    {
+      "sessions": 10000,
+      "overviewTotalsAndDaysMs": 46.500611,
+      "practiceDayRows": 500,
+      "scoreDayRows": 7,
+      "historyPageRowsIncludingLookahead": 31
+    }
+  ],
+  "measurementScope": "Single debug-device Room samples, excluding japa, cloud and UI rendering; no before/after latency claim.",
+  "verifiedBounds": {
+    "historyPageSize": 30,
+    "historyLookahead": 1,
+    "scoreWindowDays": 7,
+    "backupReviewRows": 1,
+    "fullSessionEntityReadsInHomeProgress": 0,
+    "activeScreenSubscriptionsAfterDemandEnds": 0
+  },
+  "builds": [
+    "debug",
+    "debugAndroidTest",
+    "benchmark"
+  ],
+  "lint": {
+    "errors": 0,
+    "warnings": 14,
+    "hints": 3
+  },
+  "installedDebugApkSha256": "88b4fd0bfb3302201b3e856792d7469025793c48285a0d0f3079ae82ce2a412e",
+  "rawLogsLocalOnly": [
+    "step09-verification.log",
+    "step09-domain.log",
+    "step09-room-final.log",
+    "step09-ui-verified.log",
+    "step09-ui-additional.log",
+    "step09-final-smoke.log"
+  ],
+  "limits": [
+    "Full release navigation/startup/idle trace matrix remains step 13.",
+    "Lifetime japa aggregation still reads date/quantity projections for all performed entries.",
+    "Clock/date deadlines and reminder scheduling consolidation remain step 11.",
+    "No production Firebase deployment or cloud rewrite."
+  ],
+  "android": {
+    "release": "17",
+    "sdk": 37
+  }
+}

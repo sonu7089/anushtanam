@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.sandhya
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
 import com.mantrasiddhi.presentation.components.LotusTopAppBar
@@ -57,7 +59,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,9 +95,9 @@ fun SandhyaScreen(
     onReminderHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
-    val editor by countViewModel.editor.collectAsState()
-    val minimums by countViewModel.minimums.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val editor by countViewModel.editor.collectAsStateWithLifecycle()
+    val minimums by countViewModel.minimums.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var showDatePicker by remember { mutableStateOf(false) }
     var datePickerForDraft by remember { mutableStateOf(false) }

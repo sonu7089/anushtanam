@@ -74,6 +74,10 @@ class HistoryBaselineTest {
                     // This read-only adapter uses the real DAO, entity mapping and domain use cases.
                     // It excludes sync/save work and does not claim to measure a ViewModel or UI.
                     val repository = object : RecitationRepository {
+                        override fun observeTotals(userId: Long) = db.recitationDao().observeTotals(userId)
+                        override fun observePracticeDays(userId: Long) = db.recitationDao().observePracticeDays(userId)
+                        override fun observeScoreDays(userId: Long, since: Long, until: Long) = db.recitationDao().observeScoreDays(userId, since, until)
+                        override fun observeHistoryPage(userId: Long, beforeTime: Long, beforeId: Long, limit: Int) = db.recitationDao().observeHistoryPage(userId, beforeTime, beforeId, limit)
                         override suspend fun saveSession(session: RecitationSession): Long = error("Read-only fixture")
                         override suspend fun getStats(userId: Long) = db.recitationDao().getStats(userId)
                         override fun getSessionsForUser(userId: Long) = WorkProbe.observe("fixture.sessions",

@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.auth
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.layout.imePadding
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
@@ -40,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,9 +73,9 @@ fun ChildAuthScreen(
     modifier: Modifier = Modifier,
     googleViewModel: GoogleAuthViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val googleState by googleViewModel.state.collectAsState()
-    val googleAccount by googleViewModel.account.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val googleState by googleViewModel.state.collectAsStateWithLifecycle()
+    val googleAccount by googleViewModel.account.collectAsStateWithLifecycle()
     LaunchedEffect(googleAccount) { googleAccount?.let(googleViewModel::resumeChildSetup) }
     LaunchedEffect(googleState.completed) { if (googleState.completed) onAuthenticated() }
     val context = LocalContext.current

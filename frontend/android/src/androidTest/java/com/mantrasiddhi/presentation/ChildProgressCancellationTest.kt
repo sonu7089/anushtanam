@@ -139,7 +139,7 @@ class ChildProgressCancellationTest {
         compose.runOnIdle { assertEquals(ChildDetailUiState.Idle, viewModel.detailUiState.value) }
         select(1)
         compose.runOnIdle { visible.value = false }
-        assertSubscriptions(1, 1)
+        assertSubscriptions(0, 0)
         compose.runOnIdle { assertEquals(ChildDetailUiState.Idle, viewModel.detailUiState.value) }
     }
 

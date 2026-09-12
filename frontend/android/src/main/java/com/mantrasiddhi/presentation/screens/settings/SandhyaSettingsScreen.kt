@@ -1,5 +1,7 @@
 package com.mantrasiddhi.presentation.screens.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -29,11 +31,11 @@ fun SandhyaSettingsScreen(
     locationViewModel: SandhyaLocationViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val user by viewModel.currentUser.collectAsState()
-    val settings by viewModel.reminderSettings.collectAsState()
-    val minimums by viewModel.sandhyaMinimums.collectAsState()
-    val saving by viewModel.savingMinimums.collectAsState()
-    val saveError by viewModel.minimumsSaveError.collectAsState()
+    val user by viewModel.currentUser.collectAsStateWithLifecycle()
+    val settings by viewModel.reminderSettings.collectAsStateWithLifecycle()
+    val minimums by viewModel.sandhyaMinimums.collectAsStateWithLifecycle()
+    val saving by viewModel.savingMinimums.collectAsStateWithLifecycle()
+    val saveError by viewModel.minimumsSaveError.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             if (event is SettingsEvent.Error) Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()

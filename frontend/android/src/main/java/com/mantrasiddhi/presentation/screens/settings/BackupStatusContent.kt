@@ -18,8 +18,9 @@ import java.util.Date
 
 @Composable
 internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, failed: Boolean = false,
-    onResolve: (BackupReview, Boolean) -> Unit = { _, _ -> }, onSyncNow: () -> Unit = {}) {
+    onResolve: (BackupReview, Boolean) -> Unit = { _, _ -> }, onSyncNow: () -> Unit = {}, onReview: (Boolean) -> Unit = {}, onRetryReview: () -> Unit = {}) {
     var reviewing by remember { mutableStateOf(false) }
+    DisposableEffect(reviewing) { onReview(reviewing); onDispose { onReview(false) } }
     LotusCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -59,7 +60,7 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
                     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(state.lastSuccess))),
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
             }
-            if (state.reviews.isNotEmpty()) {
+            if (state.conflictCount > 0 || state.reviews.isNotEmpty()) {
                 TextButton(onClick = { reviewing = true }, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.backup_review))
                 }
@@ -67,6 +68,16 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
         }
     }
     val review = state.reviews.firstOrNull()
+    if (reviewing && review == null) {
+        AlertDialog(onDismissRequest = { reviewing = false }, title = { Text(stringResource(R.string.backup_review_title)) },
+            text = {
+                if (state.reviewLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                else Text(stringResource(if (state.reviewFailed) R.string.backup_review_error else R.string.backup_current))
+            }, confirmButton = {
+                if (state.reviewFailed) TextButton(onClick = onRetryReview) { Text(stringResource(R.string.section_retry)) }
+                else TextButton(onClick = { reviewing = false }) { Text(stringResource(R.string.messages_back)) }
+            })
+    }
     if (reviewing && review != null) {
         AlertDialog(onDismissRequest = { if (!saving) reviewing = false },
             title = { Text(stringResource(R.string.backup_review_title)) },

@@ -6,6 +6,7 @@
  */
 package com.mantrasiddhi.presentation.screens.family
 
+import com.mantrasiddhi.presentation.observeWhileSubscribed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.domain.model.AccountRole
@@ -79,7 +80,7 @@ class FamilyViewModel @Inject constructor(
     private var inviteWatch: Job? = null
 
     init {
-        viewModelScope.launch {
+        observeWhileSubscribed(_uiState, onStop = { inviteWatch?.cancel(); selectedChildUid.value = null; _uiState.value = FamilyUiState() }) {
             observeAuthAccountUseCase()
                 .onEach { account ->
                     val previous = _uiState.value.account
@@ -123,7 +124,7 @@ class FamilyViewModel @Inject constructor(
                     }
                 }
         }
-        viewModelScope.launch {
+        observeWhileSubscribed(_uiState) {
             selectedChildUid.flatMapLatest { uid ->
                 val owner = _uiState.value.account?.uid
                 if (uid != null && owner != null) accountData { observeGoalsForChildUseCase(uid) }.map { Triple(owner, uid, it) }

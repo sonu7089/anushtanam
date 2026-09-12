@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.os.Bundle
 import android.content.Intent
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +18,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.mantrasiddhi.presentation.navigation.MantraApp
 import com.mantrasiddhi.presentation.theme.AnushtanamTheme
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val startupReady = androidx.compose.runtime.remember { mutableStateOf(false) }
             androidx.activity.compose.ReportDrawnWhen { startupReady.value }
-            val themeMode by mainViewModel.themeMode.collectAsState(initial = "SYSTEM")
+            val themeMode by mainViewModel.themeMode.collectAsStateWithLifecycle(initialValue = "SYSTEM")
             val darkTheme = when (themeMode) {
                 "LIGHT" -> false
                 "DARK" -> true

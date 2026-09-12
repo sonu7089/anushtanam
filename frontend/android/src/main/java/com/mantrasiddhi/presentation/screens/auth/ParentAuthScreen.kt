@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.presentation.screens.auth
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.layout.imePadding
 import com.mantrasiddhi.presentation.components.LotusArt
 import com.mantrasiddhi.presentation.components.PageIntro
@@ -38,7 +40,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,9 +65,9 @@ fun ParentAuthScreen(
     modifier: Modifier = Modifier,
     googleViewModel: GoogleAuthViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val googleState by googleViewModel.state.collectAsState()
+    val googleState by googleViewModel.state.collectAsStateWithLifecycle()
     val formEnabled = !uiState.isLoading && !googleState.busy && googleState.account == null
     LaunchedEffect(googleState.completed) {
         if (googleState.completed) onAuthenticated()

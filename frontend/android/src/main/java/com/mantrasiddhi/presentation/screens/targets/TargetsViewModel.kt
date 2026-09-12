@@ -7,6 +7,7 @@
 package com.mantrasiddhi.presentation.screens.targets
 
 import androidx.annotation.StringRes
+import com.mantrasiddhi.presentation.observeWhileSubscribed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
@@ -91,7 +92,7 @@ class TargetsViewModel @Inject constructor(
     }
 
     private fun observeUserAndTargets() {
-        viewModelScope.launch {
+        observeWhileSubscribed(_uiState, onStop = { _uiState.value = TargetsUiState.Loading }) {
             getCurrentUserUseCase().flatMapLatest { user ->
                 if (user != null) {
                     val targetsFlow = targetRepository.getAllForUser(user.id)

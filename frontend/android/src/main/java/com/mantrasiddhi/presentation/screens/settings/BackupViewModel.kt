@@ -16,10 +16,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 internal data class BackupReview(val id: String, val date: String, val current: Long,
-    val alternative: Long, val operation: String)
+    val alternative: Long, val operation: String, val uid: String = "")
 
 internal data class BackupUiState(val localOnly: Boolean = true, val waiting: Boolean = false,
     val attention: Boolean = false, val lastSuccess: Long = 0, val reviews: List<BackupReview> = emptyList(),
+    val conflictCount: Int = 0, val reviewLoading: Boolean = false, val reviewFailed: Boolean = false,
     val syncing: Boolean = false, val manualReady: Boolean = true, val quarantined: Int = 0)
 
 @HiltViewModel
@@ -31,31 +32,40 @@ class BackupViewModel @Inject constructor(
     private val requests: CloudSyncRequests
 ) : ViewModel() {
     private val user = currentUser()
-    internal val state = user.flatMapLatest { profile ->
+    private val reviewing = MutableStateFlow(false)
+    private val reviewRetry = MutableStateFlow(0)
+    internal fun setReviewing(open: Boolean) { reviewing.value = open }
+    internal fun retryReview() { reviewRetry.value++ }
+    internal val state = user.distinctUntilChangedBy { it?.let { profile -> profile.id to profile.firebaseUid } }.flatMapLatest { profile ->
         val uid = profile?.firebaseUid
         if (uid == null) flowOf(BackupUiState()) else {
-            val content = combine(
-                observations.state(uid), observations.pending(uid),
-                observations.conflicts(uid), observations.entries(profile.id), observations.quarantined(uid)
-            ) { backup, pending, conflicts, entries, quarantined ->
+            val status = combine(observations.state(uid), observations.pending(uid),
+                observations.conflictCount(uid), observations.quarantined(uid)) { backup, pending, conflicts, quarantined ->
                 BackupUiState(localOnly = false, waiting = pending > 0 || backup?.restorePending != false,
-                    attention = backup?.needsAttention == true, lastSuccess = backup?.lastSuccessMs ?: 0, quarantined = quarantined,
-                    reviews = conflicts.mapNotNull { conflict ->
-                        val entry = entries.firstOrNull { it.id == conflict.entryId } ?: return@mapNotNull null
-                        val first = CloudSyncPolicy.decode(conflict.firstPayload)
-                        val second = CloudSyncPolicy.decode(conflict.secondPayload)
-                        val alternative = if (JapaSyncPolicy.newer(first, second)) second else first
-                        BackupReview(conflict.id, com.mantrasiddhi.domain.util.SandhyaDateKey.parse(entry.dateKey)
-                            .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)), entry.quantity,
-                            (alternative["quantity"] as Number).toLong(), entry.operationId)
-                    })
+                    attention = backup?.needsAttention == true || conflicts > 0,
+                    lastSuccess = backup?.lastSuccessMs ?: 0, quarantined = quarantined, conflictCount = conflicts)
             }
-            val ready = requests.manualReady(uid)
-            combine(content, requests.activeUid, ready) { state, active, manualReady ->
-                state.copy(syncing = active == uid, manualReady = manualReady)
+            val details = combine(reviewing, reviewRetry) { open, _ -> open }.flatMapLatest { open ->
+                if (!open) flowOf(BackupUiState()) else
+                    observations.review(uid, profile.id).map { conflicts ->
+                        BackupUiState(reviews = conflicts.map { conflict ->
+                            val first = CloudSyncPolicy.decode(conflict.firstPayload)
+                            val second = CloudSyncPolicy.decode(conflict.secondPayload)
+                            val alternative = if (JapaSyncPolicy.newer(first, second)) second else first
+                            BackupReview(conflict.id, com.mantrasiddhi.domain.util.SandhyaDateKey.parse(requireNotNull(conflict.dateKey))
+                                .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)),
+                                requireNotNull(conflict.quantity), (alternative["quantity"] as Number).toLong(), requireNotNull(conflict.operationId), uid)
+                        })
+                    }.onStart { emit(BackupUiState(reviewLoading = true)) }
+                        .catch { emit(BackupUiState(reviewFailed = true)) }
+                        .flowOn(kotlinx.coroutines.Dispatchers.Default)
             }
+            combine(status, details, requests.activeUid, requests.manualReady(uid)) { statusValue, detail, active, ready ->
+                statusValue.copy(reviews = detail.reviews, reviewLoading = detail.reviewLoading,
+                    reviewFailed = detail.reviewFailed, syncing = active == uid, manualReady = ready)
+            }.onStart { emit(BackupUiState(localOnly = false, waiting = true)) }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BackupUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0, replayExpirationMillis = 0), BackupUiState())
 
     internal val saving = MutableStateFlow(false)
     internal val failed = MutableStateFlow(false)
@@ -67,7 +77,7 @@ class BackupViewModel @Inject constructor(
     }
     internal fun resolve(review: BackupReview, alternative: Boolean) {
         val uid = user.value?.firebaseUid ?: return
-        if (saving.value) return
+        if (review.uid != uid || saving.value) return
         saving.value = true
         failed.value = false
         viewModelScope.launch {

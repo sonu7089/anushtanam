@@ -5,6 +5,8 @@
  * This is a demo application. Not for production use.
  */
 package com.mantrasiddhi.presentation.navigation
+
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,7 +24,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -134,12 +135,12 @@ fun MantraApp(
     onHomeNotificationHandled: () -> Unit = {},
     onStartupReady: () -> Unit = {}
 ) {
-    val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
+    val currentUser by mainViewModel.currentUser.collectAsStateWithLifecycle(initialValue = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     // Activity scope shares the open guide across every entry point.
     val guideViewModel: PracticeGuideViewModel = hiltViewModel()
-    val guide by guideViewModel.state.collectAsState()
+    val guide by guideViewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val authRoutes = setOf(Screen.AuthGate.route, Screen.Welcome.route, Screen.ParentAuth.route, Screen.ChildAuth.route, Screen.Login.route)
     LaunchedEffect(homeNotificationId, currentRoute) {
@@ -408,7 +409,7 @@ private fun AuthGate(
     onUnauthenticated: () -> Unit,
     onChildSetup: () -> Unit
 ) {
-    val state by mainViewModel.authGateState.collectAsState()
+    val state by mainViewModel.authGateState.collectAsStateWithLifecycle()
 
     LaunchedEffect(state) {
         when (state) {
