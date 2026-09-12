@@ -65,11 +65,22 @@ fun PracticeScreen(
     modifier: Modifier = Modifier,
     viewModel: PracticeModeViewModel = hiltViewModel()
 ) {
+    androidx.compose.runtime.SideEffect { com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.practice.composition") }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isPlayingBenchmark by viewModel.isPlayingBenchmark.collectAsStateWithLifecycle()
-    val benchmarkPositionMs by viewModel.benchmarkPositionMs.collectAsStateWithLifecycle()
-    val activeBenchmarkWordIndex by viewModel.activeBenchmarkWordIndex.collectAsStateWithLifecycle()
     val hasSelfAudio by viewModel.hasSelfAudio.collectAsStateWithLifecycle()
+
+    // Saved navigation entries can retain the ViewModel after this screen is hidden.
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(viewModel, lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) viewModel.onPlaybackHidden()
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            viewModel.onPlaybackHidden()
+        }
+    }
 
     val context = LocalContext.current
     var requestMicPermission by remember { mutableStateOf(false) }
@@ -119,22 +130,10 @@ fun PracticeScreen(
             Text(stringResource(R.string.lotus_practice_intro), style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth())
             // Benchmark Player Card
-            AudioPlayerBar(
-                isPlaying = isPlayingBenchmark,
-                positionMs = benchmarkPositionMs,
-                onPlayPauseClick = {
-                    if (isPlayingBenchmark) {
-                        viewModel.pauseBenchmark()
-                    } else {
-                        viewModel.playBenchmark()
-                    }
-                }
-            )
+            BenchmarkPlayerControls(viewModel)
 
             // Mantra Display (Highlighting active word during benchmark playback)
-            MantraDisplay(
-                activeWordIndex = activeBenchmarkWordIndex
-            )
+            BenchmarkWordHighlight(viewModel)
 
             // Practice State Renderers
             when (val state = uiState) {
@@ -348,6 +347,25 @@ fun PracticeScreen(
             }
         }
     }
+}
+
+@Composable
+private fun BenchmarkPlayerControls(viewModel: PracticeModeViewModel) {
+    val playing by viewModel.isPlayingBenchmark.collectAsStateWithLifecycle()
+    val position = viewModel.benchmarkPositionMs.collectAsStateWithLifecycle()
+    AudioPlayerBar(
+        isPlaying = playing,
+        positionMs = { position.value },
+        onPlayPauseClick = {
+            if (playing) viewModel.pauseBenchmark() else viewModel.playBenchmark()
+        }
+    )
+}
+
+@Composable
+private fun BenchmarkWordHighlight(viewModel: PracticeModeViewModel) {
+    val word by viewModel.activeBenchmarkWordIndex.collectAsStateWithLifecycle()
+    MantraDisplay(activeWordIndex = word)
 }
 
 /**

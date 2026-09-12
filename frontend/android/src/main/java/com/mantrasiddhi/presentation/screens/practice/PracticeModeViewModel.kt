@@ -173,6 +173,12 @@ class PracticeModeViewModel @Inject constructor(
         benchmarkAudioPlayer.pause()
     }
 
+    /** Navigation/lifecycle cleanup must not vibrate or interfere with speech finalization. */
+    fun onPlaybackHidden() {
+        benchmarkAudioPlayer.pause()
+        recordedAudioPlayer.stop()
+    }
+
     /**
      * Starts recording practice recitation.
      */

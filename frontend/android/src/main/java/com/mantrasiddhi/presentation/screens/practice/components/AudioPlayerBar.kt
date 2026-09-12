@@ -39,12 +39,12 @@ import androidx.compose.ui.semantics.semantics
 @Composable
 fun AudioPlayerBar(
     isPlaying: Boolean,
-    positionMs: Long,
+    positionMs: () -> Long,
     onPlayPauseClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    androidx.compose.runtime.SideEffect { com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.player.composition") }
     val totalDurationMs = 16000f // 16 seconds benchmark length
-    val progress = (positionMs / totalDurationMs).coerceIn(0f, 1f)
 
     LotusCard(
         modifier = modifier.fillMaxWidth(),
@@ -101,21 +101,13 @@ fun AudioPlayerBar(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
-                    Text(
-                        text = stringResource(
-                            id = R.string.practice_reference_position_format,
-                            (positionMs / 1000).toInt(),
-                            (totalDurationMs / 1000).toInt()
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    PlaybackTime(positionMs, (totalDurationMs / 1000).toInt())
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = { (positionMs() / totalDurationMs).coerceIn(0f, 1f) },
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                     modifier = Modifier.fillMaxWidth()
@@ -123,6 +115,18 @@ fun AudioPlayerBar(
             }
         }
     }
+}
+
+@Composable
+private fun PlaybackTime(positionMs: () -> Long, totalSeconds: Int) {
+    val seconds = androidx.compose.runtime.remember(positionMs) {
+        androidx.compose.runtime.derivedStateOf { (positionMs() / 1000).toInt() }
+    }
+    Text(
+        text = stringResource(R.string.practice_reference_position_format, seconds.value, totalSeconds),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable

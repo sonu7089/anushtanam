@@ -49,6 +49,41 @@ class TeachingRepositoryTest {
         return TeachingRepository(firestore, clock, kotlinx.coroutines.Dispatchers.Unconfined)
     }
 
+    @Test fun `server and offline cache retain pinned ties publication order and raw page cursor`() = runTest {
+        fun doc(id: String, pinned: Boolean, publishedAt: Long, valid: Boolean = true) = mockk<DocumentSnapshot> {
+            every { this@mockk.id } returns id
+            every { exists() } returns true
+            every { getLong("schemaVersion") } returns if (valid) 1L else 99L
+            every { getString("locale") } returns "en"
+            every { getBoolean("published") } returns true
+            every { getString("type") } returns "teaching"
+            every { getString("title") } returns id
+            every { getString("body") } returns "Body"
+            every { getString("summary") } returns ""
+            every { getString("attribution") } returns ""
+            every { getLong("revision") } returns 1L
+            every { getLong("publishedAt") } returns publishedAt
+            every { getLong("expiresAt") } returns Long.MAX_VALUE
+            every { getString("art") } returns "river"
+            every { getBoolean("pinned") } returns pinned
+        }
+        val tail = doc("invalid-tail", false, 1, false)
+        val docs = listOf(doc("pinned-new", true, 4), doc("pinned-old", true, 3),
+            doc("plain-new", false, 8), doc("plain-tie", false, 8), tail)
+        for (offline in listOf(false, true)) {
+            val repository = repository()
+            every { snapshot.documents } returns docs
+            every { snapshot.size() } returns 30
+            every { query.get(Source.SERVER) } returns resultTask(offline)
+            every { query.get(Source.CACHE) } returns resultTask()
+            val page = repository.page()
+            assertEquals(listOf("pinned-new", "pinned-old", "plain-new", "plain-tie"), page.messages.map { it.id })
+            assertSame(tail, page.cursor)
+            assertTrue(page.hasMore)
+            assertEquals(offline, page.offline)
+        }
+    }
+
     @Test fun `repeated concurrent refreshes and reopening reuse the first page for ten seconds`() = runTest {
         val repository = repository()
         (1..20).map { async { repository.page() } }.awaitAll()

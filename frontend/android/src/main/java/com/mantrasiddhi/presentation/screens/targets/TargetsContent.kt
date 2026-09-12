@@ -57,10 +57,14 @@ fun TargetsContent(
                 Text(stringResource(uiState.messageResId), color = MaterialTheme.colorScheme.error)
             }
             is TargetsUiState.Success -> {
-                val current = uiState.activeTarget ?: uiState.completedTargets
-                    .filter { it.isActive }.maxByOrNull { it.startedAtMillis }
-                val history = uiState.completedTargets.filter { it.stableId != current?.stableId }
-                    .sortedByDescending { it.startedAtMillis }
+                val current = remember(uiState.activeTarget, uiState.completedTargets) {
+                    uiState.activeTarget ?: uiState.completedTargets
+                        .filter { it.isActive }.maxByOrNull { it.startedAtMillis }
+                }
+                val history = remember(uiState.completedTargets, current?.stableId) {
+                    uiState.completedTargets.filter { it.stableId != current?.stableId }
+                        .sortedByDescending { it.startedAtMillis }
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 32.dp),

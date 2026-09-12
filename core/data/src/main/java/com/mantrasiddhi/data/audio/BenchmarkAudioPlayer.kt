@@ -53,7 +53,7 @@ class BenchmarkAudioPlayer @Inject constructor(
 
     private val _currentPositionMs = MutableStateFlow(0L)
 
-    /** Emits the current playback position in milliseconds. */
+    /** Cosmetic progress at 5 Hz, plus immediate start/pause/completion updates. */
     val currentPositionMs: StateFlow<Long> = _currentPositionMs.asStateFlow()
 
     private val _activeWordIndex = MutableStateFlow<Int?>(null)
@@ -100,7 +100,10 @@ class BenchmarkAudioPlayer @Inject constructor(
     /** Pauses playback, keeping the current position. */
     fun pause() {
         segmentEndMs = null
-        mediaPlayer?.pause()
+        mediaPlayer?.let { player ->
+            publishPosition(player.currentPosition.toLong())
+            player.pause()
+        }
         _isPlaying.value = false
         stopProgressTracker()
     }
@@ -181,9 +184,12 @@ class BenchmarkAudioPlayer @Inject constructor(
     private fun startProgressTracker() {
         progressJob?.cancel()
         progressJob = coroutineScope.launch {
+            var sample = 0
             while (isActive) {
                 val position = mediaPlayer?.currentPosition?.toLong() ?: 0L
-                _currentPositionMs.value = position
+                com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("playback.sample")
+                // Keep word/segment precision independent of cosmetic progress publication.
+                if (sample++ % POSITION_SAMPLE_DIVISOR == 0) publishPosition(position)
                 _activeWordIndex.value = wordTimestamps
                     .find { position in it.startMs until it.endMs }
                     ?.wordIndex
@@ -203,8 +209,14 @@ class BenchmarkAudioPlayer @Inject constructor(
         progressJob = null
     }
 
+    private fun publishPosition(position: Long) {
+        _currentPositionMs.value = position
+        com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("playback.position.publish")
+    }
+
     private companion object {
-        /** How often playback position and the highlighted word are refreshed. */
+        /** Functional word highlighting and segment-stop precision is unchanged. */
         const val PROGRESS_INTERVAL_MS = 50L
+        const val POSITION_SAMPLE_DIVISOR = 4
     }
 }

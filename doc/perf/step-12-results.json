@@ -1,0 +1,163 @@
+{
+  "date": "2026-09-12",
+  "device": {
+    "brand": "google",
+    "device": "cheetah",
+    "fingerprint": "google/cheetah_beta/cheetah:17/CP41.260814.003.A2/16182618:user/release-keys",
+    "id": "CP41.260814.003.A2",
+    "model": "Pixel 7 Pro",
+    "type": "user",
+    "version": {
+      "codename": "REL",
+      "sdk": 37
+    }
+  },
+  "rawDirectory": "build/step12",
+  "compilation": "None",
+  "apkSha256": {
+    "before": "2bb914aff659cfe1cbdbf42c68b0e332ab67f6daa5edc58f0b5e13b8001fd686",
+    "after": "0c9a021b532bfa5bc97a58eddf18a9ca7bad6516bcfc9c95dce7dd7ba378f3cc"
+  },
+  "playback": {
+    "before": {
+      "elapsedMs": 10350,
+      "cpuMs": 2691,
+      "counts": {
+        "playback.position.publish": 198,
+        "playback.sample": 198,
+        "render.player.composition": 197,
+        "render.practice.composition": 0,
+        "render.words.composition": 11
+      }
+    },
+    "after": {
+      "elapsedMs": 10350,
+      "cpuMs": 1145,
+      "counts": {
+        "playback.position.publish": 51,
+        "playback.sample": 198,
+        "render.player.composition": 2,
+        "render.practice.composition": 0,
+        "render.words.composition": 12
+      }
+    }
+  },
+  "hiddenPlayback": {
+    "elapsedMs": 2096,
+    "cpuMs": 4,
+    "counts": {
+      "playback.position.publish": 0,
+      "playback.sample": 0,
+      "render.player.composition": 0,
+      "render.practice.composition": 0,
+      "render.words.composition": 0
+    }
+  },
+  "shimmer": {
+    "frames": 60,
+    "beforeCompositions": 960,
+    "afterCompositions": 0,
+    "beforeClocks": 16,
+    "afterClocks": 1
+  },
+  "benchmarks": {
+    "before": {
+      "navigation": {
+        "iterations": 20,
+        "metrics": {
+          "frameDurationCpuMs": {
+            "P50": 3.50706,
+            "P90": 6.3373251,
+            "P95": 9.170953399999998,
+            "P99": 33.783755639999924,
+            "samples": 2652
+          },
+          "frameOverrunMs": {
+            "P50": -9.744523000000001,
+            "P90": -3.741628799999991,
+            "P95": 3.499313249999945,
+            "P99": 32.24152977999997,
+            "samples": 2652,
+            "positiveOverrunPercent": 5.844645550527903
+          }
+        }
+      },
+      "tapToUsableMs": {
+        "home": {
+          "n": 20,
+          "median": 261.5049645,
+          "p95": 382.704102
+        },
+        "progress": {
+          "n": 20,
+          "median": 289.0063275,
+          "p95": 312.484253
+        },
+        "settings": {
+          "n": 20,
+          "median": 284.620158,
+          "p95": 390.874349
+        }
+      }
+    },
+    "after": {
+      "renderingCandidates": {
+        "iterations": 20,
+        "metrics": {
+          "frameDurationCpuMs": {
+            "P50": 6.315877,
+            "P90": 8.380494,
+            "P95": 9.114747,
+            "P99": 13.117919800000008,
+            "samples": 9381
+          },
+          "frameOverrunMs": {
+            "P50": -7.250246,
+            "P90": -4.214136,
+            "P95": -2.453531,
+            "P99": 4.189691000000046,
+            "samples": 9381,
+            "positiveOverrunPercent": 2.2172476281846283
+          }
+        }
+      },
+      "navigation": {
+        "iterations": 20,
+        "metrics": {
+          "frameDurationCpuMs": {
+            "P50": 3.6260779999999997,
+            "P90": 6.304463500000001,
+            "P95": 9.13704375,
+            "P99": 35.38890955000009,
+            "samples": 2646
+          },
+          "frameOverrunMs": {
+            "P50": -9.6530415,
+            "P90": -4.0220485,
+            "P95": 3.2234115,
+            "P99": 35.591150600000084,
+            "samples": 2646,
+            "positiveOverrunPercent": 6.084656084656085
+          }
+        }
+      },
+      "tapToUsableMs": {
+        "home": {
+          "n": 20,
+          "median": 299.9820155,
+          "p95": 402.621013
+        },
+        "progress": {
+          "n": 20,
+          "median": 293.32120799999996,
+          "p95": 336.388794
+        },
+        "settings": {
+          "n": 20,
+          "median": 294.41965749999997,
+          "p95": 425.829671
+        }
+      }
+    }
+  }
+}

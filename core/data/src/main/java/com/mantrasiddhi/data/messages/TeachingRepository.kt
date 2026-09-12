@@ -122,7 +122,8 @@ class TeachingRepository @Inject constructor(private val firestore: FirebaseFire
         val server = runCatching { withTimeout(8_000) { query.get(Source.SERVER).messageAwait() } }
         currentCoroutineContext().ensureActive()
         val snapshot = server.getOrNull() ?: query.get(Source.CACHE).messageAwait()
-        return TeachingPage(snapshot.documents.mapNotNull(::decode).sortedByDescending { it.pinned },
+        // Filtering invalid/expired documents preserves the query's pinned/publication order.
+        return TeachingPage(snapshot.documents.mapNotNull(::decode),
             server.isFailure, snapshot.documents.lastOrNull(), snapshot.size() == 30)
     }
 

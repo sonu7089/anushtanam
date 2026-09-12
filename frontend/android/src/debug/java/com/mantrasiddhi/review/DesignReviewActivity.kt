@@ -295,7 +295,7 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         }
                         "practice" -> ReviewPage(R.string.home_practice_mode) {
                             Text(stringResource(R.string.lotus_practice_intro), style = MaterialTheme.typography.headlineSmall)
-                            AudioPlayerBar(false, 0, {})
+                            AudioPlayerBar(false, { 0L }, {})
                             MantraDisplay(null)
                             Text(stringResource(R.string.practice_intro), style = MaterialTheme.typography.bodyMedium)
                             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { MicButton(false, false, {}) }

@@ -69,6 +69,8 @@ Schedule a single cancellable delay to the nearest expiry, then recompute the ne
 
 ## POLL-05 — Narrow playback updates before reducing timing precision
 
+**Step 12 resolved locally:** [playback changes, precision regressions and physical-device measurements](step-12-rendering.md). Cosmetic position now publishes nominally every 200 ms and UI reads are narrow; the 50 ms word/segment checks remain. Hidden Practice pauses playback. The following is the original audit evidence.
+
 The playback tracker is Main-scoped and publishes position 20 times per second. [PracticeScreen](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/practice/PracticeScreen.kt) collects position near its root, broadening the scope of frequent state reads. Move those reads into the audio progress control and word-highlight component; publish word changes only when the index changes.
 
 Keep segment-stop precision separate from cosmetic position labels. A coarser label update may be acceptable, while stopping a selected word needs the current precision or a separately scheduled boundary. Retain cancellation on pause/completion/release and verify behavior when navigating away. Measure recomposition/frames before changing the sampling rate.

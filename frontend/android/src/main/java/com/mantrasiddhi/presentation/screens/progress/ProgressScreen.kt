@@ -108,18 +108,20 @@ fun ProgressScreen(
 
 @Composable
 private fun ProgressLoadingSkeleton() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        SkeletonCardItem()
-        Spacer(modifier = Modifier.height(16.dp))
-        SkeletonCardItem()
-        Spacer(modifier = Modifier.height(24.dp))
-        repeat(3) {
-            SkeletonSessionItem()
-            Spacer(modifier = Modifier.height(8.dp))
+    com.mantrasiddhi.presentation.components.ShimmerGroup {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+        ) {
+            SkeletonCardItem()
+            Spacer(modifier = Modifier.height(16.dp))
+            SkeletonCardItem()
+            Spacer(modifier = Modifier.height(24.dp))
+            repeat(3) {
+                SkeletonSessionItem()
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }

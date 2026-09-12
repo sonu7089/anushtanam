@@ -25,6 +25,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,9 +39,9 @@ import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.presentation.theme.LocalExtendedColors
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Scrollable list of past recitation sessions.
@@ -51,6 +53,13 @@ fun SessionHistoryList(
     isScrollable: Boolean = true,
     footer: @Composable () -> Unit = {}
 ) {
+    val locale = LocalConfiguration.current.locales[0]
+    // One resume/clock listener for the list, not a formatter/listener for each row.
+    val timeRevision = com.mantrasiddhi.presentation.components.rememberDeadlineTime(emptyList())
+    val zone = remember(timeRevision) { ZoneId.systemDefault() }
+    val dateFormat = remember(locale, zone) {
+        DateTimeFormatter.ofPattern("MMM dd, yyyy · hh:mm a", locale).withZone(zone)
+    }
     if (sessions.isEmpty()) {
         Box(
             modifier = modifier
@@ -73,7 +82,7 @@ fun SessionHistoryList(
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             items(sessions, key = { it.id }) { session ->
-                SessionHistoryItem(session = session)
+                SessionHistoryItem(session = session, dateFormat = dateFormat)
             }
             item(key = "history_footer") { footer() }
         }
@@ -82,14 +91,14 @@ fun SessionHistoryList(
             modifier = modifier.fillMaxWidth()
         ) {
             sessions.forEach { session ->
-                SessionHistoryItem(session = session)
+                SessionHistoryItem(session = session, dateFormat = dateFormat)
             }
         }
     }
 }
 
 @Composable
-private fun SessionHistoryItem(session: RecitationSession) {
+private fun SessionHistoryItem(session: RecitationSession, dateFormat: DateTimeFormatter) {
     val extendedColors = LocalExtendedColors.current
     val scorePercent = (session.overallScore * 100).toInt()
     val badgeColor = when {
@@ -98,8 +107,9 @@ private fun SessionHistoryItem(session: RecitationSession) {
         else -> MaterialTheme.colorScheme.error
     }
 
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy · hh:mm a", Locale.getDefault())
-    val formattedDate = dateFormat.format(Date(session.createdAt))
+    val formattedDate = remember(session.createdAt, dateFormat) {
+        dateFormat.format(Instant.ofEpochMilli(session.createdAt))
+    }
 
     val modeLabel = if (session.mode == RecitationMode.PRACTICE) {
         stringResource(R.string.progress_mode_practice)

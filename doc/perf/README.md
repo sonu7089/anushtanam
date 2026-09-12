@@ -153,6 +153,8 @@ The account flow is cold, and Main subscribes twice, for entry routing and child
 
 ### UI-10 — Perceived motion time and missing performance gates
 
+**Step 12 motion decision:** [20-iteration navigation/chart captures and retention rationale](step-12-rendering.md). Existing motion is retained; the measured player/shimmer improvements do not establish a navigation speedup. The provisional navigation jank/readiness targets and complete release gates remain step 13. Original audit evidence follows.
+
 [MantraNavGraph.kt](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/navigation/MantraNavGraph.kt), `enterScreenTransition`/`exitScreenTransition`, specifies 320 ms slides for tab switches and 220 ms for detail navigation. The indicator also animates for 320 ms. Both outgoing and incoming content participate during transition. This is intentional visual duration, not evidence that taps are ignored for 320 ms; synchronous work during it can make it visibly stutter.
 
 **Change:** first remove measured blocking work; then compare a shorter transition or less full-screen movement, including reduced-motion behavior, with product review. Do not use animation changes to conceal slow content readiness.

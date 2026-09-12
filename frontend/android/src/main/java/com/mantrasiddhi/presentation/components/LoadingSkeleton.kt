@@ -25,10 +25,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
@@ -36,9 +44,35 @@ import androidx.compose.ui.unit.dp
 /**
  * Shimmer effect modifier that creates a premium loading reflection using theme colors.
  */
-fun Modifier.shimmerEffect(): Modifier = composed {
+private val LocalShimmerPhase = staticCompositionLocalOf<State<Float>?> { null }
+
+/** One clock for a loading group; all placeholders read it only during drawing. */
+@Composable
+fun ShimmerGroup(content: @Composable () -> Unit) {
+    val phase = rememberShimmerPhase()
+    CompositionLocalProvider(LocalShimmerPhase provides phase, content = content)
+}
+
+@Composable
+private fun rememberShimmerPhase(): State<Float> {
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    var visible by remember(lifecycle) {
+        mutableStateOf(lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+    }
+    DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, _ ->
+            visible = lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    if (!visible) return remember { mutableStateOf(0f) }
+    DisposableEffect(Unit) {
+        com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.shimmer.clock.start")
+        onDispose { com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.shimmer.clock.stop") }
+    }
     val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnimation = transition.animateFloat(
+    return transition.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
@@ -51,19 +85,21 @@ fun Modifier.shimmerEffect(): Modifier = composed {
         label = "shimmerTranslate"
     )
 
+}
+
+@Composable
+private fun Modifier.shimmerEffect(phase: State<Float>): Modifier {
+    androidx.compose.runtime.SideEffect { com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.shimmer.composition") }
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceContainerHigh,
         MaterialTheme.colorScheme.surfaceContainerLowest,
         MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(x = 10f, y = 10f),
-        end = Offset(x = translateAnimation.value + 10f, y = translateAnimation.value + 10f)
-    )
-
-    background(brush = brush)
+    return drawBehind {
+        val end = phase.value + 10f
+        drawRect(Brush.linearGradient(shimmerColors, Offset(10f, 10f), Offset(end, end)))
+    }
 }
 
 /**
@@ -71,6 +107,7 @@ fun Modifier.shimmerEffect(): Modifier = composed {
  */
 @Composable
 fun SkeletonSessionItem(modifier: Modifier = Modifier) {
+    val phase = LocalShimmerPhase.current ?: rememberShimmerPhase()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -82,7 +119,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .shimmerEffect()
+                .shimmerEffect(phase)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -94,7 +131,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
                     .width(80.dp)
                     .height(16.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
-                    .shimmerEffect()
+                    .shimmerEffect(phase)
             )
             Spacer(modifier = Modifier.height(6.dp))
             Box(
@@ -102,7 +139,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
                     .width(140.dp)
                     .height(12.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
-                    .shimmerEffect()
+                    .shimmerEffect(phase)
             )
         }
 
@@ -114,7 +151,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
                 .width(40.dp)
                 .height(14.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .shimmerEffect()
+                .shimmerEffect(phase)
         )
     }
 }
@@ -124,6 +161,7 @@ fun SkeletonSessionItem(modifier: Modifier = Modifier) {
  */
 @Composable
 fun SkeletonCardItem(modifier: Modifier = Modifier) {
+    val phase = LocalShimmerPhase.current ?: rememberShimmerPhase()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -136,7 +174,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
                 .width(120.dp)
                 .height(18.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .shimmerEffect()
+                .shimmerEffect(phase)
         )
         Spacer(modifier = Modifier.height(12.dp))
         Box(
@@ -144,7 +182,7 @@ fun SkeletonCardItem(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .height(40.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .shimmerEffect()
+                .shimmerEffect(phase)
         )
     }
 }

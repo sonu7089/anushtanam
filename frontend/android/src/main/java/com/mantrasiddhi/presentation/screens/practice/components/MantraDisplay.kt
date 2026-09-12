@@ -47,6 +47,7 @@ fun MantraDisplay(
     activeWordIndex: Int?,
     modifier: Modifier = Modifier
 ) {
+    androidx.compose.runtime.SideEffect { com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("render.words.composition") }
     var showTransliteration by remember { mutableStateOf(false) }
 
     val devanagariWords = GayatriMantra.devanagariWords

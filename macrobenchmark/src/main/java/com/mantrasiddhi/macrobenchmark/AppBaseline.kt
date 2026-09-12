@@ -107,6 +107,23 @@ class AppBaseline {
             .put("cpuPercentOfOneCore", 100.0 * (after.getLong("cpuMs") - before.getLong("cpuMs")) / elapsed))
     }
 
+    /** Opt-in step-12 candidate capture: chart first entries and repeated entrances. */
+    @Test fun renderingCandidates() {
+        assumeTrue(args.getString("renderCandidates") == "true" && signedIn)
+        benchmark.measureRepeated(
+            packageName = PACKAGE, metrics = listOf(FrameTimingMetric()),
+            compilationMode = CompilationMode.None(), iterations = iterations,
+            experimentalConfig = traceConfig,
+            setupBlock = { launchApp(); tap("progress"); awaitTag("perf_progress_ready") }
+        ) {
+            for (label in listOf("Daily Chart", "Accuracy", "Overview", "Daily Chart", "Accuracy", "Overview")) {
+                checkNotNull(device.wait(Until.findObject(By.text(label)), 5000)) { "Missing $label" }.click()
+                // Include the entire 800 ms entrance, not just the data-ready frame.
+                SystemClock.sleep(1100)
+            }
+        }
+    }
+
     private fun tap(route: String) {
         val node = device.wait(Until.findObject(By.res("perf_tab_$route")), 15_000)
         checkNotNull(node) { "Missing navigation tab $route" }.click()
