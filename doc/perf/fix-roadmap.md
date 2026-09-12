@@ -2,7 +2,7 @@
 
 This is the master implementation order for the findings in `doc/perf/`. It supersedes the separate implementation sequences in the individual audits. Those files retain the evidence, source links and detailed acceptance checks; this document tracks the work without repeating them.
 
-**Status: steps 00–03 implemented and locally verified; steps 04–13 remain open. Step 02's rules were deployed to `anushtanam-shastralife` on 12 September 2026 at the user's request.** Check an item only after its changes and relevant verification pass. Repeated findings across audits are grouped into one work item. Rendering/index candidates require measurement: close them with either a verified improvement or a documented reason to retain the current behavior.
+**Status: steps 00–04 implemented and locally verified; steps 05–13 remain open. Step 02's rules were deployed to `anushtanam-shastralife` on 12 September 2026 at the user's request.** Check an item only after its changes and relevant verification pass. Repeated findings across audits are grouped into one work item. Rendering/index candidates require measurement: close them with either a verified improvement or a documented reason to retain the current behavior.
 
 ## Ordered checklist
 
@@ -14,7 +14,7 @@ This is the master implementation order for the findings in `doc/perf/`. It supe
 
 - [x] **03 — Repair identities and enforce counting contracts.** Room v15 repairs legacy goal/session collisions and duplicate audio associations before adding unique identities and links, retaining original rows in a repair archive. Saved assessments are immutable and stable-ID retries credit once; ownership/reference conflicts are quarantined while either restore order remains supported. Verified 548 unit tests, 50 physical-device Room tests (including every v1–v14 migration start) and three Firebase recovery device tests; debug build and lint pass with no errors. [Implementation, repair policy, verification and limits](step-03-identities.md). References: [DB-06, DB-11](database-audit.md).
 
-- [ ] **04 — Stop accumulating child-detail work.** Keep one selected-child pipeline; cancel it on replacement, close and account switch. Verify A → B → A → close leaves no stale collector or stale detail emission. References: [RW-04](redundant-work-audit.md), [child-detail cancellation](lazy-loading.md).
+- [x] **04 — Stop accumulating child-detail work.** One selected-child pipeline now cancels on replacement, close, screen disposal and account switch; request/account/child guards reject stale results. Verified A → B → A → close with counted subscriptions, duplicate selection, errors/retry and account isolation: 88 app unit tests and three Pixel 7 Pro UI tests pass; debug builds and lint pass with no errors. [Implementation, subscription counts and verification](step-04-child-details.md). References: [RW-04](redundant-work-audit.md), [child-detail cancellation](lazy-loading.md).
 
 - [ ] **05 — Share verified account state.** Create one account-resolution producer, coalesce refreshes and remove fresh account loads merely to check the role after each chant. Preserve unresolved/recovery/child-setup states and account-switch isolation. Reuse account-keyed child-goal data without changing notification baseline behavior. References: [RW-01, RW-05](redundant-work-audit.md), [UI-06](README.md).
 

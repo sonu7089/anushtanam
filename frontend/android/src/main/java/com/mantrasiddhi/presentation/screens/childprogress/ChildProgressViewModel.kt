@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.data.notification.GoalNotifier
 import com.mantrasiddhi.domain.model.ChildProgress
+import com.mantrasiddhi.domain.model.ProfileType
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 import com.mantrasiddhi.domain.model.UserProfile
@@ -30,8 +31,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -95,58 +101,112 @@ class ChildProgressViewModel @Inject constructor(
     private val _events = MutableSharedFlow<ChildProgressEvent>()
     val events: SharedFlow<ChildProgressEvent> = _events.asSharedFlow()
 
+    private data class ParentIdentity(val id: Long, val firebaseUid: String?)
+
+    // Reference identity distinguishes A -> B -> A, close/reopen and retries of A.
+    private class DetailSelection(val parent: ParentIdentity, val childId: Long)
+
+    private val currentUser = getCurrentUserUseCase()
+    private val selectedChild = MutableStateFlow<DetailSelection?>(null)
+
+    private fun UserProfile?.parentIdentity(): ParentIdentity? =
+        this?.takeIf { it.profileType == ProfileType.PARENT }
+            ?.let { ParentIdentity(it.id, it.firebaseUid) }
+
     init {
         observeChildrenProgress()
+        observeSelectedChild()
     }
 
     private fun observeChildrenProgress() {
         viewModelScope.launch {
-            getCurrentUserUseCase().flatMapLatest { user ->
-                if (user != null) {
-                    if (user.profileType == com.mantrasiddhi.domain.model.ProfileType.PARENT) {
-                        getChildrenUseCase(user.id).flatMapLatest { childrenList ->
-                            if (childrenList.isEmpty()) {
-                                flowOf(ChildProgressUiState.Success(user, emptyList()))
-                            } else {
-                                val progressFlows = childrenList.map { getChildProgressUseCase(it.id) }
-                                combine(progressFlows) { progresses ->
-                                    ChildProgressUiState.Success(user, progresses.filterNotNull().toList())
-                                }
-                            }
-                        }
-                    } else {
-                        flowOf(ChildProgressUiState.Error(R.string.child_error_parent_only))
-                    }
-                } else {
-                    flowOf(ChildProgressUiState.Error(R.string.child_error_no_parent_profile))
+            var parentIdentity: ParentIdentity? = null
+            currentUser.onEach { user ->
+                val identity = user.parentIdentity()
+                if (identity != parentIdentity) {
+                    parentIdentity = identity
+                    clearSelectedChild()
+                    _uiState.value = ChildProgressUiState.Loading
                 }
-            }.catch {
-                emit(ChildProgressUiState.Error(R.string.child_error_load_children))
+            }.flatMapLatest { user ->
+                flow<ChildProgressUiState> {
+                    emitAll(childrenProgress(user))
+                }.catch {
+                    // Keep observing account changes even after an overview source fails.
+                    emit(ChildProgressUiState.Error(R.string.child_error_load_children))
+                }
             }.collect { state ->
                 _uiState.value = state
             }
         }
     }
 
+    private fun childrenProgress(user: UserProfile?) =
+        if (user != null) {
+            if (user.profileType == ProfileType.PARENT) {
+                getChildrenUseCase(user.id).flatMapLatest { childrenList ->
+                    if (childrenList.isEmpty()) {
+                        flowOf(ChildProgressUiState.Success(user, emptyList()))
+                    } else {
+                        val progressFlows = childrenList.map { getChildProgressUseCase(it.id) }
+                        combine(progressFlows) { progresses ->
+                            ChildProgressUiState.Success(user, progresses.filterNotNull().toList())
+                        }
+                    }
+                }
+            } else {
+                flowOf(ChildProgressUiState.Error(R.string.child_error_parent_only))
+            }
+        } else {
+            flowOf(ChildProgressUiState.Error(R.string.child_error_no_parent_profile))
+        }
+
     /**
      * Loads detailed progress and weak words for a specific child.
      */
     fun selectChild(childId: Long) {
+        val parent = currentUser.value.parentIdentity() ?: return
+        val overview = uiState.value as? ChildProgressUiState.Success ?: return
+        if (overview.parentUser.parentIdentity() != parent ||
+            overview.childrenProgress.none { it.child.id == childId }
+        ) return
+        val previous = selectedChild.value
+        if (previous?.parent == parent && previous.childId == childId &&
+            _detailUiState.value !is ChildDetailUiState.Error
+        ) return
+
         _detailUiState.value = ChildDetailUiState.Loading
+        selectedChild.value = DetailSelection(parent, childId)
+    }
+
+    private fun observeSelectedChild() {
         viewModelScope.launch {
-            combine(
-                getChildProgressUseCase(childId),
-                getChildWeakWordsUseCase(childId)
-            ) { progress, weakWords ->
-                if (progress != null) {
-                    ChildDetailUiState.Success(progress, weakWords)
-                } else {
-                    ChildDetailUiState.Error(R.string.child_error_not_found)
+            selectedChild.flatMapLatest { selection ->
+                if (selection == null) return@flatMapLatest emptyFlow()
+                flow<ChildDetailUiState> {
+                    emitAll(combine(
+                        getChildProgressUseCase(selection.childId),
+                        getChildWeakWordsUseCase(selection.childId)
+                    ) { progress, weakWords ->
+                        if (progress?.child?.id == selection.childId &&
+                            progress.child.parentId == selection.parent.id &&
+                            progress.child.profileType == ProfileType.CHILD
+                        ) {
+                            ChildDetailUiState.Success(progress, weakWords)
+                        } else {
+                            ChildDetailUiState.Error(R.string.child_error_not_found)
+                        }
+                    })
+                }.catch {
+                    emit(ChildDetailUiState.Error(R.string.child_error_load_details))
+                }.map { selection to it }
+            }.collect { (selection, state) ->
+                // flatMapLatest can buffer a result before a replacement/close is processed.
+                if (selectedChild.value === selection &&
+                    currentUser.value.parentIdentity() == selection.parent
+                ) {
+                    _detailUiState.value = state
                 }
-            }.catch {
-                emit(ChildDetailUiState.Error(R.string.child_error_load_details))
-            }.collect { state ->
-                _detailUiState.value = state
             }
         }
     }
@@ -155,6 +215,7 @@ class ChildProgressViewModel @Inject constructor(
      * Resets active child detail view.
      */
     fun clearSelectedChild() {
+        selectedChild.value = null
         _detailUiState.value = ChildDetailUiState.Idle
     }
 

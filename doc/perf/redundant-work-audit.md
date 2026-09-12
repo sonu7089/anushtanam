@@ -21,7 +21,7 @@ P1 means address early because work scales with subscribers/history or occurs on
 | RW-01 | P1 | Account flow creates a listener and profile load per subscriber | Confirmed: two Main subscriptions, five more in Family, another on each correct recitation |
 | RW-02 | P1 | Progress reads the same history through six branches and computes unused results | Confirmed while Progress state is collected |
 | RW-03 | P1 | Home computes unused child details and rebuilds their subscriptions | Confirmed for a local parent with children |
-| RW-04 | P1 | Selecting child details accumulates collectors | Confirmed cancellation gap; old emissions can also replace current detail |
+| RW-04 | P1 | Selecting child details accumulates collectors | Resolved in step 04; counted unit regressions and three physical-device UI tests pass |
 | RW-05 | P1 | Screen-owned work outlives visible screens; child goals have two consumers | Confirmed ownership structure; retained lifetimes depend on navigation |
 | RW-06 | P1 | Target reads scan the ledger; projection rewrites unchanged goals | Confirmed; second repair pass occurs when the first changed entries |
 | RW-07 | P1 | One durable save can lead to several broad backup passes | Confirmed independent triggers; number/timing varies |
@@ -81,6 +81,8 @@ Home also computes an audio `todayCount` that the current ViewModel's non-null `
 **Verify:** opening Home and saving a parent attempt should create no child-history subscriptions for this screen. Opening child progress must still show the same children and correct totals.
 
 ## RW-04 — Repeated child selection leaves earlier work running
+
+**Resolved — step 04, 12 September 2026.** One selected-child `flatMapLatest` pipeline cancels on replacement, close, screen disposal and account change. Request/account/child identity guards reject stale results, and account observation survives overview errors. Counted regressions establish one detail pipeline at a time and none after close; 88 app unit tests and three Pixel 7 Pro UI tests pass. [Implementation and verification evidence](step-04-child-details.md). The following describes the original finding; overview-wide work remains step 09.
 
 **Evidence:** [ChildProgressViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/childprogress/ChildProgressViewModel.kt), `selectChild` around line 134 and `clearSelectedChild` around line 157.
 
