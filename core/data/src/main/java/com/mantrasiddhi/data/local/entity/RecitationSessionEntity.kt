@@ -13,7 +13,8 @@ import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.RecitationMode
 import com.mantrasiddhi.domain.model.RecitationSession
 
-@Entity(tableName = "recitation_sessions", indices = [Index(value = ["userId", "createdAt", "id"]), Index(value = ["userId", "stableId"])])
+@Entity(tableName = "recitation_sessions", indices = [Index(value = ["userId", "createdAt", "id"]),
+    Index(value = ["userId", "stableId"], unique = true), Index(value = ["userId", "acceptedEntryId"], unique = true)])
 data class RecitationSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,
@@ -33,7 +34,9 @@ data class RecitationSessionEntity(
     val correctness: Double = overallScore,
     val completeness: Double = overallScore,
     val pronunciation: Double = overallScore,
-    @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString()
+    @ColumnInfo(defaultValue = "''") val stableId: String = java.util.UUID.randomUUID().toString(),
+    /** Eventual backlink metadata, separate from the immutable assessment. */
+    val acceptedEntryId: String? = null
 ) {
     fun toDomain(): RecitationSession {
         return RecitationSession(
@@ -49,7 +52,7 @@ data class RecitationSessionEntity(
             correctness = correctness,
             completeness = completeness,
             pronunciation = pronunciation,
-            createdAt = createdAt
+            createdAt = createdAt, stableId = stableId
         )
     }
 
@@ -75,7 +78,7 @@ data class RecitationSessionEntity(
                 createdAt = domain.createdAt,
                 correctness = domain.correctness,
                 completeness = domain.completeness,
-                pronunciation = domain.pronunciation
+                pronunciation = domain.pronunciation, stableId = domain.stableId
             )
         }
 

@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TargetDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(target: TargetEntity): Long
 
     @Query("SELECT * FROM targets WHERE userId = :userId AND stableId = :stableId LIMIT 1")

@@ -58,11 +58,16 @@ class PracticeBackupStore @Inject constructor(
         when (payload.text("type")) {
             "session" -> {
                 val old = dao.session(userId, payload.text("id"))
+                require(old == null || old == PracticeRecordCodec.session(payload, userId, old.id).copy(acceptedEntryId = old.acceptedEntryId)) { "Saved assessments are immutable" }
+                val claimedEntry = payload["entryId"] as? String
+                require(old?.acceptedEntryId == null || claimedEntry == null || old.acceptedEntryId == claimedEntry) { "Session entry identity is immutable" }
                 val id = old?.id ?: database.recitationDao().insert(PracticeRecordCodec.session(payload, userId, 0))
+                if (claimedEntry != null) dao.linkSessionEntry(id, claimedEntry)
                 val entry = database.japaDao().entry(payload.text("entryId"))
+                    ?: database.japaDao().audioEntryByStableId(userId, payload.text("id"))
                 if (entry != null) {
                     check(entry.userId == userId)
-                    database.japaDao().putEntry(entry.copy(sessionId = id))
+                    database.japaDao().putEntry(entry.copy(sessionId = id, sessionStableId = payload.text("id")))
                 }
             }
             "sandhya" -> {

@@ -6,7 +6,9 @@ import androidx.room.PrimaryKey
 
 /** A contribution belongs to its original goals for its entire revision history. */
 @Entity(tableName = "japa_entries", indices = [Index(value = ["userId", "dateKey", "period"]),
-    Index(value = ["targetId"]), Index(value = ["vowId"])])
+    Index(value = ["targetId"]), Index(value = ["vowId"]),
+    Index(value = ["userId", "sessionId"], unique = true),
+    Index(value = ["userId", "sessionStableId"], unique = true)])
 data class JapaEntryEntity(
     @PrimaryKey val id: String,
     val userId: Long,
@@ -22,5 +24,7 @@ data class JapaEntryEntity(
     val source: String,
     val sessionId: Long? = null,
     val updatedAtMillis: Long = createdAtMillis,
-    val operationId: String = id
+    val operationId: String = id,
+    /** Retained even when the session has not arrived from backup yet. */
+    val sessionStableId: String? = null
 )

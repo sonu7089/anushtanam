@@ -20,7 +20,7 @@ import com.mantrasiddhi.domain.model.Purashcharana
  */
 @Entity(
     tableName = "purashcharana",
-    indices = [Index(value = ["userId"])]
+    indices = [Index(value = ["userId"]), Index(value = ["userId", "stableId"], unique = true)]
 )
 data class PurashcharanaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

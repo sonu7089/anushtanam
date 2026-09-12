@@ -36,6 +36,10 @@ interface BackupDao {
     suspend fun session(userId: Long, id: String): RecitationSessionEntity?
     @Query("SELECT * FROM recitation_sessions WHERE id = :id")
     suspend fun sessionByLocalId(id: Long): RecitationSessionEntity?
+    @Query("SELECT * FROM recitation_sessions WHERE userId = :userId AND acceptedEntryId = :entryId LIMIT 1")
+    suspend fun sessionForEntry(userId: Long, entryId: String): RecitationSessionEntity?
+    @Query("UPDATE recitation_sessions SET acceptedEntryId = :entryId WHERE id = :sessionId AND acceptedEntryId IS NULL")
+    suspend fun linkSessionEntry(sessionId: Long, entryId: String)
     @Query("SELECT * FROM sandhya_logs WHERE userId = :userId AND id > :after ORDER BY id LIMIT 200")
     suspend fun logs(userId: Long, after: Long): List<SandhyaLogEntity>
     @Query("SELECT * FROM sandhya_logs WHERE userId = :userId AND dateKey = :date AND period = :period LIMIT 1")

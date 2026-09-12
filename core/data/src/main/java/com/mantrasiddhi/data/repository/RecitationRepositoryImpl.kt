@@ -30,9 +30,17 @@ class RecitationRepositoryImpl @Inject constructor(
 
     override suspend fun saveSession(session: RecitationSession): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {
+            require(database.userDao().getById(session.userId) != null) { "Unknown session owner" }
+            require(session.stableId.isNotBlank()) { "Session identity is required" }
+            val old = if (session.id > 0) requireNotNull(database.backupDao().sessionByLocalId(session.id)) {
+                "Unknown saved session"
+            } else database.backupDao().session(session.userId, session.stableId)
+            val row = RecitationSessionEntity.fromDomain(session)
+            if (old != null) {
+                require(row.copy(id = old.id, acceptedEntryId = old.acceptedEntryId) == old) { "Saved assessments are immutable" }
+                return@withTransaction old.id
+            }
             val before = database.japaDao().entries(session.userId)
-            val old = if (session.id > 0) database.backupDao().sessionByLocalId(session.id) else null
-            val row = RecitationSessionEntity.fromDomain(session).let { if (old == null) it else it.copy(stableId = old.stableId) }
             val id = recitationDao.insert(row)
             database.japaDao().recordAudio(id, row)
             if (session.isCorrect && session.mode == com.mantrasiddhi.domain.model.RecitationMode.NORMAL) sync.enqueue(session.userId, before)

@@ -16,7 +16,8 @@ class BackupRecordValidatorTest {
     }
 
     @Test fun `every required entry field is required and extra fields or future schemas are quarantinable`() {
-        for (key in entry().keys) assertNotNull(BackupRecordValidator.validate("entry", "e", entry() - key), key)
+        for (key in entry().keys - "sessionStableId") assertNotNull(BackupRecordValidator.validate("entry", "e", entry() - key), key)
+        assertNull(BackupRecordValidator.validate("entry", "e", entry() - "sessionStableId"))
         assertNotNull(BackupRecordValidator.validate("entry", "wrong", entry()))
         assertNotNull(BackupRecordValidator.validate("entry", "e", entry() + ("extra" to true)))
         assertNotNull(BackupRecordValidator.validate("entry", "e", entry() + ("schemaVersion" to 2)))

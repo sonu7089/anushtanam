@@ -30,7 +30,7 @@ Use JDK 17 or a compatible newer JDK, Android SDK 36, and the included Gradle wr
 .\gradlew.bat :app:connectedDebugAndroidTest :core:data:connectedDebugAndroidTest
 ```
 
-The debug APK is `frontend/android/build/outputs/apk/debug/app-debug.apk`. The application ID, signing configuration and database name are unchanged. The Room schema is at v14. The v13 to v14 migration adds account-scoped restore quarantine and schedules a compatibility scan while preserving history and pending uploads. See [cloud validation and rollout](doc/perf/step-02-validation.md). Release signing still reads the untracked root `keystore.properties`.
+The debug APK is `frontend/android/build/outputs/apk/debug/app-debug.apk`. The application ID, signing configuration and database name are unchanged. The Room schema is at v15. The v14 to v15 migration repairs legacy identity/association collisions before adding uniqueness constraints and preserves original repair snapshots. Saved assessments are immutable; restore supports either association order. See [identity repair and verification](doc/perf/step-03-identities.md) and [cloud validation and rollout](doc/perf/step-02-validation.md). Release signing still reads the untracked root `keystore.properties`.
 
 MF-07 adds Google sign-in, account linking and profile photos. The refreshed Firebase configuration includes the Google OAuth client. See [MF-07 setup and verification](docs/mentor-feedback/mf-07-implementation.md) for the remaining live account checks.
 

@@ -21,6 +21,7 @@ class SandhyaCountRepositoryImpl @Inject constructor(private val dao: SandhyaCou
     override suspend fun discardDraft(userId: Long, id: String) = dao.discardDraft(userId, id)
     override suspend fun save(draft: SandhyaCountDraft): SandhyaCountChange {
         val result = database.withTransaction {
+            require(database.userDao().getById(draft.userId) != null) { "Unknown count owner" }
             val replay = dao.getChange(draft.id)
             if (replay != null) return@withTransaction dao.save(draft, System.currentTimeMillis()).toDomain().copy(feedback = JapaGoalFeedback())
             val before = dao.entries(draft.userId)

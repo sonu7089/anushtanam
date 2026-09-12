@@ -24,8 +24,74 @@ abstract class JapaDao {
     @Query("SELECT * FROM japa_entries WHERE userId = :userId AND sessionId = :sessionId LIMIT 1")
     abstract suspend fun audioEntry(userId: Long, sessionId: Long): JapaEntryEntity?
 
+    @Query("SELECT * FROM japa_entries WHERE userId = :userId AND sessionStableId = :stableId LIMIT 1")
+    abstract suspend fun audioEntryByStableId(userId: Long, stableId: String): JapaEntryEntity?
+
+    @Query("SELECT * FROM recitation_sessions WHERE id = :id")
+    protected abstract suspend fun session(id: Long): RecitationSessionEntity?
+
+    @Query("SELECT * FROM recitation_sessions WHERE userId = :userId AND (stableId = :stableId OR acceptedEntryId = :entryId) ORDER BY id LIMIT 1")
+    protected abstract suspend fun referencedSession(userId: Long, stableId: String?, entryId: String): RecitationSessionEntity?
+
+    @Query("UPDATE recitation_sessions SET acceptedEntryId = :entryId WHERE id = :sessionId AND acceptedEntryId IS NULL")
+    protected abstract suspend fun linkSessionEntry(sessionId: Long, entryId: String)
+
+    @Query("SELECT COUNT(*) FROM identity_repair_archive WHERE tableName = 'japa_entries' AND rowId = :id")
+    protected abstract suspend fun archivedEntry(id: String): Int
+
     @Upsert
-    abstract suspend fun putEntry(entry: JapaEntryEntity)
+    protected abstract suspend fun writeEntry(entry: JapaEntryEntity)
+
+    /** Missing cloud references are eventual; known references must agree before admission. */
+    suspend fun entryRejection(value: JapaEntryEntity): String? {
+        val old = entry(value.id)
+        if (old == null && archivedEntry(value.id) != 0) return "Legacy entry is retained in the identity repair archive"
+        if (old != null) {
+            if (old.userId != value.userId) return "Entry identity belongs to another local profile"
+            if (old.mantraId != value.mantraId || old.source != value.source || old.period != value.period ||
+                old.dateKey != value.dateKey || old.zoneId != value.zoneId || old.createdAtMillis != value.createdAtMillis ||
+                (old.targetId != null && old.targetId != value.targetId) || (old.vowId != null && old.vowId != value.vowId) ||
+                (old.sessionId != null && old.sessionId != value.sessionId) ||
+                (old.sessionStableId != null && old.sessionStableId != value.sessionStableId)) return "Original entry identity/allocation is immutable"
+        }
+        if (value.source == "AUDIO_ACCEPTED") {
+            if (value.quantity != 1L || value.period != null) return "Accepted audio contributes exactly one japa"
+        } else if (value.source != "SANDHYA" || value.period == null || value.sessionId != null || value.sessionStableId != null || value.quantity < 0) {
+            return "Invalid manual entry association"
+        }
+        val target = targets(value.userId).firstOrNull { it.stableId == value.targetId }
+        if (target != null && (target.mantraId != value.mantraId ||
+                (value.source != "AUDIO_ACCEPTED" && target.setByUserId != target.userId))) return "Target ownership/mantra does not permit this entry"
+        val vow = vows(value.userId).firstOrNull { it.stableId == value.vowId }
+        if (vow != null && vow.mantraId != value.mantraId) return "Vow mantra does not match entry"
+        val session = if (value.sessionId != null) session(value.sessionId) ?: return "Unknown local session reference"
+            else referencedSession(value.userId, value.sessionStableId, value.id)
+        if (session != null) {
+            sessionRejection(value, session)?.let { return it }
+            if (audioEntry(value.userId, session.id)?.id?.let { it != value.id } == true) return "Session already has an accepted entry"
+        }
+        if (value.sessionStableId != null && audioEntryByStableId(value.userId, value.sessionStableId)?.id?.let { it != value.id } == true) {
+            return "Session identity already has an accepted entry"
+        }
+        return null
+    }
+
+    fun sessionRejection(entry: JapaEntryEntity, session: RecitationSessionEntity): String? =
+        if (entry.userId != session.userId || entry.mantraId != session.mantraId || entry.source != "AUDIO_ACCEPTED" ||
+            entry.quantity != 1L || entry.period != null || !session.isCorrect || session.mode != "NORMAL" ||
+            entry.createdAtMillis != session.createdAt || (entry.sessionId != null && entry.sessionId != session.id) ||
+            (entry.sessionStableId != null && entry.sessionStableId != session.stableId) ||
+            (session.acceptedEntryId != null && session.acceptedEntryId != entry.id)) "Session and accepted entry disagree" else null
+
+    @Transaction
+    open suspend fun putEntry(entry: JapaEntryEntity) {
+        val session = entry.sessionId?.let { session(it) } ?: referencedSession(entry.userId, entry.sessionStableId, entry.id)
+        val linked = if (session == null) entry else entry.copy(sessionId = entry.sessionId ?: session.id, sessionStableId = entry.sessionStableId ?: session.stableId)
+        val reason = entryRejection(linked)
+        require(reason == null) { reason.orEmpty() }
+        writeEntry(linked)
+        if (session != null) linkSessionEntry(session.id, linked.id)
+    }
 
     @Query("SELECT * FROM targets WHERE userId = :userId ORDER BY startedAtMillis DESC, stableId DESC")
     abstract suspend fun targets(userId: Long): List<TargetEntity>
@@ -59,7 +125,7 @@ abstract class JapaDao {
         // A self-set goal also includes unclaimed practice from earlier on its first day.
         // Use the entry's recorded timezone, never a device's current timezone.
         return candidates.asReversed().firstOrNull {
-            it.setByUserId == it.userId && entry.createdAtMillis > 0 &&
+            it.setByUserId == it.userId && (it.endedAtMillis == null || it.endedAtMillis > it.startedAtMillis) && entry.createdAtMillis > 0 &&
                 entry.createdAtMillis < it.startedAtMillis &&
                 java.time.Instant.ofEpochMilli(it.startedAtMillis).atZone(ZoneId.of(entry.zoneId)).toLocalDate() ==
                     SandhyaDateKey.parse(entry.dateKey) &&
@@ -145,13 +211,15 @@ abstract class JapaDao {
 
     @Transaction
     open suspend fun recordAudio(sessionId: Long, session: RecitationSessionEntity) {
+        val saved = this.session(sessionId)
+        require(saved != null && saved.copy(acceptedEntryId = null) == session.copy(id = sessionId, acceptedEntryId = null)) { "Audio credit requires the persisted immutable assessment" }
         if (!session.isCorrect || session.mode != "NORMAL") return
         if (audioEntry(session.userId, sessionId) != null) return
         val id = java.util.UUID.randomUUID().toString()
         val zone = ZoneId.systemDefault()
         val date = java.time.Instant.ofEpochMilli(session.createdAt).atZone(zone).toLocalDate()
         putEntry(allocate(JapaEntryEntity(id, session.userId, session.mantraId, SandhyaDateKey.of(date), zone.id,
-            null, 1, 1, session.createdAt, null, null, "AUDIO_ACCEPTED", sessionId = sessionId)))
+            null, 1, 1, session.createdAt, null, null, "AUDIO_ACCEPTED", sessionId = sessionId, sessionStableId = session.stableId)))
         project(session.userId, session.createdAt)
     }
 }

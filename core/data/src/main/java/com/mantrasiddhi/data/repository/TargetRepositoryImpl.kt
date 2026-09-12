@@ -30,6 +30,7 @@ class TargetRepositoryImpl @Inject constructor(
 
     override suspend fun create(target: Target): Long = withContext(ioDispatcher) {
         val result = database.withTransaction {
+            require(database.userDao().getById(target.userId) != null) { "Unknown target owner" }
             targetDao.getByStableId(target.userId, target.stableId)?.let { return@withTransaction it.id }
             val before = database.japaDao().entries(target.userId)
             targetDao.closePrevious(target.userId, target.startedAtMillis)
@@ -43,7 +44,11 @@ class TargetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun update(target: Target) = withContext(ioDispatcher) {
-        targetDao.update(TargetEntity.fromDomain(target))
+        database.withTransaction {
+            val old = requireNotNull(targetDao.getById(target.id)) { "Unknown target" }
+            require(old.userId == target.userId && old.stableId == target.stableId && old.mantraId == target.mantraId && old.setByUserId == target.setByUserId) { "Target ownership and identity are immutable" }
+            targetDao.update(TargetEntity.fromDomain(target))
+        }
     }
 
     override suspend fun getActiveForUser(userId: Long): Target? = withContext(ioDispatcher) {

@@ -5,7 +5,7 @@ import com.mantrasiddhi.data.local.entity.*
 /** Explicit fields keep local IDs and account credentials out of the wire format. */
 internal object PracticeRecordCodec {
     fun session(row: RecitationSessionEntity, entryId: String?) = mapOf(
-        "type" to "session", "id" to row.stableId, "entryId" to entryId,
+        "type" to "session", "id" to row.stableId, "entryId" to (entryId ?: row.acceptedEntryId),
         "mantraId" to row.mantraId, "mode" to row.mode, "overallScore" to row.overallScore,
         "wordScoresJson" to row.wordScoresJson, "transcription" to row.transcription,
         "isCorrect" to row.isCorrect, "durationMs" to row.durationMs, "createdAt" to row.createdAt,
@@ -18,7 +18,7 @@ internal object PracticeRecordCodec {
         wordScoresJson = value.text("wordScoresJson"), transcription = value.text("transcription"),
         isCorrect = value["isCorrect"] == true, durationMs = value.number("durationMs"),
         createdAt = value.number("createdAt"), correctness = value.score("correctness"),
-        completeness = value.score("completeness"), pronunciation = value.score("pronunciation")
+        completeness = value.score("completeness"), pronunciation = value.score("pronunciation"), acceptedEntryId = value["entryId"] as? String
     )
 
     fun log(row: SandhyaLogEntity) = mapOf(

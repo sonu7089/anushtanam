@@ -60,6 +60,7 @@ class PurashcharanaRepositoryImpl @Inject constructor(
                     isActive = true
                 )
                 val result = database.withTransaction {
+                    require(database.userDao().getById(userId) != null) { "Unknown vow owner" }
                     check(purashcharanaDao.getActiveForUser(userId) == null)
                     val row = entity.copy(id = purashcharanaDao.insert(entity))
                     sync.enqueue(userId, database.japaDao().entries(userId))
@@ -100,6 +101,7 @@ class PurashcharanaRepositoryImpl @Inject constructor(
             runCatching {
                 // Re-key onto this device's profile and force the row active: the caller
                 // has already decided this sankalpa is the one being carried forward.
+                require(database.userDao().getById(userId) != null) { "Unknown vow owner" }
                 val restored = sankalpa.copy(userId = userId, isActive = true)
                 val existing = purashcharanaDao.getActiveForUser(userId)
                 if (existing != null && database.japaDao().entries(userId).any { it.vowId == existing.stableId }) return@runCatching Unit

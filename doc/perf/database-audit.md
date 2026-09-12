@@ -56,12 +56,12 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | DB-03 | P1, fixed | Child goal rules allowed unexpected fields and invalid counts | Rejection regressions pass; rules deployed |
 | DB-04 | P1, fixed | Invalid owner records could poison restore; canonical writes could omit the feed | Validation/quarantine and atomic feed tests pass; rules deployed |
 | DB-05 | P1 | A settled device has no trigger to receive another device's ledger changes | Confirmed trigger gap; two-device timing test pending |
-| DB-06 | P1 conditional | Legacy target identities collide if a profile has multiple unfinished targets | Exact migration assignment reproduced |
+| DB-06 | P1, resolved locally | Legacy target identities collide if a profile has multiple unfinished targets | Room v15 repair before uniqueness; all supported migration starts verified (see step 03) |
 | DB-07 | P2 | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
 | DB-08 | P2 | Projection and backup repeatedly scan/serialize full history | Confirmed query/call structure |
 | DB-09 | P2 | Home/Progress day-dependent values do not necessarily refresh at midnight | Confirmed missing time input; device boundary test pending |
 | DB-10 | P2 | Missing lookup/order indexes; long lists remain unbounded | SQLite plans and instruction counts |
-| DB-11 | P2 | Database constraints do not enforce several ledger identities/relationships | Exported schema reproduced; normal transactional guards still matter |
+| DB-11 | P2, resolved locally | Database constraints do not enforce several ledger identities/relationships | Unique identities/associations, immutable assessments and eventual-reference admission verified (see step 03) |
 | DB-12 | P2 boundary, fixed locally | Valid per-entry Long values can overflow a merged manual-period total | Exact Long aggregate admission bound; excess retained for repair |
 
 P1 means address before claiming reliable multi-device counting. “Conditional” and “boundary” identify prerequisites, not evidence of existing user data loss.
@@ -144,6 +144,8 @@ Scenario: devices A and B are fully settled; A adds manual japa and syncs; B mak
 
 **Fix:** define a deterministic compatibility identity per logical legacy goal, explicitly choose any single mirror-compatible active goal, and preserve distinct historical rows. Repair existing duplicates and their allocations before adding uniqueness. Test databases with multiple unfinished legacy targets, completed targets and several profiles; do not regenerate all IDs indiscriminately and break existing cloud associations.
 
+**DB-06 resolution:** [Step 03's identity repair](step-03-identities.md) preserves the evidenced canonical cloud identity, repairs colliding rows and allocations, archives originals, then enforces uniqueness. Device verification covers all supported migration starting versions and deterministic compatibility IDs across different local profile/row numbers. Previously overwritten cloud distinctions cannot be reconstructed automatically; see the documented repair limits.
+
 ### DB-07 — Daily analytics seed is knowingly approximate
 
 [FirestoreProgressRepositoryImpl.buildSeedData](../../core/data/src/main/java/com/mantrasiddhi/data/remote/FirestoreProgressRepositoryImpl.kt), lines 98–124, uses correct-session count for daily total attempts and multiplies that count by the lifetime average score for daily score sum. A day containing one score-1.0 correct attempt and another day containing one score-0.0 failed attempt yields lifetime average 0.5; the first day's seeded average becomes 0.5 and the failed-only day disappears. Future increments do not repair the missing historical daily values.
@@ -195,6 +197,8 @@ The v13 schema has no foreign keys on any of its 14 tables. `targets` has no ind
 Restore, migration, direct DAO calls and future writers still rely on conventions. The public `saveSession` supports replacing an existing assessment, while `recordAudio` returns early for an existing accepted entry or a newly incorrect assessment; changing eligibility can leave the old credit intact. Current evaluation inserts new sessions, so treat this as an API invariant to close, not a demonstrated user edit flow.
 
 **Fix:** make saved assessments explicitly immutable or implement a transactional correction protocol; use stable operation IDs for retriable inserts. Audit duplicates/orphans before adding uniqueness and appropriate ownership references. Restore ordering deliberately allows a ledger entry to arrive before its session/goal, so immediate foreign keys cannot simply be added everywhere; use staging or deferred validation. Prefer preserving history over cascading deletes. Document which references are intentionally eventual.
+
+**DB-11 resolution:** [Step 03's contracts and verification](step-03-identities.md) add immutable assessment saves with stable-ID retries, database uniqueness, validated ownership/known references, persistent eventual associations and per-record quarantine. Verified 548 unit tests, 50 Room/contract device tests and three Firebase recovery device tests. Immediate goal/session foreign keys remain intentionally absent to support either restore order; raw SQL remains a trusted migration/internal boundary.
 
 ### DB-12 — Merged manual totals can exceed Long capacity
 

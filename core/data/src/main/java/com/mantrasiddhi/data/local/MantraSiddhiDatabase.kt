@@ -53,9 +53,10 @@ import com.mantrasiddhi.data.local.entity.UserProfileEntity
         BackupQueueState::class,
         BackupStateEntity::class,
         BackupConflictEntity::class,
-        BackupQuarantineEntity::class
+        BackupQuarantineEntity::class,
+        com.mantrasiddhi.data.local.entity.IdentityRepairEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -73,6 +74,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "mantra_siddhi_db"
+
+        val MIGRATION_14_15: Migration = IdentityRepairMigration
 
         /** Mantra recorded for rows that predate the multi-mantra catalog (v7). */
         private const val LEGACY_MANTRA_ID = RecitationSessionEntity.LEGACY_MANTRA_ID
@@ -346,7 +349,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                     }, java.util.concurrent.Executor { it.run() })
                 }
             }
-            // Contiguous v1 to v14 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v15 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -363,7 +366,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_10_11,
                 MIGRATION_11_12,
                 MIGRATION_12_13,
-                MIGRATION_13_14
+                MIGRATION_13_14,
+                MIGRATION_14_15
             )
             .build()
         }

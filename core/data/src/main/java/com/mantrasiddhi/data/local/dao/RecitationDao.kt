@@ -18,7 +18,7 @@ data class CorrectDayCount(val dateKey: String, val count: Int)
 
 @Dao
 interface RecitationDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(session: RecitationSessionEntity): Long
 
     @Query("SELECT * FROM recitation_sessions WHERE userId = :userId ORDER BY id DESC")

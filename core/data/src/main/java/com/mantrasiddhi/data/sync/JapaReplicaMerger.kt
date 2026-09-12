@@ -44,13 +44,15 @@ internal class JapaReplicaMerger(private val database: MantraSiddhiDatabase) {
             for (value in entries) {
                 val old = dao.entry(value.text("id"))
                 check(old == null || old.userId == userId)
-                val sessionId = database.backupDao().session(userId, value.text("sessionStableId"))?.id ?: old?.sessionId
+                val sessionId = (database.backupDao().session(userId, value.text("sessionStableId"))
+                    ?: database.backupDao().sessionForEntry(userId, value.text("id")))?.id ?: old?.sessionId
                 if (JapaSyncPolicy.newer(value, old?.payload())) dao.putEntry(JapaEntryEntity(
                     id = value.text("id"), userId = userId, mantraId = value.text("mantraId"), dateKey = value.text("dateKey"),
                     zoneId = value.text("zoneId"), period = value["period"] as? String, quantity = value.number("quantity"),
                     revision = value.number("revision"), createdAtMillis = value.number("createdAtMillis"),
                     targetId = value["targetId"] as? String, vowId = value["vowId"] as? String, source = value.text("source"),
-                    sessionId = sessionId, updatedAtMillis = value.number("updatedAtMillis"), operationId = value.text("operationId")))
+                    sessionId = sessionId, updatedAtMillis = value.number("updatedAtMillis"), operationId = value.text("operationId"),
+                    sessionStableId = value["sessionStableId"] as? String ?: old?.sessionStableId))
                 else if (old != null && old.sessionId == null && sessionId != null) dao.putEntry(old.copy(sessionId = sessionId))
             }
             if (!project) return@withTransaction false

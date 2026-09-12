@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 interface RecitationRepository {
+    /** Inserts an immutable assessment; an identical stable-ID retry returns its original ID. */
     suspend fun saveSession(session: RecitationSession): Long
     fun getSessionsForUser(userId: Long): Flow<List<RecitationSession>>
     /** Bounded history for the live recitation path; storage implementations limit in SQL. */

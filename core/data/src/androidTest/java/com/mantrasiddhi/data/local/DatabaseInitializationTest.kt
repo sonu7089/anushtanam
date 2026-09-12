@@ -130,7 +130,7 @@ class DatabaseInitializationTest {
             id = "audio-$userId", userId = userId, mantraId = "gayatri", dateKey = "20231114",
             zoneId = "Asia/Kolkata", period = null, quantity = 1, revision = 1,
             createdAtMillis = 1700000000000L, targetId = "target-$userId", vowId = "vow-$userId",
-            source = "AUDIO", sessionId = sessionId
+            source = "AUDIO_ACCEPTED", sessionId = sessionId
         ))
     }
 

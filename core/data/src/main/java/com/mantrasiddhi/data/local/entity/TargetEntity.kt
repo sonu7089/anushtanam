@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.model.Target
 
-@Entity(tableName = "targets")
+@Entity(tableName = "targets", indices = [androidx.room.Index(value = ["userId", "stableId"], unique = true)])
 data class TargetEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,

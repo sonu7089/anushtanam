@@ -33,7 +33,7 @@ class JapaCloudSync @Inject constructor(
         val previous = before.associateBy { it.id }
         for (entry in dao.entries(userId)) if (entry != previous[entry.id]) {
             val session = entry.sessionId?.let { database.backupDao().sessionByLocalId(it) }
-            backup.enqueue(uid, SyncKind.JAPA_ENTRY, entry.payload() + ("sessionStableId" to session?.stableId))
+            backup.enqueue(uid, SyncKind.JAPA_ENTRY, entry.payload() + ("sessionStableId" to (session?.stableId ?: entry.sessionStableId)))
         }
         for (target in dao.targets(userId).filter { it.userId == it.setByUserId }) {
             backup.enqueue(uid, SyncKind.JAPA_GOAL, mapOf(
@@ -287,7 +287,8 @@ class JapaCloudSync @Inject constructor(
 internal fun JapaEntryEntity.payload(): Map<String, Any?> = mapOf(
     "id" to id, "mantraId" to mantraId, "dateKey" to dateKey, "zoneId" to zoneId, "period" to period,
     "quantity" to quantity, "revision" to revision, "createdAtMillis" to createdAtMillis,
-    "targetId" to targetId, "vowId" to vowId, "source" to source, "updatedAtMillis" to updatedAtMillis, "operationId" to operationId)
+    "targetId" to targetId, "vowId" to vowId, "source" to source, "updatedAtMillis" to updatedAtMillis, "operationId" to operationId,
+    "sessionStableId" to sessionStableId)
 internal fun Map<String, Any?>.text(key: String) = this[key] as? String ?: ""
 internal fun Map<String, Any?>.number(key: String) = numberOrNull(key) ?: 0
 internal fun Map<String, Any?>.numberOrNull(key: String) = (this[key] as? Number)?.toLong()
