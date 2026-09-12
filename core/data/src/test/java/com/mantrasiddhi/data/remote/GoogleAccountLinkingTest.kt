@@ -8,6 +8,7 @@ import com.mantrasiddhi.domain.model.*
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.toList
 import org.junit.jupiter.api.Test
@@ -22,8 +23,11 @@ class GoogleAccountLinkingTest {
     private val provider = mockk<UserInfo>(relaxed = true)
     private val fields = mutableMapOf<String, Any?>("role" to "PARENT", "displayName" to "Amma", "photoSource" to "LOCAL")
     private var linked = false
-    private val repository = FirebaseAuthRepositoryImpl(auth, firestore, mockk(relaxed = true),
-        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+    private lateinit var repository: FirebaseAuthRepositoryImpl
+    private fun TestScope.createRepository() {
+        repository = FirebaseAuthRepositoryImpl(auth, firestore, mockk(relaxed = true),
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), backgroundScope)
+    }
 
     private fun <T> task(value: T? = null, failure: Exception? = null): Task<T> {
         val task = mockk<Task<T>>()
@@ -37,6 +41,8 @@ class GoogleAccountLinkingTest {
     }
 
     init {
+        every { auth.addAuthStateListener(any()) } just Runs
+        every { auth.removeAuthStateListener(any()) } just Runs
         every { auth.currentUser } returns user
         every { user.uid } returns "original-owner"
         every { user.email } returns "meera@example.com"
@@ -60,6 +66,7 @@ class GoogleAccountLinkingTest {
     }
 
     @Test fun `linking never replaces the uid name role or chosen cloud photo`() = runTest {
+        createRepository()
         every { user.linkWithCredential(any()) } answers {
             linked = true
             task(mockk<AuthResult> { every { user } returns this@GoogleAccountLinkingTest.user })
@@ -74,6 +81,7 @@ class GoogleAccountLinkingTest {
     }
 
     @Test fun `credential already owned elsewhere returns collision without switching accounts`() = runTest {
+        createRepository()
         every { user.linkWithCredential(any()) } returns task(failure = mockk<FirebaseAuthUserCollisionException>(relaxed = true))
         val error = repository.linkGoogle("test-token", "original-owner").exceptionOrNull()
         assertEquals(GoogleAuthProblem.COLLISION, (error as GoogleAuthFailure).problem)
@@ -82,12 +90,14 @@ class GoogleAccountLinkingTest {
     }
 
     @Test fun `stale settings screen cannot link to a different signed in uid`() = runTest {
+        createRepository()
         val error = repository.linkGoogle("test-token", "someone-else").exceptionOrNull()
         assertEquals(GoogleAuthProblem.WRONG_ACCOUNT, (error as GoogleAuthFailure).problem)
         verify(exactly = 0) { user.linkWithCredential(any()); auth.signInWithCredential(any()) }
     }
 
     @Test fun `existing ID and PIN child can link Google without changing ID role or UID`() = runTest {
+        createRepository()
         fields["role"] = "CHILD"
         fields["linkCode"] = "123456789012"
         every { user.email } returns "c123456789012@child.anushtanam.app"
@@ -106,10 +116,12 @@ class GoogleAccountLinkingTest {
     }
 
     @Test fun `child entry rejects an existing adult Google account and signs it out`() = runTest {
+        createRepository()
         assertWrongRole(AccountRole.CHILD)
     }
 
     @Test fun `adult entry rejects an existing child Google account and preserves its role`() = runTest {
+        createRepository()
         fields["role"] = "CHILD"
         assertWrongRole(AccountRole.PARENT)
         assertEquals("CHILD", fields["role"])
@@ -117,6 +129,7 @@ class GoogleAccountLinkingTest {
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     @Test fun `profile observers refresh after linking even when Firebase UID does not change`() = runTest {
+        createRepository()
         every { auth.addAuthStateListener(any()) } answers {
             firstArg<FirebaseAuth.AuthStateListener>().onAuthStateChanged(auth)
         }
@@ -132,6 +145,21 @@ class GoogleAccountLinkingTest {
         repository.linkGoogle("test-token", "original-owner").getOrThrow()
         runCurrent()
         assertTrue(observed.last()!!.googleLinked)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test fun `seven subscribers and twenty correct attempts attach and resolve only once`() = runTest {
+        fields["role"] = "CHILD"
+        createRepository()
+        repeat(7) { backgroundScope.launch { repository.currentAccount.collect { } } }
+        runCurrent()
+        val goals = mockk<com.mantrasiddhi.domain.repository.GoalRepository>(relaxed = true)
+        coEvery { goals.incrementActiveGoalProgress("original-owner") } returns Result.success(false)
+        val increment = com.mantrasiddhi.domain.usecase.IncrementActiveCloudGoalUseCase(repository, goals)
+        repeat(20) { assertTrue(increment("original-owner").isSuccess) }
+        verify(exactly = 1) { auth.addAuthStateListener(any()); ref.get() }
+        verify(exactly = 0) { ref.get(Source.SERVER) }
+        coVerify(exactly = 20) { goals.incrementActiveGoalProgress("original-owner") }
     }
 
     private suspend fun assertWrongRole(requested: AccountRole) {

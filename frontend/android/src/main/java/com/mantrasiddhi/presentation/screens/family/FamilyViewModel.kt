@@ -27,8 +27,18 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -70,41 +80,66 @@ class FamilyViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            observeAuthAccountUseCase().collect { account ->
-                if (account?.uid != _uiState.value.account?.uid) {
-                    inviteWatch?.cancel()
-                    _uiState.value = FamilyUiState(account = account)
-                    selectedChildUid.value = null
+            observeAuthAccountUseCase()
+                .onEach { account ->
+                    val previous = _uiState.value.account
+                    if (account?.uid != previous?.uid || account?.role != previous?.role) {
+                        inviteWatch?.cancel()
+                        _uiState.value = FamilyUiState(account = account)
+                        selectedChildUid.value = null
+                    } else _uiState.update { it.copy(account = account) }
                 }
-                _uiState.update { it.copy(account = account) }
-            }
-        }
-        viewModelScope.launch {
-            observeAuthAccountUseCase().flatMapLatest { acc ->
-                if (acc?.role == AccountRole.PARENT) observeLinkedChildrenUseCase() else flowOf(emptyList())
-            }.collect { children -> _uiState.update { it.copy(linkedChildren = children) } }
-        }
-        viewModelScope.launch {
-            observeAuthAccountUseCase().flatMapLatest { acc ->
-                if (acc?.role == AccountRole.CHILD) observePendingLinkRequestsUseCase() else flowOf(emptyList())
-            }.collect { reqs -> _uiState.update { it.copy(pendingRequests = reqs) } }
-        }
-        viewModelScope.launch {
-            observeAuthAccountUseCase().flatMapLatest { acc ->
-                if (acc?.role == AccountRole.CHILD) observeChildGoalsUseCase() else flowOf(emptyList())
-            }.collect { goals -> _uiState.update { it.copy(myGoals = goals) } }
-        }
-        viewModelScope.launch {
-            observeAuthAccountUseCase().flatMapLatest { account ->
-                if (account?.role == AccountRole.CHILD) links.approvedParentsForChild() else flowOf(emptyList())
-            }.collect { parents -> _uiState.update { it.copy(linkedParents = parents) } }
+                .distinctUntilChangedBy { it?.let { account -> account.uid to account.role } }
+                .collectLatest { account ->
+                    // Children belong to this account job; a replacement cancels all of them.
+                    coroutineScope {
+                        if (account?.role == AccountRole.PARENT) {
+                            launch {
+                                accountData { observeLinkedChildrenUseCase() }.collect { children ->
+                                    _uiState.update { if (it.account?.uid == account.uid && it.account.role == account.role)
+                                        it.copy(linkedChildren = children) else it }
+                                }
+                            }
+                        } else if (account?.role == AccountRole.CHILD) {
+                            launch {
+                                accountData { observePendingLinkRequestsUseCase() }.collect { requests ->
+                                    _uiState.update { if (it.account?.uid == account.uid && it.account.role == account.role)
+                                        it.copy(pendingRequests = requests) else it }
+                                }
+                            }
+                            launch {
+                                accountData { observeChildGoalsUseCase(account.uid) }.collect { goals ->
+                                    _uiState.update { if (it.account?.uid == account.uid && it.account.role == account.role)
+                                        it.copy(myGoals = goals) else it }
+                                }
+                            }
+                            launch {
+                                accountData { links.approvedParentsForChild() }.collect { parents ->
+                                    _uiState.update { if (it.account?.uid == account.uid && it.account.role == account.role)
+                                        it.copy(linkedParents = parents) else it }
+                                }
+                            }
+                        }
+                    }
+                }
         }
         viewModelScope.launch {
             selectedChildUid.flatMapLatest { uid ->
-                if (uid != null) observeGoalsForChildUseCase(uid) else flowOf(emptyList())
-            }.collect { goals -> _uiState.update { it.copy(selectedChildGoals = goals) } }
+                val owner = _uiState.value.account?.uid
+                if (uid != null && owner != null) accountData { observeGoalsForChildUseCase(uid) }.map { Triple(owner, uid, it) }
+                else flowOf(null)
+            }.buffer(0).collect { result ->
+                if (result != null) _uiState.update {
+                    if (it.account?.uid == result.first && selectedChildUid.value == result.second)
+                        it.copy(selectedChildGoals = result.third) else it
+                }
+            }
         }
     }
+
+    // A failed section must not terminate identity observation and retain an old account.
+    private fun <T> accountData(source: () -> Flow<List<T>>): Flow<List<T>> =
+        flow { emitAll(source()) }.catch { emit(emptyList()) }
 
     fun requestLink(childCode: String, pin: String) = runLink {
         links.linkWithPin(childCode, pin).getOrThrow()

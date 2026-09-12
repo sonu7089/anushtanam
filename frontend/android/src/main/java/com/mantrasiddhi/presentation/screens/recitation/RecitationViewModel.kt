@@ -564,9 +564,9 @@ class RecitationViewModel @Inject constructor(
             if (evaluation.isCorrect) {
                 viewModelScope.launch {
                     cloudGoalMutex.withLock {
-                        if (activeUser?.id == user.id) {
+                        if (activeUser?.id == user.id && activeUser?.firebaseUid == user.firebaseUid) {
                             try {
-                                withTimeoutOrNull(8_000L) { incrementActiveCloudGoalUseCase() }
+                                withTimeoutOrNull(8_000L) { incrementActiveCloudGoalUseCase(user.firebaseUid) }
                             } catch (cancelled: CancellationException) {
                                 throw cancelled
                             } catch (_: Exception) {

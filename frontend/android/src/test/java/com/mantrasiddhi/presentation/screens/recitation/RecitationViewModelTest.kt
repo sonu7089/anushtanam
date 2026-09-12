@@ -77,7 +77,7 @@ class RecitationViewModelTest {
 
         soundEffectsPlayer = mockk(relaxed = true)
         cloudGoal = mockk(relaxed = true)
-        coEvery { cloudGoal() } returns Result.success(false)
+        coEvery { cloudGoal(any()) } returns Result.success(false)
         coEvery { evaluateRecitationUseCase(any(), any(), any(), any(), any(), any(), any()) } returns
             MantraEvaluation(1f, emptyList(), true, emptyList(), emptyList(), 5000L)
 
@@ -133,7 +133,7 @@ class RecitationViewModelTest {
     }
     @Test
     fun `back to back japa count immediately while cloud goal is stalled and stay silent`() = runTest {
-        coEvery { cloudGoal() } coAnswers { awaitCancellation() }
+        coEvery { cloudGoal(any()) } coAnswers { awaitCancellation() }
         every { speechRecognitionService.startListening() } returns flow {
             emit(SpeechResult.Partial("om prachodayat"))
             delay(400)

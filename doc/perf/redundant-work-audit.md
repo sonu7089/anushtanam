@@ -18,7 +18,7 @@ P1 means address early because work scales with subscribers/history or occurs on
 
 | ID | Priority | Finding | Trigger / confidence |
 | --- | --- | --- | --- |
-| RW-01 | P1 | Account flow creates a listener and profile load per subscriber | Confirmed: two Main subscriptions, five more in Family, another on each correct recitation |
+| RW-01 | P1 | Account flow creates a listener and profile load per subscriber | Resolved in step 05; shared resolution, coalesced refresh, UID-bound chant checks and counted regressions |
 | RW-02 | P1 | Progress reads the same history through six branches and computes unused results | Confirmed while Progress state is collected |
 | RW-03 | P1 | Home computes unused child details and rebuilds their subscriptions | Confirmed for a local parent with children |
 | RW-04 | P1 | Selecting child details accumulates collectors | Resolved in step 04; counted unit regressions and three physical-device UI tests pass |
@@ -34,6 +34,8 @@ P1 means address early because work scales with subscribers/history or occurs on
 | RW-14 | P3 | Layered backgrounds and chart animations are rendering candidates | Overlapping layers/restarts exist; wasted GPU work is not measured |
 
 ## RW-01 — Share account observation before the expensive work
+
+**Resolved in step 05 (12 September 2026):** [implementation and verification](step-05-account-state.md). One account producer serves all consumers; final device probes retain one listener/load/profile get across Home, Family and resume. The original evidence below describes the pre-fix implementation.
 
 **Evidence:** [FirebaseAuthRepositoryImpl](../../core/data/src/main/java/com/mantrasiddhi/data/remote/FirebaseAuthRepositoryImpl.kt), `currentAccount` around line 75 and `loadAccount` around line 401; [AuthUseCases](../../core/domain/src/main/kotlin/com/mantrasiddhi/domain/usecase/AuthUseCases.kt); [MainViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/MainViewModel.kt); [FamilyViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/family/FamilyViewModel.kt), lines 71–105.
 
@@ -93,6 +95,8 @@ Every selection launches a new untracked collecting coroutine combining child pr
 **Verify:** rapidly select A → B → A → close, then update both children. At most one detail pipeline may exist, and none after close; old results must never replace current selection. This is also a correctness fix, not just a CPU optimization.
 
 ## RW-05 — Screen lifetime and producer lifetime are mismatched
+
+**Partially resolved in step 05:** [account-keyed child-goal sharing](step-05-account-state.md) removes duplicate Main/Family mapping while preserving notification baselines. General visible-demand/lifecycle work remains step 09; the original evidence below records the broader finding.
 
 **Evidence:** direct `viewModelScope.launch { ...collect... }` in [HomeViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/home/HomeViewModel.kt), [FamilyViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/family/FamilyViewModel.kt), [TargetsViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/targets/TargetsViewModel.kt), [PurashcharanaViewModel](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/screens/purashcharana/PurashcharanaViewModel.kt) and child progress. [FloatingNavigationBar](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/navigation/FloatingNavigationBar.kt), lines 48–55, saves/restores destination state.
 

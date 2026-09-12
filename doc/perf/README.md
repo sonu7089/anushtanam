@@ -103,6 +103,8 @@ Home reflection already attempts cache first and is outside the dashboard's load
 
 ### UI-06 — Account and reminder work extends the entry gate
 
+**Account-sharing portion resolved in step 05:** [implementation, gate regressions and device counts](step-05-account-state.md). One resolved account producer serves startup and other consumers; unresolved, recovery and child-setup gates remain explicit. Ancillary startup/reminder work remains open for steps 10/11. The following paragraphs retain the original evidence.
+
 [FirebaseAuthRepositoryImpl.kt](../../core/data/src/main/java/com/mantrasiddhi/data/remote/FirebaseAuthRepositoryImpl.kt), lines 74–98 and 401–422, loads the Firestore user document before emitting the account, with a 4,000 ms timeout around default-source `get()`. A stalled request can consume that budget before fallback. It is not a guaranteed four-second wait; cached/default-source behavior can finish earlier.
 
 [MainViewModel.kt](../../frontend/android/src/main/java/com/mantrasiddhi/presentation/MainViewModel.kt), `openStartupProfile`, awaits [SyncSignedInUserUseCase.kt](../../core/data/src/main/java/com/mantrasiddhi/data/session/SyncSignedInUserUseCase.kt). That bridge performs profile writes, DataStore writes, session login, `scheduleAll()` and a recovery request before the gate becomes Authenticated. [MantraSiddhiApplication.kt](../../frontend/android/src/main/java/com/mantrasiddhi/MantraSiddhiApplication.kt) also schedules reminders at startup. Both calls use the scheduler's mutex, potentially serializing duplicate work.

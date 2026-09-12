@@ -41,6 +41,13 @@ object FirebaseProvidesModule {
 
     @Provides
     @Singleton
+    @AccountScope
+    fun provideAccountScope(): kotlinx.coroutines.CoroutineScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+    )
+
+    @Provides
+    @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = Firebase.auth
 
     @Provides

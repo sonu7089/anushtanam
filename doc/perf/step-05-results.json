@@ -1,0 +1,114 @@
+{
+  "date": "2026-09-12",
+  "device": "Pixel 7 Pro",
+  "scope": "One existing signed-in account; work counters only, no timing or billed-read claim",
+  "benchmarkApkSha256": "970f32bc292681ce180bf4705fcb2431663993a0b40903f6c7dc4972d607c28b",
+  "samples": {
+    "startup": {
+      "pid": 27298,
+      "elapsedMs": 668858860,
+      "cpuMs": 2346,
+      "counts": {
+        "auth.listener.attach": 1,
+        "auth.loadAccount": 1,
+        "auth.profile.get": 1,
+        "room.BEGIN.other": 17,
+        "room.CREATE.user_profiles": 3,
+        "room.END.other": 17,
+        "room.INSERT.other": 1,
+        "room.INSERT.user_profiles": 1,
+        "room.SELECT.backup_state": 5,
+        "room.SELECT.japa_entries": 5,
+        "room.SELECT.other": 28,
+        "room.SELECT.purashcharana": 2,
+        "room.SELECT.recitation_sessions": 3,
+        "room.SELECT.sandhya_logs": 1,
+        "room.SELECT.targets": 3,
+        "room.SELECT.user_profiles": 7,
+        "room.TRANSACTION.other": 17,
+        "room.UPDATE.user_profiles": 1,
+        "sessions.materializedRows": 1,
+        "subscriptions.japa.history": 1,
+        "subscriptions.sessions.full": 1
+      },
+      "active": {
+        "japa.history": 1,
+        "sessions.full": 1
+      }
+    },
+    "family": {
+      "pid": 27298,
+      "elapsedMs": 668890382,
+      "cpuMs": 9386,
+      "counts": {
+        "auth.listener.attach": 1,
+        "auth.loadAccount": 1,
+        "auth.profile.get": 1,
+        "room.BEGIN.other": 27,
+        "room.CREATE.backup_conflicts": 3,
+        "room.CREATE.other": 6,
+        "room.CREATE.user_profiles": 3,
+        "room.DROP.backup_conflicts": 3,
+        "room.DROP.other": 6,
+        "room.END.other": 27,
+        "room.INSERT.other": 4,
+        "room.INSERT.user_profiles": 1,
+        "room.SELECT.backup_conflicts": 1,
+        "room.SELECT.backup_state": 6,
+        "room.SELECT.japa_entries": 15,
+        "room.SELECT.other": 36,
+        "room.SELECT.purashcharana": 3,
+        "room.SELECT.recitation_sessions": 19,
+        "room.SELECT.sandhya_logs": 1,
+        "room.SELECT.targets": 9,
+        "room.SELECT.user_profiles": 9,
+        "room.TRANSACTION.other": 27,
+        "room.UPDATE.user_profiles": 1,
+        "sessions.materializedRows": 12,
+        "subscriptions.japa.history": 4,
+        "subscriptions.sessions.full": 12
+      },
+      "active": {
+        "japa.history": 2,
+        "sessions.full": 2
+      }
+    },
+    "resume": {
+      "pid": 27298,
+      "elapsedMs": 668942239,
+      "cpuMs": 10676,
+      "counts": {
+        "auth.listener.attach": 1,
+        "auth.loadAccount": 1,
+        "auth.profile.get": 1,
+        "room.BEGIN.other": 43,
+        "room.CREATE.backup_conflicts": 3,
+        "room.CREATE.other": 6,
+        "room.CREATE.user_profiles": 3,
+        "room.DROP.backup_conflicts": 3,
+        "room.DROP.other": 6,
+        "room.END.other": 43,
+        "room.INSERT.other": 4,
+        "room.INSERT.user_profiles": 2,
+        "room.SELECT.backup_conflicts": 1,
+        "room.SELECT.backup_state": 10,
+        "room.SELECT.japa_entries": 20,
+        "room.SELECT.other": 63,
+        "room.SELECT.purashcharana": 5,
+        "room.SELECT.recitation_sessions": 22,
+        "room.SELECT.sandhya_logs": 2,
+        "room.SELECT.targets": 12,
+        "room.SELECT.user_profiles": 20,
+        "room.TRANSACTION.other": 43,
+        "room.UPDATE.user_profiles": 2,
+        "sessions.materializedRows": 13,
+        "subscriptions.japa.history": 5,
+        "subscriptions.sessions.full": 13
+      },
+      "active": {
+        "japa.history": 3,
+        "sessions.full": 3
+      }
+    }
+  }
+}

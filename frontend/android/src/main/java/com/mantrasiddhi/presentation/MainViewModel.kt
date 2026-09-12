@@ -27,8 +27,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.CancellationException
+import com.mantrasiddhi.domain.model.AccountResolution
 import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.repository.SessionRepository
 import com.mantrasiddhi.domain.repository.AuthRepository
@@ -65,14 +69,20 @@ class MainViewModel @Inject constructor(
     private val _authGateState = MutableStateFlow<AuthGateState>(AuthGateState.Loading)
     val authGateState: StateFlow<AuthGateState> = _authGateState.asStateFlow()
     private var startupAccount: AuthAccount? = null
+    private val profileOpenMutex = Mutex()
+    private var openedAccount: AuthAccount? = null
+    private var startupEpoch = 0L
 
     fun retryOpeningProfile() {
-        if (startupAccount == null) return
+        val expected = startupAccount ?: return
+        val epoch = startupEpoch
         if (_authGateState.value == AuthGateState.Loading) return
+        _authGateState.value = AuthGateState.Loading
         viewModelScope.launch {
-            _authGateState.value = AuthGateState.Loading
+            if (startupEpoch != epoch) return@launch
             val refreshed = auth.refreshAccount().getOrNull()
-            if (refreshed != null) {
+            if (startupEpoch != epoch || startupAccount?.uid != expected.uid) return@launch
+            if (refreshed != null && refreshed.uid == expected.uid) {
                 startupAccount = refreshed
                 openStartupProfile(refreshed)
             } else _authGateState.value = AuthGateState.NeedsRecovery
@@ -81,40 +91,83 @@ class MainViewModel @Inject constructor(
 
     fun signOutFromRecovery() { viewModelScope.launch { signOut() } }
 
-    private suspend fun openStartupProfile(account: AuthAccount) {
+    private suspend fun openStartupProfile(account: AuthAccount) = profileOpenMutex.withLock {
+        val epoch = startupEpoch
+        if (startupAccount?.uid != account.uid) return@withLock
+        if (openedAccount == account && _authGateState.value == AuthGateState.Authenticated) return@withLock
         if (account.profileNeedsSync && account.googleLinked) {
             _authGateState.value = AuthGateState.NeedsRecovery
-            return
+            return@withLock
         }
         if (account.needsChildPinSetup) {
             _authGateState.value = AuthGateState.NeedsChildSetup
-            return
+            return@withLock
         }
         _authGateState.value = AuthGateState.Loading
         try {
             syncSignedInUserUseCase(account)
-            _authGateState.value = AuthGateState.Authenticated
+            if (startupEpoch == epoch && startupAccount?.uid == account.uid) {
+                openedAccount = account
+                _authGateState.value = AuthGateState.Authenticated
+            }
         } catch (cancelled: CancellationException) { throw cancelled }
-        catch (_: Exception) { _authGateState.value = AuthGateState.NeedsRecovery }
+        catch (_: Exception) {
+            if (startupEpoch == epoch && startupAccount?.uid == account.uid) _authGateState.value = AuthGateState.NeedsRecovery
+        }
     }
 
     init {
         // Decide the entry route and bridge the cloud account to a local profile.
         viewModelScope.launch {
-            observeAuthAccountUseCase()
-                .distinctUntilChangedBy { it?.uid }
-                .collectLatest { account ->
-                    if (account == null) {
-                        session.logout()
+            var restoreProfile = true
+            var owner: String? = null
+            auth.accountResolution.distinctUntilChangedBy { resolution ->
+                when (resolution) {
+                    is AccountResolution.Resolved -> resolution.account.let {
+                        listOf(it.uid, it.role, it.googleLinked, it.profileNeedsSync, it.needsChildPinSetup)
+                    }
+                    else -> resolution
+                }
+            }.collectLatest { resolution ->
+                when (resolution) {
+                    is AccountResolution.Unresolved -> {
+                        if (owner != null && owner != resolution.uid) {
+                            startupEpoch++
+                            startupAccount = null
+                            owner = null
+                            openedAccount = null
+                            restoreProfile = true
+                            session.logout()
+                        }
+                        if (restoreProfile) _authGateState.value = AuthGateState.Loading
+                    }
+                    AccountResolution.SignedOut -> {
+                        startupEpoch++
                         startupAccount = null
+                        owner = null
+                        openedAccount = null
+                        restoreProfile = false
+                        session.logout()
                         _authGateState.value = AuthGateState.Unauthenticated
-                    } else if (_authGateState.value == AuthGateState.Loading) {
-                        // Interactive auth screens own new sign-ins and their import choice.
-                        // Only a persisted session is restored here, once at app startup.
-                        startupAccount = account
-                        openStartupProfile(account)
+                    }
+                    is AccountResolution.Resolved -> {
+                        val account = resolution.account
+                        if (owner != null && owner != account.uid) {
+                            startupEpoch++
+                            startupAccount = null
+                            openedAccount = null
+                            session.logout()
+                            restoreProfile = true
+                        }
+                        owner = account.uid
+                        // Interactive auth owns sign-ins after a confirmed signed-out state.
+                        if (restoreProfile) {
+                            startupAccount = account
+                            openStartupProfile(account)
+                        }
                     }
                 }
+            }
         }
 
         // No-Blaze notification MVP: while a CHILD is signed in and the app is in the
@@ -124,12 +177,13 @@ class MainViewModel @Inject constructor(
         // notify. The per-account baseline resets whenever the account changes.
         viewModelScope.launch {
             observeAuthAccountUseCase()
+                .distinctUntilChangedBy { it?.let { account -> account.uid to account.role } }
                 .flatMapLatest { account ->
                     if (account?.role != AccountRole.CHILD) {
                         flowOf(emptyList())
                     } else {
                         var baseline: Set<String>? = null
-                        observeChildGoalsUseCase().map { goals ->
+                        observeChildGoalsUseCase(account.uid).map { goals ->
                             val prev = baseline
                             if (prev == null) {
                                 baseline = goals.map { it.id }.toSet()
@@ -142,6 +196,7 @@ class MainViewModel @Inject constructor(
                         }
                     }
                 }
+                .buffer(0)
                 .collect { freshGoals ->
                     freshGoals.forEach { goal ->
                         goalNotifier.showGoalSet(

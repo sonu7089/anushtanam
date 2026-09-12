@@ -7,7 +7,9 @@
 package com.mantrasiddhi.domain.repository
 
 import com.mantrasiddhi.domain.model.AuthAccount
+import com.mantrasiddhi.domain.model.AccountResolution
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /**
  * Cloud authentication over Firebase Auth + a Firestore `users` mirror.
@@ -16,8 +18,14 @@ import kotlinx.coroutines.flow.Flow
  * email and password; children can use their unique 12-digit ID and 6-digit PIN.
  */
 interface AuthRepository {
-    /** Reflects the Firebase Auth state; null when signed out. */
+    /** Shared resolved profile; null while resolving or signed out, so old account data clears. */
     val currentAccount: Flow<AuthAccount?>
+
+    /** Routing must distinguish unresolved identity from a confirmed sign-out. */
+    val accountResolution: Flow<AccountResolution>
+        get() = currentAccount.map { account ->
+            account?.let { AccountResolution.Resolved(it) } ?: AccountResolution.SignedOut
+        }
 
     suspend fun signUpParent(email: String, password: String, displayName: String): Result<AuthAccount>
     suspend fun signInParent(email: String, password: String): Result<AuthAccount>

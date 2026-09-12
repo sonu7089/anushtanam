@@ -32,13 +32,13 @@ class IncrementActiveCloudGoalUseCaseTest {
         every { authRepository.currentAccount } returns flowOf(
             AuthAccount(uid = "c1", role = AccountRole.CHILD, displayName = "Aarav", linkCode = "123456789012")
         )
-        coEvery { goalRepository.incrementActiveGoalProgress() } returns Result.success(true)
+        coEvery { goalRepository.incrementActiveGoalProgress(any()) } returns Result.success(true)
 
-        val result = useCase()
+        val result = useCase("c1")
 
         assertTrue(result.isSuccess)
         assertTrue(result.getOrNull() == true)
-        coVerify(exactly = 1) { goalRepository.incrementActiveGoalProgress() }
+        coVerify(exactly = 1) { goalRepository.incrementActiveGoalProgress(any()) }
     }
 
     @Test
@@ -47,19 +47,40 @@ class IncrementActiveCloudGoalUseCaseTest {
             AuthAccount(uid = "p1", role = AccountRole.PARENT, displayName = "Meera")
         )
 
-        val result = useCase()
+        val result = useCase("c1")
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress() }
+        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress(any()) }
     }
 
     @Test
     fun `no-op when signed out`() = runTest {
         every { authRepository.currentAccount } returns flowOf(null)
 
-        val result = useCase()
+        val result = useCase("c1")
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress() }
+        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress(any()) }
     }
+    @Test fun `saved owner cannot increment another signed in child`() = runTest {
+        every { authRepository.currentAccount } returns flowOf(AuthAccount("B", AccountRole.CHILD, "B"))
+        assertTrue(useCase("A").isSuccess)
+        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress(any()) }
+    }
+
+    @Test fun `local only recitation never reads cloud account state`() = runTest {
+        assertTrue(useCase(null).isSuccess)
+        io.mockk.verify(exactly = 0) { authRepository.currentAccount }
+        coVerify(exactly = 0) { goalRepository.incrementActiveGoalProgress(any()) }
+    }
+
+    @Test fun `twenty child attempts preserve twenty goal updates for the saved owner`() = runTest {
+        every { authRepository.currentAccount } returns kotlinx.coroutines.flow.MutableStateFlow(
+            AuthAccount("c1", AccountRole.CHILD, "Aarav"))
+        coEvery { goalRepository.incrementActiveGoalProgress("c1") } returns Result.success(false)
+        repeat(20) { assertTrue(useCase("c1").isSuccess) }
+        coVerify(exactly = 20) { goalRepository.incrementActiveGoalProgress("c1") }
+        coVerify(exactly = 0) { authRepository.refreshAccount() }
+    }
+
 }

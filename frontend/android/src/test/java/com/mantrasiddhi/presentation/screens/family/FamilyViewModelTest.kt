@@ -7,6 +7,9 @@ import com.mantrasiddhi.resources.R
 import io.mockk.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.flow
+import androidx.lifecycle.ViewModelStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -31,11 +34,11 @@ class FamilyViewModelTest {
             approveLinkUseCase = mockk(), rejectLinkUseCase = mockk(), createChildGoalUseCase = mockk(),
             observeLinkedChildrenUseCase = mockk { every { this@mockk.invoke() } returns flowOf(emptyList()) },
             observePendingLinkRequestsUseCase = mockk { every { this@mockk.invoke() } returns flowOf(emptyList()) },
-            observeChildGoalsUseCase = mockk { every { this@mockk.invoke() } returns flowOf(emptyList()) },
+            observeChildGoalsUseCase = mockk { every { this@mockk.invoke(any()) } returns flowOf(emptyList()) },
             observeGoalsForChildUseCase = mockk(), links = links, scanner = scanner
         )
     }
-    @AfterEach fun teardown() { Dispatchers.resetMain() }
+    @AfterEach fun teardown() { ViewModelStore().apply { put("family", model); clear() }; Dispatchers.resetMain() }
 
     @Test fun `cancelled scan makes no link and leaves form available`() = runTest(dispatcher) {
         coEvery { scanner.scan(context) } returns null
@@ -87,4 +90,36 @@ class FamilyViewModelTest {
         account.value = null
         assertNull(model.uiState.value.qrInvite)
     }
+    @Test fun `same child metadata retains sources and role loss cancels them`() = runTest(dispatcher) {
+        var active = 0
+        var starts = 0
+        every { links.approvedParentsForChild() } returns flow {
+            starts++; active++
+            try { emit(emptyList()); awaitCancellation() } finally { active-- }
+        }
+        account.value = AuthAccount("child", AccountRole.CHILD, "Aarav")
+        assertEquals(1, active)
+        account.value = account.value!!.copy(displayName = "Updated", photoUrl = "photo")
+        assertEquals(1, starts)
+        assertEquals("Updated", model.uiState.value.account?.displayName)
+        account.value = account.value!!.copy(role = AccountRole.PARENT)
+        assertEquals(0, active)
+        assertTrue(model.uiState.value.linkedParents.isEmpty())
+        account.value = AuthAccount("another-child", AccountRole.CHILD, "B")
+        assertEquals(1, active)
+        account.value = null
+        assertEquals(0, active)
+        assertNull(model.uiState.value.account)
+    }
+
+    @Test fun `failing child section does not stop account replacement and sign out`() = runTest(dispatcher) {
+        every { links.approvedParentsForChild() } throws IllegalStateException("unavailable")
+        account.value = AuthAccount("child", AccountRole.CHILD, "A")
+        assertTrue(model.uiState.value.linkedParents.isEmpty())
+        account.value = AuthAccount("B", AccountRole.CHILD, "B")
+        assertEquals("B", model.uiState.value.account?.uid)
+        account.value = null
+        assertNull(model.uiState.value.account)
+    }
+
 }

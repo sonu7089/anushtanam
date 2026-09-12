@@ -16,6 +16,10 @@ import com.google.firebase.firestore.snapshots
 import com.mantrasiddhi.domain.model.CloudGoal
 import com.mantrasiddhi.domain.model.RewardType
 import com.mantrasiddhi.domain.repository.GoalRepository
+import com.mantrasiddhi.domain.repository.AuthRepository
+import com.mantrasiddhi.domain.diagnostics.WorkProbe
+import kotlinx.coroutines.CoroutineScope
+import com.mantrasiddhi.di.AccountScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOf
@@ -30,10 +34,18 @@ import javax.inject.Singleton
 class FirestoreGoalRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val outbox: CloudSyncOutbox
+    private val outbox: CloudSyncOutbox,
+    accounts: AuthRepository,
+    @AccountScope scope: CoroutineScope
 ) : GoalRepository {
 
     private val goals get() = firestore.collection(FirebaseContract.COLLECTION_GOALS)
+    private val childGoals = SharedChildGoals(
+        accounts.currentAccount,
+        scope,
+        currentUid = { auth.currentUser?.uid },
+        source = ::loadChildGoals
+    )
 
     override suspend fun createGoal(
         childUid: String,
@@ -57,13 +69,14 @@ class FirestoreGoalRepositoryImpl @Inject constructor(
         Unit
     }
 
-    override fun goalsForChild(): Flow<List<CloudGoal>> {
-        val childUid = auth.currentUser?.uid ?: return flowOf(emptyList())
-        return goals
+    override fun goalsForChild(childUid: String): Flow<List<CloudGoal>> = childGoals.observe(childUid)
+
+    private fun loadChildGoals(childUid: String): Flow<List<CloudGoal>> {
+        return WorkProbe.observe("goals.child", goals
             .whereEqualTo(FirebaseContract.FIELD_CHILD_UID, childUid)
             .snapshots()
             .map { snap -> snap.documents.mapNotNull { it.toGoal() }.sortedBy { it.createdAt ?: 0L } }
-            .catch { emit(emptyList()) }
+            .catch { emit(emptyList()) })
     }
 
     override fun goalsForParentAndChild(childUid: String): Flow<List<CloudGoal>> {
@@ -76,9 +89,9 @@ class FirestoreGoalRepositoryImpl @Inject constructor(
             .catch { emit(emptyList()) }
     }
 
-    override suspend fun incrementActiveGoalProgress(): Result<Boolean> = runCatching {
-        val childUid = auth.currentUser?.uid ?: error("Not signed in")
-        outbox.enqueue(childUid, SyncKind.CHILD_GOAL, emptyMap())
+    override suspend fun incrementActiveGoalProgress(expectedChildUid: String): Result<Boolean> = runCatching {
+        check(auth.currentUser?.uid == expectedChildUid) { "Account changed" }
+        outbox.enqueue(expectedChildUid, SyncKind.CHILD_GOAL, emptyMap())
         // Completion arrives through goalsForChild after synchronization.
         false
     }

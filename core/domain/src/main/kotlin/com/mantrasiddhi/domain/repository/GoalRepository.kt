@@ -23,7 +23,7 @@ interface GoalRepository {
     ): Result<Unit>
 
     /** Child stream: goals set for the signed-in child. */
-    fun goalsForChild(): Flow<List<CloudGoal>>
+    fun goalsForChild(childUid: String): Flow<List<CloudGoal>>
 
     /** Parent stream: goals the signed-in parent set for [childUid]. */
     fun goalsForParentAndChild(childUid: String): Flow<List<CloudGoal>>
@@ -35,5 +35,5 @@ interface GoalRepository {
      * The durable implementation queues this locally and returns false. Completion
      * arrives through goalsForChild after the deferred upload.
      */
-    suspend fun incrementActiveGoalProgress(): Result<Boolean>
+    suspend fun incrementActiveGoalProgress(expectedChildUid: String): Result<Boolean>
 }
