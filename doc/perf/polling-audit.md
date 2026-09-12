@@ -45,6 +45,8 @@ Read logs once into a bounded/shared projection, then reuse them for each period
 
 ## POLL-03 — Capture is outside the sync throttle
 
+**Retry/capture-gate portion resolved in step 07:** [implementation and verification](step-07-discovery-retries.md). Transactional changed-record capture remains step 08. Original evidence follows.
+
 The usual foreground sync loop suspends while idle and obeys a one-minute attempt gate; it is not an always-running one-minute network poll for every account. However, `CloudSyncRunner` runs `capture(uid)` before claiming the attempt. Rejected, offline or redundant requests can still scan/serialize the full local history. A 750 ms debounce merges bursts but does not make each capture cheap, and continuous invalidations can postpone that debounced capture until a quiet period.
 
 There is also a conditional tight-retry path: the coordinator clamps an overdue wait to 1 ms. If capture throws **before** `claimSyncAttempt`, the failure handler marks restore pending but does not advance the persisted next-attempt deadline. The loop can repeatedly request failing captures with only the 1 ms floor plus execution time between them. Normal transport failures occur after the claim and have a deadline; this concern specifically affects pre-claim failures, such as a persistently unserializable row. It is a source-traced failure path, not a measured 1,000-requests/second result.
@@ -66,6 +68,8 @@ The playback tracker is Main-scoped and publishes position 20 times per second. 
 Keep segment-stop precision separate from cosmetic position labels. A coarser label update may be acceptable, while stopping a selected word needs the current precision or a separately scheduled boundary. Retain cancellation on pause/completion/release and verify behavior when navigating away. Measure recomposition/frames before changing the sampling rate.
 
 ## POLL-06 — Lifecycle and clock semantics
+
+**Sync-clock portion resolved in step 07:** [persisted elapsed deadlines and clock/reboot tests](step-07-discovery-retries.md). UI lifecycle and calendar/expiry changes remain in steps 09/11.
 
 `LaunchedEffect` follows composition lifetime, not automatically the visible/resumed lifecycle. Use lifecycle-scoped collection/timers for UI-only jobs. Similarly, replacing a composable collector cannot stop an unconditional `viewModelScope.launch` subscription. The previously documented child-detail collector leak and repeated cold auth subscriptions increase work without explicit polling.
 

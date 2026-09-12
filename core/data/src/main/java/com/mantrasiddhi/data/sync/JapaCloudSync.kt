@@ -66,11 +66,12 @@ class JapaCloudSync @Inject constructor(
         backup.enqueue(uid, SyncKind.PRACTICE_RECORD, PracticeRecordCodec.session(row, entry?.id))
     }
 
-    /** Signing in on a fresh installation needs recovery; an already synced one stays idle. */
+    /** Explicit recovery includes settled installations and is retained across process removal. */
     suspend fun requestRecovery(uid: String) {
         database.withTransaction {
             check(auth.currentUser?.uid == uid)
-            if (database.backupDao().state(uid) == null) database.backupDao().putState(BackupStateEntity(uid))
+            database.backupDao().putQueued(BackupQueueState(uid, "restore:request", java.util.UUID.randomUUID().toString()))
+            markRestorePending(uid)
         }
         if (needsRestore(uid)) schedule()
     }
@@ -183,6 +184,7 @@ class JapaCloudSync @Inject constructor(
     suspend fun restore(uid: String) = restoreLock.withLock {
         check(auth.currentUser?.uid == uid)
         val user = database.userDao().getByFirebaseUid(uid) ?: return@withLock
+        val request = database.backupDao().queued(uid, "restore:request")
         projections.ensureReady(uid)
         val owner = firestore.collection("users").document(uid)
         val merger = JapaReplicaMerger(database)
@@ -260,7 +262,8 @@ class JapaCloudSync @Inject constructor(
             enqueue(user.id)
             val pending = database.cloudSyncDao().hasPending(uid)
             val incomplete = database.backupDao().quarantineCount(uid) > 0
-            updateState(uid) { it.copy(restorePending = false, needsAttention = incomplete,
+            val requestedAgain = database.backupDao().queued(uid, "restore:request") != request
+            updateState(uid) { it.copy(restorePending = requestedAgain, needsAttention = incomplete,
                 lastSuccessMs = if (pending || incomplete) it.lastSuccessMs else System.currentTimeMillis()) }
         }
         if (database.cloudSyncDao().hasPending(uid)) schedule()

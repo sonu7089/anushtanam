@@ -55,7 +55,7 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | DB-02 | P1, resolved locally | Cloud summary and parent-goal deltas can be lost after a successful local save | Confirmed transaction/lifecycle gap; crash injection pending |
 | DB-03 | P1, fixed | Child goal rules allowed unexpected fields and invalid counts | Rejection regressions pass; rules deployed |
 | DB-04 | P1, fixed | Invalid owner records could poison restore; canonical writes could omit the feed | Validation/quarantine and atomic feed tests pass; rules deployed |
-| DB-05 | P1 | A settled device has no trigger to receive another device's ledger changes | Confirmed trigger gap; two-device timing test pending |
+| DB-05 | P1, resolved locally | A settled device has no trigger to receive another device's ledger changes | Foreground feed discovery and idle refresh verified on Pixel/emulator; see step 07 |
 | DB-06 | P1, resolved locally | Legacy target identities collide if a profile has multiple unfinished targets | Room v15 repair before uniqueness; all supported migration starts verified (see step 03) |
 | DB-07 | P2, resolved locally | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
 | DB-08 | P2 | Projection and backup repeatedly scan/serialize full history | Confirmed query/call structure |
@@ -133,6 +133,8 @@ The [step 02 implementation and evidence](step-02-validation.md) records strict 
 The stricter rules were deployed to `anushtanam-shastralife` on 12 September 2026 following the user's explicit instruction; the updated debug APK was reinstalled on the connected device. See [deployment evidence](step-02-validation.md). The [compatibility plan](step-02-validation.md#compatibility-and-deployment-plan) covers installed writers, malformed/immutable historical documents, missing-feed backfill and previously corrupted local data. Runtime admission prevents new contamination; it does not rewrite already corrupted local history or certify all installed clients and production records.
 
 ### DB-05 — Remote-only changes are not discovered by a settled device
+
+**Resolved locally in step 07:** [implementation, cross-device evidence and release limits](step-07-discovery-retries.md). The paragraphs below retain the original audit evidence.
 
 [CloudSyncCoordinator](../../core/data/src/main/java/com/mantrasiddhi/data/sync/CloudSyncCoordinator.kt) starts its foreground loop only when local uploads or `restorePending` exist. [JapaCloudSync.requestRecovery](../../core/data/src/main/java/com/mantrasiddhi/data/sync/JapaCloudSync.kt), lines 66–72, creates state only if absent and does not mark an already-settled account for another pull. `needsRestore` remains false after a successful restore. Foreground `capture` detects local changes only. There is no backup-feed listener or backup-specific push invalidation in the reviewed paths.
 

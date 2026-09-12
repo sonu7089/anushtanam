@@ -18,6 +18,13 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CloudSyncDatabaseTest {
+    private class TestClock(context: Context) : com.mantrasiddhi.data.sync.CloudSyncClock(context) {
+        var time = 0L
+        override fun nowMs() = time
+        override fun elapsedMs() = time
+        override fun bootCount() = 1L
+    }
+
     @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(),
         MantraSiddhiDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
 
@@ -34,10 +41,15 @@ class CloudSyncDatabaseTest {
             val dao = db.cloudSyncDao()
             dao.enqueue(event())
             dao.enqueue(event(time = 30_000))
-            assertEquals(0, dao.claim("owner", 59_999, 119_999))
-            assertEquals(1, dao.claim("owner", 60_000, 120_000))
-            assertEquals(0, dao.claim("owner", 60_000, 120_000))
-            assertEquals(1, dao.claim("owner", 120_000, 180_000))
+            val clock = TestClock(context)
+            val gate = com.mantrasiddhi.data.sync.CloudSyncRetryGate(dao, clock)
+            clock.time = 59_999
+            assertFalse(gate.claim("owner", false))
+            clock.time = 60_000
+            assertTrue(gate.claim("owner", false))
+            assertFalse(gate.claim("owner", false))
+            clock.time = 120_000
+            assertTrue(gate.claim("owner", false))
         }
     }
 
@@ -69,8 +81,12 @@ class CloudSyncDatabaseTest {
             Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 assertEquals("device", dao.pending("owner").single().streamId)
-                assertEquals(0, dao.claim("owner", 59_999, 119_999))
-                assertEquals(1, dao.claim("owner", 60_000, 120_000))
+                val clock = TestClock(context)
+                val gate = com.mantrasiddhi.data.sync.CloudSyncRetryGate(dao, clock)
+                clock.time = 59_999
+                assertFalse(gate.claim("owner", false))
+                clock.time = 60_000
+                assertTrue(gate.claim("owner", false))
             }
         } finally { context.deleteDatabase(name) }
     }
@@ -101,17 +117,22 @@ class CloudSyncDatabaseTest {
             Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 dao.enqueue(event())
-                assertFalse(dao.claimSyncAttempt("owner", 1000, manual = false))
-                assertTrue(dao.claimSyncAttempt("owner", 1000, manual = true))
-                assertFalse(dao.claimSyncAttempt("owner", 1000, manual = true))
+                val clock = TestClock(context).apply { time = 1000 }
+                val gate = com.mantrasiddhi.data.sync.CloudSyncRetryGate(dao, clock)
+                assertFalse(gate.claim("owner", manual = false))
+                assertTrue(gate.claim("owner", manual = true))
+                assertFalse(gate.claim("owner", manual = true))
             }
             Room.databaseBuilder(context, MantraSiddhiDatabase::class.java, name).build().useDb { db ->
                 val dao = db.cloudSyncDao()
                 assertEquals(1000L, dao.lastAttemptAt("owner"))
-                assertFalse(dao.claimSyncAttempt("owner", 60_999, manual = true))
-                assertFalse(dao.claimSyncAttempt("owner", 60_999, manual = false))
-                assertTrue(dao.claimSyncAttempt("owner", 61_000, manual = true))
-                assertTrue(dao.claimSyncAttempt("another-owner", 1000, manual = true))
+                val clock = TestClock(context).apply { time = 60_999 }
+                val gate = com.mantrasiddhi.data.sync.CloudSyncRetryGate(dao, clock)
+                assertFalse(gate.claim("owner", manual = true))
+                assertFalse(gate.claim("owner", manual = false))
+                clock.time = 61_000
+                assertTrue(gate.claim("owner", manual = true))
+                assertTrue(gate.claim("another-owner", manual = true))
             }
         } finally { context.deleteDatabase(name) }
     }

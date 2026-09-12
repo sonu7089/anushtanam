@@ -24,7 +24,12 @@ class CloudSyncNetwork @Inject constructor(@ApplicationContext private val conte
     }
 }
 
-class CloudSyncClock @Inject constructor() { fun nowMs(): Long = System.currentTimeMillis() }
+open class CloudSyncClock @Inject constructor(@ApplicationContext private val context: Context) {
+    open fun nowMs(): Long = System.currentTimeMillis()
+    open fun elapsedMs(): Long = android.os.SystemClock.elapsedRealtime()
+    open fun bootCount(): Long = android.provider.Settings.Global.getInt(context.contentResolver,
+        android.provider.Settings.Global.BOOT_COUNT, -1).toLong()
+}
 
 @Singleton
 class CloudSyncRunner @Inject constructor(
@@ -32,7 +37,7 @@ class CloudSyncRunner @Inject constructor(
     private val auth: FirebaseAuth,
     private val network: CloudSyncNetwork,
     private val transport: CloudSyncTransport,
-    private val clock: CloudSyncClock,
+    private val gate: CloudSyncRetryGate,
     private val japaSync: JapaCloudSync
 ) {
     private val lock = Mutex()
@@ -45,19 +50,26 @@ class CloudSyncRunner @Inject constructor(
 
     /** Concurrent triggers do not queue more network attempts behind the active one. */
     private suspend fun run(manual: Boolean, expectedUid: String?): Boolean {
-        if (!lock.tryLock()) return true
+        if (!lock.tryLock()) {
+            // A Settings request may overlap a persistent background job.
+            if (manual && expectedUid != null && auth.currentUser?.uid == expectedUid)
+                japaSync.requestRecovery(expectedUid)
+            return true
+        }
         try {
             val uid = auth.currentUser?.uid ?: return false
             if (uid != expectedUid) return false
-            _activeUid.value = uid
-            japaSync.capture(uid)
-            if (manual && japaSync.hasQuarantinedRecords(uid)) japaSync.markRestorePending(uid)
-            val pending = dao.hasPending(uid)
-            if (!pending && !japaSync.needsRestore(uid)) return false
-            val now = clock.nowMs()
-            if (!dao.claimSyncAttempt(uid, now, manual)) return true
-            if (!network.isConnected()) return true
             try {
+                val claimed = gate.claim(uid, manual)
+                // An idle manual pull is durable even when the shared gate delays it.
+                if (manual) japaSync.requestRecovery(uid)
+                if (!claimed) return true
+                _activeUid.value = uid
+                japaSync.capture(uid)
+                if (auth.currentUser?.uid != uid) return false
+                val pending = dao.hasPending(uid)
+                if (!pending && !japaSync.needsRestore(uid)) { gate.succeeded(uid); return false }
+                if (!network.isConnected()) return true
                 if (pending) {
                     // Persist the follow-up before any acknowledgement can empty the queue.
                     japaSync.markRestorePending(uid)
@@ -78,26 +90,37 @@ class CloudSyncRunner @Inject constructor(
                             }
                             true
                         } == true
-                        if (!acknowledged) { japaSync.markFailure(uid); return true }
+                        if (!acknowledged) { failed(uid); return true }
                     }
                 }
                 if (!dao.hasPending(uid) && auth.currentUser?.uid == uid) {
                     val restored = withTimeoutOrNull(45_000L) { japaSync.restore(uid); true } == true
-                    if (!restored) { japaSync.markFailure(uid); return true }
+                    if (!restored) { failed(uid); return true }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                japaSync.markFailure(uid)
+                if (auth.currentUser?.uid != uid) return false
+                failed(uid)
                 Log.w("CloudSync", "Pending cloud changes retained for retry", failure)
                 return auth.currentUser?.uid == uid
             }
+            gate.succeeded(uid)
             return auth.currentUser?.uid == uid && (dao.hasPending(uid) || japaSync.needsRestore(uid))
         } finally {
             _activeUid.value = null
             lock.unlock()
         }
     }
+
+    private suspend fun failed(uid: String) {
+        try { gate.failed(uid) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { /* The in-process emergency deadline still bounds storage failures. */ }
+        japaSync.markFailure(uid)
+    }
+
+    suspend fun remainingMs(uid: String, manual: Boolean = false) = gate.remainingMs(uid, manual)
 
     companion object { const val INTERVAL_MS = 60_000L }
 }

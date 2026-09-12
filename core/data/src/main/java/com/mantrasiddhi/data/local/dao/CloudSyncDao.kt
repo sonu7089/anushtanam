@@ -27,26 +27,24 @@ abstract class CloudSyncDao {
     abstract suspend fun acknowledge(id: Long)
     @Query("DELETE FROM cloud_sync_outbox WHERE id IN (:ids)")
     abstract suspend fun acknowledgeBatch(ids: List<Long>)
-    @Query("UPDATE cloud_sync_schedule SET nextAttemptAtMs = :nextMs WHERE uid = :uid AND nextAttemptAtMs <= :nowMs")
-    abstract suspend fun claim(uid: String, nowMs: Long, nextMs: Long): Int
     @Query("SELECT nextAttemptAtMs FROM cloud_sync_schedule WHERE uid = :uid")
     abstract suspend fun nextAttemptAt(uid: String): Long?
 
     @Query("SELECT CAST(payload AS INTEGER) FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:lastAttempt'")
     abstract suspend fun lastAttemptAt(uid: String): Long?
-    @Query("SELECT CAST(payload AS INTEGER) FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:lastAttempt'")
-    abstract fun observeLastAttemptAt(uid: String): Flow<Long?>
     @Upsert protected abstract suspend fun putAttempt(state: BackupQueueState)
 
-    /** Manual requests may skip the initial delay, but never the shared retry limit. */
+    @Query("SELECT payload FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:timing'")
+    abstract suspend fun retryTiming(uid: String): String?
+    @Query("SELECT payload FROM backup_queue_state WHERE uid = :uid AND `key` = 'sync:timing'")
+    abstract fun observeRetryTiming(uid: String): Flow<String?>
+    @Upsert abstract suspend fun putRetryTiming(state: BackupQueueState)
+
     @Transaction
-    open suspend fun claimSyncAttempt(uid: String, nowMs: Long, manual: Boolean): Boolean {
-        val last = lastAttemptAt(uid)
-        if (last != null && nowMs - last < 60_000L) return false
-        if (!manual && (nextAttemptAt(uid) ?: 0L) > nowMs) return false
-        setSchedule(CloudSyncScheduleEntity(uid, nowMs + 60_000L))
-        putAttempt(BackupQueueState(uid, "sync:lastAttempt", nowMs.toString()))
-        return true
+    open suspend fun saveRetryTiming(uid: String, now: Long, due: Long, payload: String) {
+        setSchedule(CloudSyncScheduleEntity(uid, due))
+        putAttempt(BackupQueueState(uid, "sync:lastAttempt", now.toString()))
+        putRetryTiming(BackupQueueState(uid, "sync:timing", payload))
     }
 
     @Transaction

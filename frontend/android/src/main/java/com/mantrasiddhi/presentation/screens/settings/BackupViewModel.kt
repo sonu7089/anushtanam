@@ -13,7 +13,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 internal data class BackupReview(val id: String, val date: String, val current: Long,
@@ -51,11 +50,7 @@ class BackupViewModel @Inject constructor(
                             (alternative["quantity"] as Number).toLong(), entry.operationId)
                     })
             }
-            val ready = observations.lastAttempt(uid).flatMapLatest { last -> flow {
-                val remaining = ((last ?: 0L) + 60_000L - System.currentTimeMillis()).coerceIn(0L, 60_000L)
-                if (remaining > 0) { emit(false); delay(remaining) }
-                emit(true)
-            } }
+            val ready = requests.manualReady(uid)
             combine(content, requests.activeUid, ready) { state, active, manualReady ->
                 state.copy(syncing = active == uid, manualReady = manualReady)
             }
@@ -67,7 +62,7 @@ class BackupViewModel @Inject constructor(
     internal fun syncNow() {
         val uid = user.value?.firebaseUid ?: return
         val current = state.value
-        if ((!current.waiting && current.quarantined == 0) || current.syncing || !current.manualReady) return
+        if (current.localOnly || current.syncing || !current.manualReady) return
         requests.request(uid, manual = true)
     }
     internal fun resolve(review: BackupReview, alternative: Boolean) {

@@ -10,5 +10,4 @@ class BackupObservation @Inject constructor(private val database: MantraSiddhiDa
     fun pending(uid: String) = database.cloudSyncDao().observeCount(uid)
     fun conflicts(uid: String) = database.backupDao().observeConflicts(uid)
     fun entries(userId: Long) = database.japaDao().observeEntries(userId)
-    fun lastAttempt(uid: String) = database.cloudSyncDao().observeLastAttemptAt(uid)
 }

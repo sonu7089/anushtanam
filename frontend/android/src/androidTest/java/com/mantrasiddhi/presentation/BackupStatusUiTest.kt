@@ -37,12 +37,12 @@ class BackupStatusUiTest {
         compose.onNodeWithText("Your practice is up to date.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("About Anushtanam").assertDoesNotExist()
         compose.onNodeWithText("Upload").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Sync now").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Sync now").performScrollTo().assertIsEnabled()
         compose.onNodeWithText("Backup and Sync").assertIsDisplayed()
         compose.onNodeWithText("Sign out").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun manualSyncIsAvailableOnlyForPendingWorkAndDisablesDuringSyncAndCooldown() {
+    @Test fun idleManualRefreshDisablesDuringSyncAndCooldown() {
         var state by mutableStateOf(BackupUiState(localOnly = false, waiting = true))
         var taps = 0
         compose.setContent { AnushtanamTheme(false) {
@@ -54,7 +54,8 @@ class BackupStatusUiTest {
         compose.runOnIdle { state = state.copy(syncing = false, manualReady = false) }
         compose.onNodeWithContentDescription("Sync now").assertIsNotEnabled()
         compose.runOnIdle { state = state.copy(manualReady = true, waiting = false) }
-        compose.onNodeWithContentDescription("Sync now").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Sync now").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(2, taps) }
     }
 
     @Test fun conflictChoiceAndAutomaticRetryRemainReadableWithLargeText() {

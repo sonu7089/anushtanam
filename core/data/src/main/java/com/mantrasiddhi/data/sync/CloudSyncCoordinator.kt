@@ -3,7 +3,6 @@ package com.mantrasiddhi.data.sync
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.mantrasiddhi.data.local.dao.CloudSyncDao
 import kotlinx.coroutines.*
@@ -11,7 +10,7 @@ import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Foreground one-minute polling; no timer or network requests when this account has no work. */
+/** Foreground change discovery plus deadline-driven retries only while this account has work. */
 @Singleton
 class CloudSyncCoordinator @Inject constructor(
     private val auth: FirebaseAuth,
@@ -19,7 +18,9 @@ class CloudSyncCoordinator @Inject constructor(
     private val requests: CloudSyncRequests,
     private val scheduler: CloudSyncScheduler,
     private val japaSync: JapaCloudSync,
-    private val database: com.mantrasiddhi.data.local.MantraSiddhiDatabase
+    private val database: com.mantrasiddhi.data.local.MantraSiddhiDatabase,
+    private val discovery: CloudSyncDiscovery,
+    private val runner: CloudSyncRunner
 ) : Application.ActivityLifecycleCallbacks {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val foreground = MutableStateFlow(false)
@@ -42,9 +43,8 @@ class CloudSyncCoordinator @Inject constructor(
             @OptIn(FlowPreview::class)
             changes.debounce(750).collect {
                 val account = auth.currentUser?.uid ?: return@collect
-                try { japaSync.capture(account) }
-                catch (cancelled: CancellationException) { throw cancelled }
-                catch (failure: Exception) { japaSync.markFailure(account); scheduler.schedule() }
+                // Capture participates in the same gate as every other attempt.
+                requests.request(account)
             }
         }
         scope.launch {
@@ -52,12 +52,14 @@ class CloudSyncCoordinator @Inject constructor(
                 .distinctUntilChanged().collectLatest { account ->
                     if (account == null) return@collectLatest
                     delay(1500)
-                    try {
-                        // Local recovery after process removal. Neither call contacts Firebase.
-                        japaSync.capture(account)
-                        japaSync.requestRecovery(account)
-                    } catch (cancelled: CancellationException) { throw cancelled }
-                    catch (_: Exception) { japaSync.markFailure(account); scheduler.schedule() }
+                    while (isActive && auth.currentUser?.uid == account) {
+                        try {
+                            japaSync.requestRecovery(account)
+                            discovery.watch(account)
+                        } catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { scheduler.schedule() }
+                        delay(CloudSyncRunner.INTERVAL_MS)
+                    }
                 }
         }
         scope.launch {
@@ -68,8 +70,10 @@ class CloudSyncCoordinator @Inject constructor(
                 if (account == null) { scheduler.cancelIdle(); return@collectLatest }
                 scheduler.schedule()
                 if (visible) while (isActive && auth.currentUser?.uid == account) {
-                    val due = dao.nextAttemptAt(account) ?: 0L
-                    delay((due - System.currentTimeMillis()).coerceIn(1L, CloudSyncRunner.INTERVAL_MS))
+                    val remaining = try { runner.remainingMs(account) }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (_: Exception) { CloudSyncRunner.INTERVAL_MS }
+                    if (remaining > 0) { delay(remaining.coerceAtMost(CloudSyncRunner.INTERVAL_MS)); continue }
                     if (!dao.hasPending(account) && !japaSync.needsRestore(account)) break
                     // Leaving the app cancels this wait, not the actual sync request.
                     requests.request(account).join()

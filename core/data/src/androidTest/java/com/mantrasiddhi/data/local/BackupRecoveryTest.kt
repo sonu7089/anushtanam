@@ -207,6 +207,8 @@ class BackupRecoveryTest {
             b.capture(uid)
             assertEquals("Unchanged recovery must leave no uploads", emptyList<String>(),
                 second.cloudSyncDao().pending(uid).map { it.kind + ":" + it.payload })
+            assertTrue(b.needsRestore(uid))
+            b.restore(uid)
             assertFalse(b.needsRestore(uid))
             // A different account cannot drain or restore the old owner's history.
             auth.signOut(); auth.signInAnonymously().awaitResult()
