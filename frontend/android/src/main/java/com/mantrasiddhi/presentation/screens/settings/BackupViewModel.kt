@@ -21,7 +21,7 @@ internal data class BackupReview(val id: String, val date: String, val current: 
 
 internal data class BackupUiState(val localOnly: Boolean = true, val waiting: Boolean = false,
     val attention: Boolean = false, val lastSuccess: Long = 0, val reviews: List<BackupReview> = emptyList(),
-    val syncing: Boolean = false, val manualReady: Boolean = true)
+    val syncing: Boolean = false, val manualReady: Boolean = true, val quarantined: Int = 0)
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,10 +37,10 @@ class BackupViewModel @Inject constructor(
         if (uid == null) flowOf(BackupUiState()) else {
             val content = combine(
                 observations.state(uid), observations.pending(uid),
-                observations.conflicts(uid), observations.entries(profile.id)
-            ) { backup, pending, conflicts, entries ->
+                observations.conflicts(uid), observations.entries(profile.id), observations.quarantined(uid)
+            ) { backup, pending, conflicts, entries, quarantined ->
                 BackupUiState(localOnly = false, waiting = pending > 0 || backup?.restorePending != false,
-                    attention = backup?.needsAttention == true, lastSuccess = backup?.lastSuccessMs ?: 0,
+                    attention = backup?.needsAttention == true, lastSuccess = backup?.lastSuccessMs ?: 0, quarantined = quarantined,
                     reviews = conflicts.mapNotNull { conflict ->
                         val entry = entries.firstOrNull { it.id == conflict.entryId } ?: return@mapNotNull null
                         val first = CloudSyncPolicy.decode(conflict.firstPayload)
@@ -67,7 +67,7 @@ class BackupViewModel @Inject constructor(
     internal fun syncNow() {
         val uid = user.value?.firebaseUid ?: return
         val current = state.value
-        if (!current.waiting || current.syncing || !current.manualReady) return
+        if ((!current.waiting && current.quarantined == 0) || current.syncing || !current.manualReady) return
         requests.request(uid, manual = true)
     }
     internal fun resolve(review: BackupReview, alternative: Boolean) {

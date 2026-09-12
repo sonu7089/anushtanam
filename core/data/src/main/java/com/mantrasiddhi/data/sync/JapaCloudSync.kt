@@ -90,6 +90,8 @@ class JapaCloudSync @Inject constructor(
 
     suspend fun needsRestore(uid: String): Boolean = database.backupDao().state(uid)?.restorePending != false
 
+    suspend fun hasQuarantinedRecords(uid: String): Boolean = database.backupDao().quarantineCount(uid) > 0
+
     suspend fun markRestorePending(uid: String) = updateState(uid) { it.copy(restorePending = true) }
 
     suspend fun markFailure(uid: String) = updateState(uid) { it.copy(needsAttention = true, restorePending = true) }
@@ -175,19 +177,33 @@ class JapaCloudSync @Inject constructor(
         val user = database.userDao().getByFirebaseUid(uid) ?: return@withLock
         val owner = firestore.collection("users").document(uid)
         val merger = JapaReplicaMerger(database)
+        val restorer = BackupRecordRestorer(database, backup)
+        suspend fun accept(doc: com.google.firebase.firestore.DocumentSnapshot, collection: String) {
+            val data = doc.data ?: emptyMap()
+            if (collection != "backupChanges") {
+                val type = when (collection) { "japaGoals" -> "goal"; "japaEntries" -> "entry"; "practiceRecords" -> "practice"; else -> "conflict" }
+                restorer.apply(uid, user.id, "$collection/${doc.id}", type, doc.id, data, { auth.currentUser?.uid == uid })
+            } else {
+                val type = data["type"] as? String ?: ""
+                val id = data["id"] as? String ?: ""
+                @Suppress("UNCHECKED_CAST") val value = data["value"] as? Map<String, Any?>
+                val envelopeError = if (data.keys != setOf("type", "id", "value", "changedAt") ||
+                    doc.id != "${type}_$id" || data["changedAt"] !is Timestamp || value == null) "Invalid restore-feed envelope" else null
+                restorer.apply(uid, user.id, "backupChanges/${doc.id}", type, id,
+                    if (envelopeError == null) value!! else data, { auth.currentUser?.uid == uid }, envelopeError)
+            }
+        }
         markRestorePending(uid)
         if (database.backupDao().state(uid)?.bootstrapped != true) {
             // One compatibility pass for records written before the change feed existed.
-            for (collection in listOf("japaGoals", "japaEntries")) {
+            for (collection in listOf("japaGoals", "japaEntries", "practiceRecords", "japaConflicts")) {
                 var query: Query = owner.collection(collection).orderBy(com.google.firebase.firestore.FieldPath.documentId()).limit(200)
                 database.backupDao().queued(uid, "bootstrap:$collection")?.let { query = query.startAfter(it) }
                 while (true) {
                     check(auth.currentUser?.uid == uid)
                     val page = query.get(Source.SERVER).awaitResult().documents
-                    val values = page.mapNotNull { it.data }
                     database.withTransaction {
-                        merger.merge(user.id, if (collection == "japaGoals") values else emptyList(),
-                            if (collection == "japaEntries") values else emptyList(), { auth.currentUser?.uid == uid }, project = false)
+                        for (doc in page) accept(doc, collection)
                         page.lastOrNull()?.let { database.backupDao().putQueued(BackupQueueState(uid, "bootstrap:$collection", it.id)) }
                     }
                     if (page.size < 200) break
@@ -206,40 +222,37 @@ class JapaCloudSync @Inject constructor(
             val page = query.get(Source.SERVER).awaitResult().documents
             database.withTransaction {
                 check(auth.currentUser?.uid == uid)
-                for (doc in page) {
-                    @Suppress("UNCHECKED_CAST")
-                    val value = doc.get("value") as? Map<String, Any?> ?: error("Missing backup record")
-                    when (doc.getString("type")) {
-                        "entry" -> merger.merge(user.id, emptyList(), listOf(value), { auth.currentUser?.uid == uid }, project = false)
-                        "goal" -> merger.merge(user.id, listOf(value), emptyList(), { auth.currentUser?.uid == uid }, project = false)
-                        "practice" -> backup.merge(user.id, value)
-                        "conflict" -> {
-                            val id = value.text("id")
-                            val previous = database.backupDao().conflict(uid, id)
-                            @Suppress("UNCHECKED_CAST")
-                            val first = value["first"] as Map<String, Any?>
-                            @Suppress("UNCHECKED_CAST")
-                            val second = value["second"] as Map<String, Any?>
-                            database.backupDao().putConflict(BackupConflictEntity(uid, id, value.text("entryId"),
-                                org.json.JSONObject(first).toString(), org.json.JSONObject(second).toString(),
-                                previous?.resolved == true || value["resolved"] == true))
-                        }
-                        else -> error("Unsupported backup version")
-                    }
-                }
-                val timestamp = page.lastOrNull()?.getTimestamp("changedAt")
+                for (doc in page) accept(doc, "backupChanges")
+                val timestamp = page.mapNotNull { it.data?.get("changedAt") as? Timestamp }.lastOrNull()
                 if (timestamp != null) updateState(uid) { it.copy(cursorSeconds = timestamp.seconds, cursorNanos = timestamp.nanoseconds) }
             }
             if (page.size < 200) break
             query = query.startAfter(page.last())
+        }
+        // Bound retries independently of history size and rotate through invalid sources.
+        // Quarantine alone never keeps the background loop running against unchanged input.
+        val retryKey = "quarantine:retry"
+        val after = database.backupDao().queued(uid, retryKey) ?: ""
+        val records = database.backupDao().quarantined(uid, after, 20).ifEmpty {
+            database.backupDao().quarantined(uid, "", 20)
+        }
+        for (record in records) {
+            check(auth.currentUser?.uid == uid)
+            val doc = owner.collection(record.source.substringBefore('/')).document(record.source.substringAfter('/')).get(Source.SERVER).awaitResult()
+            database.withTransaction {
+                check(auth.currentUser?.uid == uid)
+                if (doc.exists()) accept(doc, record.source.substringBefore('/'))
+                database.backupDao().putQueued(BackupQueueState(uid, retryKey, record.source))
+            }
         }
         database.withTransaction {
             check(auth.currentUser?.uid == uid)
             merger.merge(user.id, emptyList(), emptyList(), { auth.currentUser?.uid == uid })
             enqueue(user.id)
             val pending = database.cloudSyncDao().hasPending(uid)
-            updateState(uid) { it.copy(restorePending = false, needsAttention = false,
-                lastSuccessMs = if (pending) it.lastSuccessMs else System.currentTimeMillis()) }
+            val incomplete = database.backupDao().quarantineCount(uid) > 0
+            updateState(uid) { it.copy(restorePending = false, needsAttention = incomplete,
+                lastSuccessMs = if (pending || incomplete) it.lastSuccessMs else System.currentTimeMillis()) }
         }
         if (database.cloudSyncDao().hasPending(uid)) schedule()
     }

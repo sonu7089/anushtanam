@@ -6,6 +6,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BackupDao {
+    @Upsert suspend fun quarantine(record: BackupQuarantineEntity)
+    @Query("DELETE FROM backup_quarantine WHERE uid = :uid AND source = :source")
+    suspend fun clearQuarantine(uid: String, source: String)
+    @Query("SELECT COUNT(*) FROM backup_quarantine WHERE uid = :uid")
+    suspend fun quarantineCount(uid: String): Int
+    @Query("SELECT COUNT(*) FROM backup_quarantine WHERE uid = :uid")
+    fun observeQuarantineCount(uid: String): Flow<Int>
+    @Query("SELECT * FROM backup_quarantine WHERE uid = :uid AND source > :after ORDER BY source LIMIT :limit")
+    suspend fun quarantined(uid: String, after: String = "", limit: Int = 200): List<BackupQuarantineEntity>
     @Query("SELECT uid FROM backup_state WHERE restorePending = 1")
     fun pendingRestoreAccounts(): Flow<List<String>>
     @Query("SELECT * FROM backup_state WHERE uid = :uid")

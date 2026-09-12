@@ -28,6 +28,93 @@ class BackupRecoveryTest {
     @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(),
         MantraSiddhiDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
 
+    @Test fun malformedCloudRecordsDoNotPoisonCheckpointsAndRepairBehindCursorIsRetried() = runBlocking {
+        val args = InstrumentationRegistry.getArguments()
+        assumeTrue(args.getString("firebaseEmulator") == "true")
+        val host = args.getString("firebaseEmulatorHost") ?: "10.0.2.2"
+        require(host in setOf("10.0.2.2", "127.0.0.1"))
+        val port = (args.getString("firebaseFirestorePort") ?: "28080").toInt()
+        val app = FirebaseApp.initializeApp(context, FirebaseOptions.Builder().setProjectId("demo-anushtanam")
+            .setApplicationId("1:123456789:android:backup").setApiKey("fake-emulator-key").build(), "invalid-${UUID.randomUUID()}")
+        val auth = FirebaseAuth.getInstance(app).apply { useEmulator(host, (args.getString("firebaseAuthPort") ?: "29099").toInt()) }
+        val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator(host, port) }
+        val uid = auth.signInAnonymously().awaitResult().user!!.uid
+        val db = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
+        val outbox = CloudSyncOutbox(context, db.cloudSyncDao(), CloudSyncScheduler(context))
+        val sync = JapaCloudSync(db, cloud, auth, outbox, PracticeBackupStore(db, outbox))
+        fun entry(id: String, quantity: Long) = JapaEntryEntity(id, 7, "gayatri", "20260910", "UTC", "SAYAM", quantity, 1, 10, null, null, "SANDHYA").payload()
+        fun write(path: String, data: Map<String, Any?>) = emulatorWrite(host, port, "users/$uid/$path", data)
+        try {
+            db.userDao().insert(UserProfileEntity(7, "Test", "INDIVIDUAL", null, 0, uid))
+            // Admin-only emulator seeding reproduces records accepted by older permissive rules.
+            val invalid = entry("bad", 24) + ("dateKey" to "not-a-date")
+            write("japaEntries/bad", invalid)
+            write("backupChanges/entry_bad", mapOf("type" to "entry", "id" to "bad", "value" to invalid,
+                "changedAt" to com.google.firebase.Timestamp(100, 0)))
+            write("backupChanges/entry_future", mapOf("type" to "future", "id" to "future", "value" to entry("future", 0),
+                "changedAt" to com.google.firebase.Timestamp(200, 0)))
+            sync.deliver(uid, SyncKind.JAPA_ENTRY, entry("good", 12))
+            sync.restore(uid)
+            assertEquals(12, db.sandhyaCountDao().getCount(7, "20260910", "SAYAM")!!.quantity)
+            assertTrue(db.backupDao().state(uid)!!.needsAttention)
+            assertFalse(sync.needsRestore(uid))
+            assertTrue(db.backupDao().quarantineCount(uid) >= 2)
+            val cursor = db.backupDao().state(uid)!!.cursorSeconds
+            assertTrue(cursor > 200)
+            // Keep old feed timestamps: repair must not depend on crossing the current cursor.
+            write("japaEntries/bad", entry("bad", 24))
+            write("backupChanges/entry_bad", mapOf("type" to "entry", "id" to "bad", "value" to entry("bad", 24), "changedAt" to com.google.firebase.Timestamp(100, 0)))
+            write("japaEntries/future", entry("future", 0))
+            write("backupChanges/entry_future", mapOf("type" to "entry", "id" to "future", "value" to entry("future", 0), "changedAt" to com.google.firebase.Timestamp(200, 0)))
+            sync.restore(uid)
+            sync.restore(uid)
+            assertEquals(36, db.sandhyaCountDao().getCount(7, "20260910", "SAYAM")!!.quantity)
+            assertEquals(3, db.japaDao().entries(7).size)
+            assertEquals(0, db.backupDao().quarantineCount(uid))
+            assertFalse(db.backupDao().state(uid)!!.needsAttention)
+            assertEquals(cursor, db.backupDao().state(uid)!!.cursorSeconds)
+            // A large invalid set must not trap finalization in an unbounded retry loop.
+            repeat(21) { index ->
+                val id = "round-${index.toString().padStart(2, '0')}"
+                write("backupChanges/entry_$id", mapOf("type" to "future", "id" to id, "value" to entry(id, 0),
+                    "changedAt" to com.google.firebase.Timestamp(cursor + 1, 0)))
+            }
+            sync.restore(uid)
+            assertEquals(21, db.backupDao().quarantineCount(uid))
+            assertFalse(sync.needsRestore(uid))
+            assertEquals("backupChanges/entry_round-19", db.backupDao().queued(uid, "quarantine:retry"))
+            write("japaEntries/round-20", entry("round-20", 0))
+            write("backupChanges/entry_round-20", mapOf("type" to "entry", "id" to "round-20", "value" to entry("round-20", 0),
+                "changedAt" to com.google.firebase.Timestamp(100, 0)))
+            sync.restore(uid)
+            assertEquals(20, db.backupDao().quarantineCount(uid))
+            assertEquals("backupChanges/entry_round-20", db.backupDao().queued(uid, "quarantine:retry"))
+        } finally { db.close(); cloud.terminate().awaitResult(); app.delete() }
+    }
+
+    /** Deliberate rules bypass is restricted to loopback demo emulators, never live data. */
+    private fun emulatorWrite(host: String, port: Int, path: String, data: Map<String, Any?>) {
+        require(host in setOf("10.0.2.2", "127.0.0.1"))
+        fun value(v: Any?): Map<String, Any?> = when (v) {
+            null -> mapOf("nullValue" to null)
+            is String -> mapOf("stringValue" to v)
+            is Boolean -> mapOf("booleanValue" to v)
+            is Number -> mapOf("integerValue" to v.toString())
+            is com.google.firebase.Timestamp -> mapOf("timestampValue" to java.time.Instant.ofEpochSecond(v.seconds, v.nanoseconds.toLong()).toString())
+            is Map<*, *> -> mapOf("mapValue" to mapOf("fields" to v.entries.associate { it.key.toString() to value(it.value) }))
+            else -> error("Unsupported fixture")
+        }
+        val connection = java.net.URL("http://$host:$port/v1/projects/demo-anushtanam/databases/(default)/documents/$path").openConnection() as java.net.HttpURLConnection
+        try {
+            connection.requestMethod = "PATCH"; connection.doOutput = true
+            connection.connectTimeout = 10000; connection.readTimeout = 10000
+            connection.setRequestProperty("Authorization", "Bearer owner")
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(org.json.JSONObject(mapOf("fields" to data.mapValues { value(it.value) })).toString().toByteArray()) }
+            check(connection.responseCode == 200) { "Emulator fixture failed: ${connection.responseCode}" }
+        } finally { connection.disconnect() }
+    }
+
     @Test fun migrationKeepsScoresAndPendingWork() {
         val name = "mf08-migration"
         migrations.createDatabase(name, 12).use {
@@ -48,8 +135,11 @@ class BackupRecoveryTest {
         assumeTrue(InstrumentationRegistry.getArguments().getString("firebaseEmulator") == "true")
         val app = FirebaseApp.initializeApp(context, FirebaseOptions.Builder().setProjectId("demo-anushtanam")
             .setApplicationId("1:123456789:android:backup").setApiKey("fake-emulator-key").build(), "backup-${UUID.randomUUID()}")
-        val auth = FirebaseAuth.getInstance(app).apply { useEmulator("10.0.2.2", 29099) }
-        val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator("10.0.2.2", 28080) }
+        val args = InstrumentationRegistry.getArguments()
+        val emulatorHost = args.getString("firebaseEmulatorHost") ?: "10.0.2.2"
+        require(emulatorHost in setOf("10.0.2.2", "127.0.0.1"))
+        val auth = FirebaseAuth.getInstance(app).apply { useEmulator(emulatorHost, (args.getString("firebaseAuthPort") ?: "29099").toInt()) }
+        val cloud = FirebaseFirestore.getInstance(app).apply { useEmulator(emulatorHost, (args.getString("firebaseFirestorePort") ?: "28080").toInt()) }
         val uid = auth.signInAnonymously().awaitResult().user!!.uid
         val first = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()
         val second = Room.inMemoryDatabaseBuilder(context, MantraSiddhiDatabase::class.java).build()

@@ -1,5 +1,4 @@
-// Reproduces current validation gaps against a LOCAL emulator only.
-// These assertions document current behavior; they must change when rules are fixed.
+// Regression rejection tests for the original successful-invalid-write probes.
 const { before, after, beforeEach, test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -21,7 +20,7 @@ before(async () => {
 after(async () => env?.cleanup());
 beforeEach(async () => env.clearFirestore());
 
-test('AUDIT: child can change extra goal fields and write a negative count', async () => {
+test('DB-03: child cannot change extra goal fields or write a negative count', async () => {
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), 'goals/example'), {
       parentUid: 'parent', childUid: 'child', rewardType: 'OTHER', rewardDescription: 'A book',
@@ -29,15 +28,15 @@ test('AUDIT: child can change extra goal fields and write a negative count', asy
     });
   });
   const db = env.authenticatedContext('child').firestore();
-  await assertSucceeds(updateDoc(doc(db, 'goals/example'), {
+  await assertFails(updateDoc(doc(db, 'goals/example'), {
     currentRecitationCount: -5, isCompleted: true, createdAt: null, unexpectedField: 'allowed'
   }));
   const result = (await getDoc(doc(db, 'goals/example'))).data();
-  assert.equal(result.currentRecitationCount, -5);
-  assert.equal(result.createdAt, null);
+  assert.equal(result.currentRecitationCount, 0);
+  assert.notEqual(result.createdAt, null);
 });
 
-test('AUDIT: malformed owner ledger date/timezone passes canonical feed validation', async () => {
+test('DB-04: malformed owner ledger date is rejected even with a matching feed', async () => {
   const db = env.authenticatedContext('owner').firestore();
   const value = { id: 'bad-date', quantity: 108, revision: 1, mantraId: 'gayatri',
     operationId: 'op-one', dateKey: 'not-a-date', zoneId: 'not/a/zone', period: 'SAYAM',
@@ -47,14 +46,13 @@ test('AUDIT: malformed owner ledger date/timezone passes canonical feed validati
   batch.set(doc(db, 'users/owner/backupChanges/entry_bad-date'), {
     type: 'entry', id: 'bad-date', value, changedAt: serverTimestamp()
   });
-  await assertSucceeds(batch.commit());
+  await assertFails(batch.commit());
 });
 
-test('AUDIT: canonical entry creation does not require a companion restore-feed write', async () => {
+test('DB-04: valid canonical entry requires a companion restore-feed write', async () => {
   const db = env.authenticatedContext('owner').firestore();
-  await assertSucceeds(setDoc(doc(db, 'users/owner/japaEntries/missing-feed'), {
-    id: 'missing-feed', quantity: 1, revision: 1, mantraId: 'gayatri', operationId: 'op'
-  }));
+  const { entry } = require('../../backend/firebase/tests/backup-fixtures.cjs');
+  await assertFails(setDoc(doc(db, 'users/owner/japaEntries/missing-feed'), entry({ id: 'missing-feed' })));
   assert.equal((await getDoc(doc(db, 'users/owner/backupChanges/entry_missing-feed'))).exists(), false);
 });
 

@@ -4,7 +4,7 @@ Reviewed 12 September 2026 against source commit `5c5aaba`. This extends the [UI
 
 **The local ledger has good transactional foundations, but the boundaries around it need work.** The highest-priority findings are a first-install profile-seeding race, non-atomic cloud-summary/child-goal accounting, permissive cloud validation, and a missing trigger for receiving remote-only ledger changes. Query optimization should follow or accompany those correctness fixes.
 
-The original audit did not change application code, production databases, cloud deployments or rules. Its scripts use synthetic data and a local Firestore emulator only. Follow-up: DB-01 is now fixed and verified as recorded below; the other findings remain open. The initial environment limits in this audit were resolved during [step 00](baseline.md).
+The original audit did not change application code, production databases, cloud deployments or rules. Its scripts use synthetic data and a local Firestore emulator only. Follow-up: DB-01 and the step 02 implementation for DB-03/04/12 are now locally verified as recorded below. Step 02's stricter rules were deployed to `anushtanam-shastralife` on 12 September 2026 at the user's request. Other findings remain open. The initial environment limits in this audit were resolved during [step 00](baseline.md).
 
 ## Scope and evidence
 
@@ -53,8 +53,8 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | --- | --- | --- | --- |
 | DB-01 | P1, resolved | Async demo seed could overwrite a newly created real profile | Seed removed; production-factory Room regressions pass on device (see resolution below) |
 | DB-02 | P1 | Cloud summary and parent-goal deltas can be lost after a successful local save | Confirmed transaction/lifecycle gap; crash injection pending |
-| DB-03 | P1 | Child goal rules allow unexpected fields and invalid counts | Local emulator reproduced |
-| DB-04 | P1 | Invalid owner records can poison restore; canonical writes can omit the feed | Emulator acceptance + restore-path trace |
+| DB-03 | P1, fixed | Child goal rules allowed unexpected fields and invalid counts | Rejection regressions pass; rules deployed |
+| DB-04 | P1, fixed | Invalid owner records could poison restore; canonical writes could omit the feed | Validation/quarantine and atomic feed tests pass; rules deployed |
 | DB-05 | P1 | A settled device has no trigger to receive another device's ledger changes | Confirmed trigger gap; two-device timing test pending |
 | DB-06 | P1 conditional | Legacy target identities collide if a profile has multiple unfinished targets | Exact migration assignment reproduced |
 | DB-07 | P2 | Initial cloud daily analytics are approximated and rebuilt on every attempt | Confirmed calculation |
@@ -62,7 +62,7 @@ Current strengths: `RecitationRepositoryImpl.saveSession` commits session, eligi
 | DB-09 | P2 | Home/Progress day-dependent values do not necessarily refresh at midnight | Confirmed missing time input; device boundary test pending |
 | DB-10 | P2 | Missing lookup/order indexes; long lists remain unbounded | SQLite plans and instruction counts |
 | DB-11 | P2 | Database constraints do not enforce several ledger identities/relationships | Exported schema reproduced; normal transactional guards still matter |
-| DB-12 | P2 boundary | Valid per-entry Long values can overflow a merged manual-period total | Representation mismatch reproduced |
+| DB-12 | P2 boundary, fixed locally | Valid per-entry Long values can overflow a merged manual-period total | Exact Long aggregate admission bound; excess retained for repair |
 
 P1 means address before claiming reliable multi-device counting. “Conditional” and “boundary” identify prerequisites, not evidence of existing user data loss.
 
@@ -121,6 +121,12 @@ Owner `japaEntries` creation rules validate quantity/revision and a few strings 
 The rules validate feed → canonical consistency, but not canonical → required feed publication. A separate emulator probe successfully created a canonical entry with no feed document. The current client normally writes both transactionally; another client version can legally omit the feed, making changes invisible to incremental restore after bootstrap.
 
 **Fix:** version and validate payloads before committing pages; enforce required fields, types, safe bounds and basic date structure in rules, with full date/timezone validation in the client/backend. Quarantine invalid records with a surfaced repair state rather than poisoning unrelated history or silently dropping them. Require coupled feed publication on canonical changes, or generate the feed in a trusted backend. Firebase's [atomic write validation](https://firebase.google.com/docs/firestore/manage-data/transactions) describes the `getAfter` mechanism.
+
+#### DB-03/04 resolution — step 02, 12 September 2026
+
+The [step 02 implementation and evidence](step-02-validation.md) records strict assigned-goal and backup schemas, required canonical/feed coupling, per-record validation before Room admission, durable account-scoped quarantine, transactional checkpoints, bounded rotating repair retries and Settings' incomplete-count state. Room v14 also performs a one-time canonical compatibility scan. Verified 188 unit tests, 56 backend tests, 28 Room/Firebase device tests and four backup UI tests; app lint has no errors. The original successful-invalid-write probes are now rejection regressions.
+
+The stricter rules were deployed to `anushtanam-shastralife` on 12 September 2026 following the user's explicit instruction; the updated debug APK was reinstalled on the connected device. See [deployment evidence](step-02-validation.md). The [compatibility plan](step-02-validation.md#compatibility-and-deployment-plan) covers installed writers, malformed/immutable historical documents, missing-feed backfill and previously corrupted local data. Runtime admission prevents new contamination; it does not rewrite already corrupted local history or certify all installed clients and production records.
 
 ### DB-05 — Remote-only changes are not discovered by a settled device
 
@@ -195,6 +201,10 @@ Restore, migration, direct DAO calls and future writers still rely on convention
 Local input permits `Long.MAX_VALUE`, and individual cloud quantities are nonnegative Firestore integers. Two offline devices can independently add valid large amounts for one period. `rebuildPeriods` sums using `BigInteger` then calls `longValueExact()` for the `sandhya_counts.quantity` Long. Two maximum values total `18446744073709551614`, outside that representation; final restore fails instead of presenting a reconciled total. This is an extreme input boundary, not a realistic ordinary chanting rate.
 
 **Fix:** choose and enforce a documented domain bound across all entry/merge paths, or use an exact wider persisted representation consistently for period totals. Keep legitimate records recoverable; do not silently clamp performed quantity. Test merged overflow, conflicting revisions and a correction after an oversized remote total.
+
+#### DB-12 resolution — step 02, 12 September 2026
+
+Manual periods retain an exact nonnegative Long representation. Restore computes a candidate aggregate with BigInteger before admitting a winning revision; an overflow-causing record remains in quarantine with its original quantity, while valid history and other periods continue restoring. Settings explicitly reports incomplete counts. Device tests cover two maximum entries, correction freeing capacity for the deferred entry, and a subsequent local edit without clamping. See the [count representation decision and limits](step-02-validation.md#count-representation-decision).
 
 ## Repair order and regression requirements
 

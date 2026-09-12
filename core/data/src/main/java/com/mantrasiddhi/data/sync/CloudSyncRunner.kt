@@ -51,6 +51,7 @@ class CloudSyncRunner @Inject constructor(
             if (uid != expectedUid) return false
             _activeUid.value = uid
             japaSync.capture(uid)
+            if (manual && japaSync.hasQuarantinedRecords(uid)) japaSync.markRestorePending(uid)
             val pending = dao.hasPending(uid)
             if (!pending && !japaSync.needsRestore(uid)) return false
             val now = clock.nowMs()

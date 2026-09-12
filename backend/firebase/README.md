@@ -1,3 +1,7 @@
+## Performance step 02, 12 September 2026
+
+The checked-in rules now validate backup schemas and child goal progress, and require atomic canonical/feed publication in both directions. **These stricter rules were deployed to `anushtanam-shastralife` on 12 September 2026 at approximately 13:46 IST, at the user's request.** See [deployment evidence and compatibility considerations](../../doc/perf/step-02-validation.md). Existing cloud records were not rewritten or backfilled. Run `npm run test:perf` for the focused rejection regressions; `firebase.perf.json` provides separate loopback ports for physical-device recovery tests.
+
 ## MF-08 update, 10 September 2026
 
 Automatic recovery now includes complete saved recitation performance, Sandhya observance and count-change history, japa contributions, and goal state. The old aggregate-only login restore is removed. The older architecture notes below describe the earlier mirror paths, which remain for existing family summaries and queued operations.

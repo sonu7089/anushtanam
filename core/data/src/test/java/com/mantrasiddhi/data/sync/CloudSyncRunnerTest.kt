@@ -59,6 +59,21 @@ class CloudSyncRunnerTest {
         assertTrue(rows.isEmpty())
     }
 
+    @Test fun `manual retry of quarantined records pulls without pending uploads`() = runTest {
+        val runner = runner()
+        rows.clear()
+        var restorePending = false
+        coEvery { japaSync.hasQuarantinedRecords("owner") } returns true
+        coEvery { japaSync.needsRestore("owner") } answers { restorePending }
+        coEvery { japaSync.markRestorePending("owner") } answers { restorePending = true }
+        coEvery { japaSync.restore("owner") } answers { restorePending = false }
+        assertFalse(runner.syncNow("owner"))
+        coVerify(exactly = 1) { japaSync.restore("owner") }
+        coVerify(exactly = 0) { transport.deliver(any()) }
+        assertFalse(runner.runPending())
+        coVerify(exactly = 1) { japaSync.restore("owner") }
+    }
+
     @Test fun `offline work is retained and reconnect obeys the next poll`() = runTest {
         val runner = runner()
         connected = false

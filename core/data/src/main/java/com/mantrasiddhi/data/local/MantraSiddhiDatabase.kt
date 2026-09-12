@@ -10,6 +10,7 @@ import android.content.Context
 import com.mantrasiddhi.data.local.entity.BackupQueueState
 import com.mantrasiddhi.data.local.entity.BackupStateEntity
 import com.mantrasiddhi.data.local.entity.BackupConflictEntity
+import com.mantrasiddhi.data.local.entity.BackupQuarantineEntity
 import com.mantrasiddhi.data.local.dao.BackupDao
 import com.mantrasiddhi.data.local.entity.JapaEntryEntity
 import com.mantrasiddhi.data.local.dao.JapaDao
@@ -51,9 +52,10 @@ import com.mantrasiddhi.data.local.entity.UserProfileEntity
         JapaEntryEntity::class,
         BackupQueueState::class,
         BackupStateEntity::class,
-        BackupConflictEntity::class
+        BackupConflictEntity::class,
+        BackupQuarantineEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -314,6 +316,14 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14: Migration = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS backup_quarantine (uid TEXT NOT NULL, source TEXT NOT NULL, type TEXT NOT NULL, recordId TEXT NOT NULL, payload TEXT NOT NULL, reason TEXT NOT NULL, PRIMARY KEY(uid, source))")
+                db.execSQL("UPDATE backup_state SET bootstrapped = 0, restorePending = 1")
+                db.execSQL("DELETE FROM backup_queue_state WHERE `key` LIKE 'bootstrap:%'")
+            }
+        }
+
         // User profiles are created by account/onboarding flows. Database initialization
         // must never schedule demo writes against IDs that can belong to real users.
         fun buildDatabase(
@@ -336,7 +346,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                     }, java.util.concurrent.Executor { it.run() })
                 }
             }
-            // Contiguous v1 to v13 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v14 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -352,7 +362,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_9_10,
                 MIGRATION_10_11,
                 MIGRATION_11_12,
-                MIGRATION_12_13
+                MIGRATION_12_13,
+                MIGRATION_13_14
             )
             .build()
         }

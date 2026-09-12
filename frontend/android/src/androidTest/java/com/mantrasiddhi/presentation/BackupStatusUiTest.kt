@@ -17,6 +17,17 @@ import org.junit.Test
 class BackupStatusUiTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun quarantinedHistoryExplainsIncompleteCountsAndAllowsRetry() {
+        var taps = 0
+        compose.setContent { AnushtanamTheme(false) {
+            BackupStatusContent(BackupUiState(localOnly = false, attention = true, quarantined = 2), onSyncNow = { taps++ })
+        } }
+        compose.onNodeWithText("2 cloud records could not be restored.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Counts may be incomplete.", substring = true).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Sync now").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(1, taps) }
+    }
+
     @Test fun statusSitsAboveSignOutWithoutAboutOrUploadControls() {
         compose.setContent { AnushtanamTheme(false) {
             SettingsContent(null, "LIGHT", "BOTH", {}, {}, {}, backupContent = {

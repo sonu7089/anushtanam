@@ -38,7 +38,7 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
                 if (!state.localOnly) {
                     val syncLabel = stringResource(if (state.syncing) R.string.backup_syncing else R.string.backup_sync_now)
                     OutlinedIconButton(onClick = onSyncNow,
-                        enabled = state.waiting && state.manualReady && !state.syncing,
+                        enabled = (state.waiting || state.quarantined > 0) && state.manualReady && !state.syncing,
                         modifier = Modifier.padding(top = 4.dp).size(48.dp).semantics { contentDescription = syncLabel }) {
                         if (state.syncing) {
                             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp,
@@ -49,6 +49,10 @@ internal fun BackupStatusContent(state: BackupUiState, saving: Boolean = false, 
                         }
                     }
                 }
+            }
+            if (state.quarantined > 0) {
+                Text(stringResource(R.string.backup_quarantined, state.quarantined),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
             if (state.lastSuccess > 0) {
                 Text(stringResource(R.string.backup_last_saved,

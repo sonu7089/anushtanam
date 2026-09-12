@@ -174,6 +174,57 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // v1 is the shipped unversioned backup schema; explicit v1 is also understood.
+    function v1(d) { return !('schemaVersion' in d) || (d.schemaVersion is int && d.schemaVersion == 1); }
+    function identity(v) { return v is string && v.size() > 0 && v.size() <= 1400 && v.matches('[^/]+') && !(v in ['.', '..']); }
+    function nullableId(v) { return v == null || identity(v); }
+    function count(v) { return v is int && v >= 0; }
+    function millis(v) { return count(v) && v <= 253402300799999; }
+    function nullableMillis(v) { return v == null || millis(v); }
+    function dateKey(v) { return v is string && v.matches('[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])') && !v.matches('0000.*'); }
+    function zone(v) { return v is string && v.size() > 0 && v.size() <= 200; }
+    function period(v) { return v in ['PRATAH', 'MADHYAHNA', 'SAYAM']; }
+    function revision(v) { return v is int && v > 0 && v < 9223372036854775807; }
+    function score(v) { return v is number && v >= 0 && v <= 1; }
+
+    function validEntry(d) {
+      return v1(d) && d.keys().hasAll(['id', 'mantraId', 'dateKey', 'zoneId', 'period', 'quantity', 'revision',
+          'createdAtMillis', 'targetId', 'vowId', 'source', 'updatedAtMillis', 'operationId']) &&
+        d.keys().hasOnly(['id', 'mantraId', 'dateKey', 'zoneId', 'period', 'quantity', 'revision',
+          'createdAtMillis', 'targetId', 'vowId', 'source', 'updatedAtMillis', 'operationId', 'sessionStableId', 'schemaVersion']) &&
+        identity(d.id) && identity(d.mantraId) && identity(d.operationId) && dateKey(d.dateKey) && zone(d.zoneId) &&
+        count(d.quantity) && revision(d.revision) && millis(d.createdAtMillis) && millis(d.updatedAtMillis) &&
+        d.updatedAtMillis >= d.createdAtMillis && nullableId(d.targetId) && nullableId(d.vowId) &&
+        (!('sessionStableId' in d) || nullableId(d.sessionStableId)) &&
+        ((d.source == 'SANDHYA' && period(d.period) && (!('sessionStableId' in d) || d.sessionStableId == null)) ||
+         (d.source == 'AUDIO_ACCEPTED' && d.period == null && d.quantity == 1));
+    }
+    function validJapaGoal(d) {
+      return v1(d) && identity(d.id) && identity(d.mantraId) && millis(d.startedAtMillis) &&
+        nullableMillis(d.endedAtMillis) && count(d.baselineCount) && count(d.targetCount) && d.targetCount > 0 && (
+          (d.kind == 'target' && d.keys().hasOnly(['id', 'kind', 'mantraId', 'startedAtMillis', 'endedAtMillis',
+            'baselineCount', 'targetCount', 'rewardType', 'rewardDescription', 'schemaVersion']) &&
+            d.targetCount <= 2147483647 && d.rewardType is string && d.rewardType.size() <= 100 &&
+            d.rewardDescription is string && d.rewardDescription.size() <= 200000) ||
+          (d.kind == 'vow' && d.keys().hasOnly(['id', 'kind', 'mantraId', 'startedAtMillis', 'endedAtMillis',
+            'baselineCount', 'targetCount', 'aksharas', 'completedAtMillis', 'schemaVersion']) &&
+            d.aksharas is int && d.aksharas > 0 && d.aksharas <= 2147483647 && nullableMillis(d.completedAtMillis)));
+    }
+    function published(uid, type, id, value) {
+      let feed = getAfter(/databases/$(database)/documents/users/$(uid)/backupChanges/$(type + '_' + id)).data;
+      return feed.type == type && feed.id == id && feed.value == value && feed.changedAt == request.time;
+    }
+    function validAssignedGoal(d) {
+      return d.keys().hasOnly(['parentUid', 'childUid', 'rewardType', 'rewardDescription', 'targetRecitationCount',
+          'currentRecitationCount', 'isCompleted', 'createdAt']) &&
+        identity(d.parentUid) && identity(d.childUid) && d.parentUid != d.childUid &&
+        d.rewardType in ['MONEY', 'FOOD', 'GIFT', 'OUTING', 'TOY', 'OTHER'] &&
+        d.rewardDescription is string && d.rewardDescription.size() <= 200000 && d.createdAt is timestamp &&
+        d.targetRecitationCount is int && d.targetRecitationCount > 0 && d.targetRecitationCount <= 2147483647 &&
+        count(d.currentRecitationCount) && d.currentRecitationCount <= d.targetRecitationCount &&
+        d.isCompleted is bool && d.isCompleted == (d.currentRecitationCount == d.targetRecitationCount);
+    }
+
     // --- goals/{autoId} --------------------------------------------------------
     // Create/edit reward+target: only the parent, and only when an APPROVED link to
     //   the childUid exists.
@@ -188,11 +239,14 @@ service cloud.firestore {
       );
 
       allow create: if isSignedIn() &&
+        validAssignedGoal(request.resource.data) && request.resource.data.createdAt == request.time &&
+        request.resource.data.currentRecitationCount == 0 &&
         request.resource.data.parentUid == request.auth.uid &&
         isApprovedLink(request.auth.uid, request.resource.data.childUid);
 
       // Parent edit (reward / target changes), still requires the approved link.
       allow update: if isSignedIn() &&
+        validAssignedGoal(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt &&
         request.auth.uid == resource.data.parentUid &&
         request.resource.data.parentUid == resource.data.parentUid &&
         request.resource.data.childUid == resource.data.childUid &&
@@ -200,6 +254,8 @@ service cloud.firestore {
 
       // Child progress update: only the two progress fields may change.
       allow update: if isSignedIn() &&
+        validAssignedGoal(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentRecitationCount', 'isCompleted']) &&
         request.auth.uid == resource.data.childUid &&
         request.resource.data.parentUid == resource.data.parentUid &&
         request.resource.data.childUid == resource.data.childUid &&
@@ -214,19 +270,17 @@ service cloud.firestore {
     match /users/{uid}/japaEntries/{entryId} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.id == entryId && request.resource.data.quantity is int &&
-        request.resource.data.quantity >= 0 && request.resource.data.revision is int &&
-        request.resource.data.revision > 0 && request.resource.data.mantraId is string &&
-        request.resource.data.operationId is string &&
+        request.resource.data.id == entryId && validEntry(request.resource.data) &&
+        published(uid, 'entry', entryId, request.resource.data) &&
         (!exists(/databases/$(database)/documents/users/$(uid)/japaEntries/$(entryId)) ||
           (request.resource.data.revision >= resource.data.revision &&
            (!('targetId' in resource.data) || resource.data.targetId == null || request.resource.data.targetId == resource.data.targetId) &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'revision', 'updatedAtMillis', 'operationId', 'targetId'])));
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity', 'revision', 'updatedAtMillis', 'operationId', 'targetId', 'schemaVersion'])));
       allow delete: if false;
       match /revisions/{operationId} {
         allow read: if isSignedIn() && request.auth.uid == uid;
         allow create: if isSignedIn() && request.auth.uid == uid &&
-          request.resource.data.operationId == operationId;
+          request.resource.data.operationId == operationId && request.resource.data.id == entryId && validEntry(request.resource.data);
         allow update: if isSignedIn() && request.auth.uid == uid && request.resource.data == resource.data;
         allow delete: if false;
       }
@@ -234,9 +288,8 @@ service cloud.firestore {
     match /users/{uid}/japaGoals/{goalId} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.id == goalId && request.resource.data.kind in ['target', 'vow'] &&
-        request.resource.data.baselineCount is int && request.resource.data.baselineCount >= 0 &&
-        request.resource.data.targetCount is int && request.resource.data.targetCount > 0 &&
+        request.resource.data.id == goalId && validJapaGoal(request.resource.data) &&
+        published(uid, 'goal', goalId, request.resource.data) &&
         (!exists(/databases/$(database)/documents/users/$(uid)/japaGoals/$(goalId)) ||
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['endedAtMillis', 'completedAtMillis']));
       allow delete: if false;
@@ -245,33 +298,33 @@ service cloud.firestore {
     // Full performance records are private to their owner, including children.
     match /users/{uid}/practiceRecords/{recordId} {
       function validRecord(d) {
-        return d.id is string && recordId == d.type + '_' + d.id && (
+        return v1(d) && identity(d.id) && recordId == d.type + '_' + d.id && (
           (d.type == 'session' && d.keys().hasOnly(['type', 'id', 'entryId', 'mantraId', 'mode',
             'overallScore', 'wordScoresJson', 'transcription', 'isCorrect', 'durationMs', 'createdAt',
-            'correctness', 'completeness', 'pronunciation']) &&
-            d.mode in ['PRACTICE', 'NORMAL'] && d.mantraId is string && d.isCorrect is bool &&
-            d.overallScore is number && d.correctness is number && d.completeness is number &&
-            d.pronunciation is number && d.durationMs is int && d.durationMs >= 0 && d.createdAt is int &&
+            'correctness', 'completeness', 'pronunciation', 'schemaVersion']) &&
+            nullableId(d.entryId) && d.mode in ['PRACTICE', 'NORMAL'] && identity(d.mantraId) && d.isCorrect is bool &&
+            score(d.overallScore) && score(d.correctness) && score(d.completeness) &&
+            score(d.pronunciation) && count(d.durationMs) && millis(d.createdAt) &&
             d.wordScoresJson is string && d.wordScoresJson.size() < 200000 &&
             d.transcription is string && d.transcription.size() < 200000) ||
           (d.type == 'sandhya' && d.keys().hasOnly(['type', 'id', 'dateKey', 'period',
-            'scheduledEpochMillis', 'status', 'observedEpochMillis']) &&
-            d.dateKey is string && d.period in ['PRATAH', 'MADHYAHNA', 'SAYAM'] &&
-            d.status in ['NOTIFIED', 'MISSED', 'OBSERVED'] && d.scheduledEpochMillis is int &&
-            (d.observedEpochMillis == null || d.observedEpochMillis is int)) ||
+            'scheduledEpochMillis', 'status', 'observedEpochMillis', 'schemaVersion']) &&
+            dateKey(d.dateKey) && period(d.period) && d.id == d.dateKey + '_' + d.period &&
+            d.status in ['NOTIFIED', 'MISSED', 'OBSERVED'] && millis(d.scheduledEpochMillis) &&
+            nullableMillis(d.observedEpochMillis)) ||
           (d.type == 'change' && d.keys().hasOnly(['type', 'id', 'dateKey', 'period', 'zoneId', 'mode',
             'previousQuantity', 'quantity', 'revision', 'createdAtMillis', 'targetCompleted',
-            'vowCompleted', 'completionReversed', 'milestonesCrossed']) &&
-            d.quantity is int && d.quantity >= 0 && d.revision is int && d.revision > 0 &&
-            d.dateKey is string && d.period in ['PRATAH', 'MADHYAHNA', 'SAYAM'] &&
-            d.zoneId is string && d.mode in ['RECORD', 'ADD', 'EDIT', 'COUNTER'] && d.createdAtMillis is int &&
+            'vowCompleted', 'completionReversed', 'milestonesCrossed', 'schemaVersion']) &&
+            count(d.quantity) && (d.previousQuantity == null || count(d.previousQuantity)) && revision(d.revision) &&
+            dateKey(d.dateKey) && period(d.period) &&
+            zone(d.zoneId) && d.mode in ['RECORD', 'ADD', 'EDIT', 'COUNTER'] && millis(d.createdAtMillis) &&
             d.targetCompleted is bool && d.vowCompleted is bool && d.completionReversed is bool &&
-            d.milestonesCrossed is int)
+            count(d.milestonesCrossed) && d.milestonesCrossed <= 2147483647)
         );
       }
       allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data);
-      allow update: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && (
+      allow create: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && published(uid, 'practice', recordId, request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == uid && validRecord(request.resource.data) && published(uid, 'practice', recordId, request.resource.data) && (
         request.resource.data == resource.data ||
         (resource.data.type == 'sandhya' && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['status', 'observedEpochMillis', 'scheduledEpochMillis']) &&
@@ -283,13 +336,16 @@ service cloud.firestore {
     match /users/{uid}/japaConflicts/{conflictId} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.keys().hasOnly(['id', 'entryId', 'first', 'second', 'resolved']) &&
+        request.resource.data.keys().hasOnly(['id', 'entryId', 'first', 'second', 'resolved', 'schemaVersion']) && v1(request.resource.data) &&
+        identity(conflictId) && validEntry(request.resource.data.first) && validEntry(request.resource.data.second) &&
+        published(uid, 'conflict', conflictId, request.resource.data) &&
         request.resource.data.id == conflictId && request.resource.data.resolved == false &&
         request.resource.data.first.id == request.resource.data.entryId &&
         request.resource.data.second.id == request.resource.data.entryId &&
         request.resource.data.first == get(/databases/$(database)/documents/users/$(uid)/japaEntries/$(request.resource.data.entryId)).data &&
         request.resource.data.second == getAfter(/databases/$(database)/documents/users/$(uid)/japaEntries/$(request.resource.data.entryId)/revisions/$(request.resource.data.second.operationId)).data;
       allow update: if isSignedIn() && request.auth.uid == uid && request.resource.data.resolved == true &&
+        published(uid, 'conflict', conflictId, request.resource.data) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resolved']);
       allow delete: if false;
     }

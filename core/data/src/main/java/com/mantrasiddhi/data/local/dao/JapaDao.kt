@@ -15,6 +15,9 @@ abstract class JapaDao {
     @Query("SELECT * FROM japa_entries WHERE userId = :userId ORDER BY createdAtMillis, id")
     abstract suspend fun entries(userId: Long): List<JapaEntryEntity>
 
+    @Query("SELECT * FROM japa_entries WHERE userId = :userId AND dateKey = :date AND period = :period")
+    abstract suspend fun periodEntries(userId: Long, date: String, period: String): List<JapaEntryEntity>
+
     @Query("SELECT * FROM japa_entries WHERE id = :id")
     abstract suspend fun entry(id: String): JapaEntryEntity?
 

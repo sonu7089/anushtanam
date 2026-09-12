@@ -23,3 +23,10 @@ data class BackupConflictEntity(
     val firstPayload: String, val secondPayload: String,
     val resolved: Boolean = false
 )
+
+/** Invalid remote input is retained independently of usable history and download checkpoints. */
+@Entity(tableName = "backup_quarantine", primaryKeys = ["uid", "source"])
+data class BackupQuarantineEntity(
+    val uid: String, val source: String, val type: String, val recordId: String,
+    val payload: String, val reason: String
+)

@@ -822,7 +822,8 @@
     <string name="backup_sync_now">Sync now</string>
     <string name="backup_syncing">Syncing...</string>
     <string name="backup_syncing_description">Saving your latest practice.</string>
-    <string name="backup_attention">Sync is taking a little longer. Your practice is saved here, and we will try again soon.</string>
+    <string name="backup_attention">Sync needs attention. Your saved practice is kept on this device.</string>
+    <string name="backup_quarantined">%1$d cloud records could not be restored. Counts may be incomplete. The records are kept for repair; correct them on the source device or contact support, then tap Sync now to retry.</string>
     <string name="backup_current">Your practice is up to date.</string>
     <string name="backup_last_saved">Last synced %1$s</string>
     <string name="backup_review">Review changed counts</string>
