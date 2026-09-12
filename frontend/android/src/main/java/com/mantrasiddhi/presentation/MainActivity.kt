@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
         }
         if (savedInstanceState?.getBoolean("reminderHandled") != true) reminderTarget = SandhyaReminderTarget.from(intent)
         setContent {
+            val startupReady = androidx.compose.runtime.remember { mutableStateOf(false) }
+            androidx.activity.compose.ReportDrawnWhen { startupReady.value }
             val themeMode by mainViewModel.themeMode.collectAsState(initial = "SYSTEM")
             val darkTheme = when (themeMode) {
                 "LIGHT" -> false
@@ -85,6 +87,7 @@ class MainActivity : ComponentActivity() {
             }
             AnushtanamTheme(darkTheme = darkTheme) {
                 MantraApp(mainViewModel = mainViewModel, reminderTarget = reminderTarget,
+                    onStartupReady = { startupReady.value = true },
                     onReminderHandled = { reminderTarget = null; intent.action = null; intent.data = null },
                     messageId = messageId, onMessageHandled = { messageId = null; intent.data = null },
                     homeNotificationId = homeNotificationId,

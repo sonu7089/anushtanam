@@ -35,10 +35,6 @@ import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 import com.mantrasiddhi.data.local.entity.SandhyaLogEntity
 import com.mantrasiddhi.data.local.entity.TargetEntity
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import javax.inject.Provider
 
 @Database(
     entities = [
@@ -318,16 +314,29 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        // User profiles are created by account/onboarding flows. Database initialization
+        // must never schedule demo writes against IDs that can belong to real users.
         fun buildDatabase(
             context: Context,
-            userDaoProvider: Provider<UserDao>
+            databaseName: String = DATABASE_NAME
         ): MantraSiddhiDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
                 MantraSiddhiDatabase::class.java,
-                DATABASE_NAME
+                databaseName
             )
-            // Contiguous v1 to v12 migration chain. No destructive fallback: a missing or
+            .apply {
+                if (com.mantrasiddhi.domain.diagnostics.WorkProbe.enabled) {
+                    setQueryCallback({ sql, _ ->
+                        val operation = sql.trimStart().substringBefore(' ').uppercase()
+                        val table = listOf("recitation_sessions", "japa_entries", "targets", "purashcharana",
+                            "user_profiles", "backup_conflicts", "backup_state", "sandhya_logs")
+                            .firstOrNull { sql.contains(it, ignoreCase = true) } ?: "other"
+                        com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("room.$operation.$table")
+                    }, java.util.concurrent.Executor { it.run() })
+                }
+            }
+            // Contiguous v1 to v13 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -345,23 +354,6 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_11_12,
                 MIGRATION_12_13
             )
-            .addCallback(object : Callback() {
-                override fun onCreate(db: SupportSQLiteDatabase) {
-                    super.onCreate(db)
-                    // Seed initial demo data in a background coroutine
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val userDao = userDaoProvider.get()
-                        userDao.insertAll(
-                            listOf(
-                                UserProfileEntity(id = 1, name = "Arjun", profileType = "INDIVIDUAL", parentId = null, avatarIndex = 0),
-                                UserProfileEntity(id = 2, name = "Meera", profileType = "PARENT", parentId = null, avatarIndex = 1),
-                                UserProfileEntity(id = 3, name = "Aarav", profileType = "CHILD", parentId = 2, avatarIndex = 2),
-                                UserProfileEntity(id = 4, name = "Priya", profileType = "INDIVIDUAL", parentId = null, avatarIndex = 3)
-                            )
-                        )
-                    }
-                }
-            })
             .build()
         }
     }

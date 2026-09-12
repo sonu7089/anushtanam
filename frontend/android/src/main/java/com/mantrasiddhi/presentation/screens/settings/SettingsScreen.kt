@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
@@ -42,7 +43,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
     }
     SettingsContent(currentUser, themeMode, languageDisplay,
         viewModel::setThemeMode, viewModel::setLanguageDisplay,
-        viewModel::logout, modifier,
+        viewModel::logout, if (currentUser != null) modifier.testTag("perf_settings_ready") else modifier,
         accountContent = {
             GoogleAccountContent(account, googleState,
                 { account?.let { googleViewModel.start(context, linkTo = it) } },

@@ -1,0 +1,13 @@
+path,width_px,height_px,file_bytes,rgba_equivalent_bytes,bit_depth,png_color_type,alpha_capable,ancillary_chunk_bytes_including_framing,ancillary_chunks
+frontend/android/src/main/res/drawable-nodpi/diya_cutout.png,1254,1254,811909,6290064,8,6,True,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/family_hands.png,1024,1536,1953287,6291456,8,2,False,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/gayatri_practice_book.png,1254,1254,1571687,6290064,8,6,True,23629,caBX:23629
+frontend/android/src/main/res/drawable-nodpi/google_g.png,200,204,33661,163200,8,6,True,791,cHRM:44;eXIf:150;gAMA:16;iTXt:560;pHYs:21
+frontend/android/src/main/res/drawable-nodpi/jasmine_sprig.png,1024,1536,1515809,6291456,8,6,True,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/lotus_emblem.png,1254,1254,994707,6290064,8,6,True,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/lotus_morning.png,1536,1024,1843654,6291456,8,2,False,23629,caBX:23629
+frontend/android/src/main/res/drawable-nodpi/messages_morning_notes.png,1536,1024,2082997,6291456,8,2,False,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/purashcharana_mala.png,1254,1254,527470,6290064,8,6,True,23629,caBX:23629
+frontend/android/src/main/res/drawable-nodpi/ritual_still_life.png,1536,1024,1918604,6291456,8,2,False,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/river_dawn.png,1536,1024,2028365,6291456,8,2,False,21856,caBX:21856
+frontend/android/src/main/res/drawable-nodpi/sandhya_vessel.png,1374,1145,1333186,6292920,8,6,True,23629,caBX:23629

@@ -72,7 +72,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     private val random = SecureRandom()
     private val accountChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    override val currentAccount: Flow<AuthAccount?> = callbackFlow {
+    override val currentAccount: Flow<AuthAccount?> = com.mantrasiddhi.domain.diagnostics.WorkProbe.observe("auth.account", callbackFlow {
         var loading: Job? = null
         fun publish(user: FirebaseUser?) {
             loading?.cancel()
@@ -91,7 +91,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         val changes = launch { accountChanges.collect { publish(auth.currentUser) } }
         auth.addAuthStateListener(listener)
         awaitClose { loading?.cancel(); changes.cancel(); auth.removeAuthStateListener(listener) }
-    }
+    })
 
     override suspend fun signUpParent(
         email: String,

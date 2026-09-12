@@ -17,3 +17,4 @@ rootProject.name = "MantraSiddhi"
 include(":app")
 project(":app").projectDir = file("frontend/android")
 include(":core:domain", ":core:data", ":core:resources")
+include(":macrobenchmark")

@@ -21,6 +21,11 @@ import javax.inject.Inject
 @HiltAndroidApp
 class MantraSiddhiApplication : Application() {
 
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(base)
+        com.mantrasiddhi.domain.diagnostics.WorkProbe.enabled = BuildConfig.PERF_PROBES
+    }
+
     @Inject lateinit var sandhyaNotifier: SandhyaNotifier
     @Inject lateinit var sandhyaScheduler: SandhyaScheduler
     @Inject lateinit var goalNotifier: GoalNotifier

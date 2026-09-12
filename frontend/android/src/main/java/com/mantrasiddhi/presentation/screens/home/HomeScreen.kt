@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.delay
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.onGloballyPositioned
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +42,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenGuide: () -> Unit = {},
     onMessages: () -> Unit = {},
-    onOpenReflection: (String) -> Unit = {}
+    onOpenReflection: (String) -> Unit = {},
+    onUsable: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val reflection by viewModel.reflection.collectAsState()
@@ -74,7 +77,7 @@ fun HomeScreen(
         }
         is HomeUiState.Success -> HomeContent(state, onNavigateToRecitation, onNavigateToPractice,
             onNavigateToTargets, onNavigateToSandhya,
-            onNavigateToPurashcharana, modifier, onOpenGuide, onMessages,
+            onNavigateToPurashcharana, modifier.testTag("perf_home_ready").onGloballyPositioned { onUsable() }, onOpenGuide, onMessages,
             reflection?.takeIf { it.isVisible(now) }, onOpenReflection)
     }
 }

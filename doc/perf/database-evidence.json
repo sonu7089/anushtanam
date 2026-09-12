@@ -1,0 +1,248 @@
+{
+  "sqlite_version": "3.49.1",
+  "schema": "core\\data\\schemas\\com.mantrasiddhi.data.local.MantraSiddhiDatabase\\13.json",
+  "table_count": 14,
+  "scope": "synthetic in-memory SQLite; not Android Room execution or latency",
+  "correctness_reproductions": {
+    "async_seed_interleaving": {
+      "real_profile_id": 1,
+      "after_seed": [
+        "Arjun",
+        null
+      ]
+    },
+    "migration_identity_assignment": [
+      [
+        1,
+        "legacy-target",
+        2
+      ]
+    ],
+    "schema_allows_duplicate_audio_association": [
+      [
+        1,
+        42,
+        2
+      ]
+    ],
+    "schema_foreign_keys": {
+      "user_profiles": [],
+      "targets": [],
+      "recitation_sessions": [],
+      "sandhya_logs": [],
+      "purashcharana": [],
+      "cloud_sync_outbox": [],
+      "cloud_sync_schedule": [],
+      "sandhya_counts": [],
+      "sandhya_count_changes": [],
+      "sandhya_count_drafts": [],
+      "japa_entries": [],
+      "backup_queue_state": [],
+      "backup_state": [],
+      "backup_conflicts": []
+    },
+    "valid_individual_longs_exceed_period_long_capacity": "18446744073709551614"
+  },
+  "candidate_index_sql": [
+    "CREATE INDEX audit_targets_active ON targets(userId,isActive,isCompleted,startedAtMillis,stableId)",
+    "CREATE UNIQUE INDEX audit_audio_identity ON japa_entries(userId,sessionId)",
+    "CREATE INDEX audit_entries_order ON japa_entries(userId,createdAtMillis,id)",
+    "CREATE INDEX audit_sessions_id ON recitation_sessions(userId,id)",
+    "CREATE INDEX audit_changes_id ON sandhya_count_changes(userId,id)",
+    "CREATE INDEX audit_changes_revision ON sandhya_count_changes(userId,dateKey,period,revision)",
+    "CREATE INDEX audit_outbox_kind ON cloud_sync_outbox(uid,kind,id)"
+  ],
+  "query_plans": {
+    "active_target": {
+      "sql": "SELECT * FROM targets WHERE userId = ? AND isCompleted = 0 AND isActive = 1 ORDER BY startedAtMillis DESC, stableId DESC LIMIT 1",
+      "params": [
+        5
+      ],
+      "before": {
+        "plan": [
+          "SCAN targets",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ],
+        "vm_steps": 3449,
+        "result_rows": 1
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH targets USING INDEX audit_targets_active (userId=? AND isActive=? AND isCompleted=?)"
+        ],
+        "vm_steps": 45,
+        "result_rows": 1
+      }
+    },
+    "audio_entry_lookup": {
+      "sql": "SELECT * FROM japa_entries WHERE userId = ? AND sessionId = ? LIMIT 1",
+      "params": [
+        5,
+        4999
+      ],
+      "before": {
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_dateKey_period (userId=?)"
+        ],
+        "vm_steps": 5025,
+        "result_rows": 1
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH japa_entries USING INDEX audit_audio_identity (userId=? AND sessionId=?)"
+        ],
+        "vm_steps": 31,
+        "result_rows": 1
+      }
+    },
+    "ordered_japa_history": {
+      "sql": "SELECT * FROM japa_entries WHERE userId = ? ORDER BY createdAtMillis, id",
+      "params": [
+        5
+      ],
+      "before": {
+        "plan": [
+          "SEARCH japa_entries USING INDEX index_japa_entries_userId_dateKey_period (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ],
+        "vm_steps": 38015,
+        "result_rows": 1000
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH japa_entries USING INDEX audit_entries_order (userId=?)"
+        ],
+        "vm_steps": 19014,
+        "result_rows": 1000
+      }
+    },
+    "ordered_session_history": {
+      "sql": "SELECT * FROM recitation_sessions WHERE userId = ? ORDER BY id DESC",
+      "params": [
+        5
+      ],
+      "before": {
+        "plan": [
+          "SEARCH recitation_sessions USING INDEX index_recitation_sessions_userId_createdAt_id (userId=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ],
+        "vm_steps": 40016,
+        "result_rows": 1000
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH recitation_sessions USING INDEX audit_sessions_id (userId=?)"
+        ],
+        "vm_steps": 22015,
+        "result_rows": 1000
+      }
+    },
+    "backup_session_page": {
+      "sql": "SELECT * FROM recitation_sessions WHERE userId = ? AND id > ? ORDER BY id LIMIT 200",
+      "params": [
+        5,
+        4500
+      ],
+      "before": {
+        "plan": [
+          "SEARCH recitation_sessions USING INTEGER PRIMARY KEY (rowid>?)"
+        ],
+        "vm_steps": 4618,
+        "result_rows": 200
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH recitation_sessions USING INDEX audit_sessions_id (userId=? AND id>?)"
+        ],
+        "vm_steps": 4626,
+        "result_rows": 200
+      }
+    },
+    "backup_change_page": {
+      "sql": "SELECT * FROM sandhya_count_changes WHERE userId = ? AND id > ? ORDER BY id LIMIT 200",
+      "params": [
+        5,
+        "change-04500"
+      ],
+      "before": {
+        "plan": [
+          "SEARCH sandhya_count_changes USING INDEX sqlite_autoindex_sandhya_count_changes_1 (id>?)"
+        ],
+        "vm_steps": 4018,
+        "result_rows": 200
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH sandhya_count_changes USING INDEX audit_changes_id (userId=? AND id>?)"
+        ],
+        "vm_steps": 3824,
+        "result_rows": 200
+      }
+    },
+    "period_change_history": {
+      "sql": "SELECT * FROM sandhya_count_changes WHERE userId = ? AND dateKey = ? AND period = ? ORDER BY revision DESC",
+      "params": [
+        5,
+        "20260912",
+        "SAYAM"
+      ],
+      "before": {
+        "plan": [
+          "SEARCH sandhya_count_changes USING INDEX index_sandhya_count_changes_userId_dateKey_period (userId=? AND dateKey=? AND period=?)",
+          "USE TEMP B-TREE FOR ORDER BY"
+        ],
+        "vm_steps": 36028,
+        "result_rows": 1000
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH sandhya_count_changes USING INDEX audit_changes_revision (userId=? AND dateKey=? AND period=?)"
+        ],
+        "vm_steps": 18039,
+        "result_rows": 1000
+      }
+    },
+    "pending_progress_overlay": {
+      "sql": "SELECT * FROM cloud_sync_outbox WHERE uid = ? AND kind = ? ORDER BY id",
+      "params": [
+        "owner-5",
+        "progress"
+      ],
+      "before": {
+        "plan": [
+          "SEARCH cloud_sync_outbox USING INDEX index_cloud_sync_outbox_uid_id (uid=?)"
+        ],
+        "vm_steps": 5367,
+        "result_rows": 50
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH cloud_sync_outbox USING INDEX audit_outbox_kind (uid=? AND kind=?)"
+        ],
+        "vm_steps": 522,
+        "result_rows": 50
+      }
+    },
+    "recent_sessions_existing_good_index": {
+      "sql": "SELECT * FROM recitation_sessions WHERE userId = ? ORDER BY createdAt DESC, id DESC LIMIT ?",
+      "params": [
+        5,
+        20
+      ],
+      "before": {
+        "plan": [
+          "SEARCH recitation_sessions USING INDEX index_recitation_sessions_userId_createdAt_id (userId=?)"
+        ],
+        "vm_steps": 476,
+        "result_rows": 20
+      },
+      "candidate_indexes": {
+        "plan": [
+          "SEARCH recitation_sessions USING INDEX index_recitation_sessions_userId_createdAt_id (userId=?)"
+        ],
+        "vm_steps": 474,
+        "result_rows": 20
+      }
+    }
+  }
+}

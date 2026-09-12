@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-12",
+  "sourceRevision": "5c5aaba3e7655049e54807adf0990a9dd12931ea",
+  "sourceState": "working tree with step-00 measurement harness; no optimization fixes",
+  "device": {
+    "model": "Pixel 7 Pro",
+    "sdk": 37,
+    "build": "CP41.260814.003.A2",
+    "osChannel": "Android 17 beta",
+    "resolution": "1440x3120",
+    "densityDpi": 560,
+    "zone": "Asia/Calcutta",
+    "usbCharging": true
+  },
+  "app": {
+    "rawDirectory": "build/perf-baseline/20260912-124121",
+    "apkSha256": "AFA040E8E327050107DBFF3D67292DBFBAC4757016AE63849C079A1BE15B11E0",
+    "traceConfig": "baseline-perfetto-v1",
+    "traceConfigSha256": "3a4b3dd0c2469de162d31afa858604b147133dcfbcdf0e2a1308b87232bda674",
+    "compilationMode": "None",
+    "iterationsPerScenario": 20,
+    "instrumentationTestsPassed": 5,
+    "accountState": "returning signed-in, user-confirmed disposable account; existing local data",
+    "thermalStatusBefore": 2,
+    "thermalStatusAfter": 2,
+    "startupObservedLaunchToUsableMs": {
+      "cold": {
+        "n": 20,
+        "median": 4757.683,
+        "p95": 5367.152
+      },
+      "warm": {
+        "n": 20,
+        "median": 2943.151,
+        "p95": 3072.445
+      },
+      "hot": {
+        "n": 20,
+        "median": 86.339,
+        "p95": 95.113
+      }
+    },
+    "navigationObservedTapToUsableMs": {
+      "home": {
+        "n": 20,
+        "median": 346.079,
+        "p95": 463.786
+      },
+      "progress": {
+        "n": 20,
+        "median": 304.322,
+        "p95": 368.812
+      },
+      "settings": {
+        "n": 20,
+        "median": 320.8,
+        "p95": 403.677
+      }
+    },
+    "libraryMetrics": {
+      "hotStartup": {
+        "frameCount": {
+          "n": 20,
+          "median": 1.0,
+          "p95": 1.0
+        },
+        "timeToInitialDisplayMs": {
+          "n": 20,
+          "median": 28.218,
+          "p95": 31.515
+        },
+        "frameDurationCpuMs": {
+          "n": 19,
+          "median": 10.264,
+          "p95": 13.335
+        },
+        "frameOverrunMs": {
+          "n": 19,
+          "median": -0.66,
+          "p95": 7.504,
+          "positiveOverrunPercent": 36.842
+        }
+      },
+      "coldStartup": {
+        "frameCount": {
+          "n": 20,
+          "median": 360.0,
+          "p95": 405.0
+        },
+        "timeToFullDisplayMs": {
+          "n": 20,
+          "median": 4568.629,
+          "p95": 4933.195
+        },
+        "timeToInitialDisplayMs": {
+          "n": 20,
+          "median": 254.933,
+          "p95": 286.385
+        },
+        "frameDurationCpuMs": {
+          "n": 7280,
+          "median": 2.38,
+          "p95": 10.519
+        },
+        "frameOverrunMs": {
+          "n": 7280,
+          "median": -13.113,
+          "p95": 0.843,
+          "positiveOverrunPercent": 12.857
+        }
+      },
+      "warmStartup": {
+        "frameCount": {
+          "n": 20,
+          "median": 195.5,
+          "p95": 206.0
+        },
+        "timeToFullDisplayMs": {
+          "n": 20,
+          "median": 2861.214,
+          "p95": 2943.259
+        },
+        "timeToInitialDisplayMs": {
+          "n": 20,
+          "median": 46.842,
+          "p95": 53.939
+        },
+        "frameDurationCpuMs": {
+          "n": 3934,
+          "median": 2.781,
+          "p95": 10.087
+        },
+        "frameOverrunMs": {
+          "n": 3934,
+          "median": -11.875,
+          "p95": 1.304,
+          "positiveOverrunPercent": 7.6
+        }
+      },
+      "navigation": {
+        "frameCount": {
+          "n": 20,
+          "median": 131.0,
+          "p95": 135.0
+        },
+        "frameDurationCpuMs": {
+          "n": 2568,
+          "median": 3.551,
+          "p95": 9.521
+        },
+        "frameOverrunMs": {
+          "n": 2568,
+          "median": -9.669,
+          "p95": 6.867,
+          "positiveOverrunPercent": 6.931
+        }
+      }
+    },
+    "idle": {
+      "elapsedMs": 30066,
+      "cpuMs": 217,
+      "cpuPercentOfOneCore": 0.7217454932481874,
+      "active": {
+        "auth.account": 3,
+        "japa.history": 1,
+        "sessions.full": 1
+      },
+      "beforeCounts": {
+        "room.BEGIN.other": 19,
+        "room.CREATE.backup_conflicts": 3,
+        "room.CREATE.other": 3,
+        "room.CREATE.user_profiles": 3,
+        "room.END.other": 19,
+        "room.INSERT.other": 3,
+        "room.INSERT.user_profiles": 1,
+        "room.SELECT.backup_conflicts": 1,
+        "room.SELECT.backup_state": 6,
+        "room.SELECT.japa_entries": 7,
+        "room.SELECT.other": 31,
+        "room.SELECT.purashcharana": 2,
+        "room.SELECT.recitation_sessions": 9,
+        "room.SELECT.sandhya_logs": 1,
+        "room.SELECT.targets": 3,
+        "room.SELECT.user_profiles": 7,
+        "room.TRANSACTION.other": 19,
+        "room.UPDATE.user_profiles": 1,
+        "sessions.materializedRows": 6,
+        "subscriptions.auth.account": 3,
+        "subscriptions.japa.history": 2,
+        "subscriptions.sessions.full": 6
+      },
+      "workDelta": {
+        "room.BEGIN.other": 0,
+        "room.CREATE.backup_conflicts": 0,
+        "room.CREATE.other": 0,
+        "room.CREATE.user_profiles": 0,
+        "room.END.other": 0,
+        "room.INSERT.other": 0,
+        "room.INSERT.user_profiles": 0,
+        "room.SELECT.backup_conflicts": 0,
+        "room.SELECT.backup_state": 0,
+        "room.SELECT.japa_entries": 0,
+        "room.SELECT.other": 0,
+        "room.SELECT.purashcharana": 0,
+        "room.SELECT.recitation_sessions": 0,
+        "room.SELECT.sandhya_logs": 0,
+        "room.SELECT.targets": 0,
+        "room.SELECT.user_profiles": 0,
+        "room.TRANSACTION.other": 0,
+        "room.UPDATE.user_profiles": 0,
+        "sessions.materializedRows": 0,
+        "subscriptions.auth.account": 0,
+        "subscriptions.japa.history": 0,
+        "subscriptions.sessions.full": 0
+      }
+    }
+  },
+  "statistics": "Median and nearest-rank p95; frame distributions pool measured frames across runs. Positive frame overrun is reported separately from Android jank classifications.",
+  "verification": {
+    "unitTestsPassed": 541,
+    "existingRoomDeviceTestsPassed": 22
+  },
+  "limitations": [
+    "One USB-charging flagship on a beta OS; thermal status 2 before and after app run.",
+    "Returning-account Home/Progress/Settings only. Signed-out startup has a one-sample smoke check, not a 20-sample baseline.",
+    "Network, role/linked-child fixtures and reminder settings were not controlled; do not generalize to the complete audit matrix.",
+    "Hot startup has only 19 frame timing samples across 20 iterations; it is not a scrolling/jank benchmark.",
+    "UI Automator observed readiness includes test observation overhead.",
+    "Repeated retained-process 10000-session debug analytics aborts in ART GC allocation; root cause unresolved. Fresh-process sampling does not replace that stress case."
+  ],
+  "history": {
+    "rawDirectory": "build/perf-baseline/20260912-125033",
+    "fixtureVersion": 1,
+    "processes": 20,
+    "sessionsInEachProcess": [
+      0,
+      1000,
+      10000
+    ],
+    "build": "debug instrumentation APK, newly seeded open Room DB; first emission per size",
+    "apkHashes": [
+      {
+        "Algorithm": "SHA256",
+        "Hash": "11C47FCB68A7982DA39D008D94C8DA3A1455EBC937454DBC6AAF6FF7DCA41E6F",
+        "Path": "data-debug-androidTest.apk"
+      }
+    ],
+    "results": {
+      "0": {
+        "wallMs": {
+          "n": 20,
+          "median": 86.741,
+          "p95": 99.644
+        },
+        "cpuMs": {
+          "n": 20,
+          "median": 263.5,
+          "p95": 291
+        },
+        "selectQueries": {
+          "n": 20,
+          "median": 7.0,
+          "p95": 7
+        },
+        "mappedSessionRows": {
+          "n": 20,
+          "median": 0.0,
+          "p95": 0
+        }
+      },
+      "1000": {
+        "wallMs": {
+          "n": 20,
+          "median": 1007.999,
+          "p95": 1080.859
+        },
+        "cpuMs": {
+          "n": 20,
+          "median": 4211.0,
+          "p95": 4509
+        },
+        "selectQueries": {
+          "n": 20,
+          "median": 7.0,
+          "p95": 7
+        },
+        "mappedSessionRows": {
+          "n": 20,
+          "median": 5000.0,
+          "p95": 5000
+        }
+      },
+      "10000": {
+        "wallMs": {
+          "n": 20,
+          "median": 8457.444,
+          "p95": 8886.794
+        },
+        "cpuMs": {
+          "n": 20,
+          "median": 37850.5,
+          "p95": 40221
+        },
+        "selectQueries": {
+          "n": 20,
+          "median": 7.0,
+          "p95": 7
+        },
+        "mappedSessionRows": {
+          "n": 20,
+          "median": 50000.0,
+          "p95": 50000
+        }
+      }
+    }
+  }
+}

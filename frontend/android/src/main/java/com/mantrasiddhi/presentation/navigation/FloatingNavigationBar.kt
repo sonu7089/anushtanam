@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
@@ -93,6 +94,7 @@ internal fun FloatingNavigationBar(
                             if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                             animationSpec = tween(140), label = "navigationInk")
                         Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape)
+                            .testTag("perf_tab_${item.screen.route}")
                             .selectable(selected, role = Role.Tab, onClick = { onNavigate(item.screen) })
                             .semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally,

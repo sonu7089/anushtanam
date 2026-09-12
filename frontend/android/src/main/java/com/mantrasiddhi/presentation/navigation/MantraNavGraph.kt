@@ -25,6 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavBackStackEntry
@@ -118,6 +122,7 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.exitScreenTransit
 }
 
 @Composable
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 fun MantraApp(
     mainViewModel: MainViewModel,
     navController: NavHostController = rememberNavController(),
@@ -126,7 +131,8 @@ fun MantraApp(
     messageId: String? = null,
     onMessageHandled: () -> Unit = {},
     homeNotificationId: String? = null,
-    onHomeNotificationHandled: () -> Unit = {}
+    onHomeNotificationHandled: () -> Unit = {},
+    onStartupReady: () -> Unit = {}
 ) {
     val currentUser by mainViewModel.currentUser.collectAsState(initial = null)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -187,6 +193,7 @@ fun MantraApp(
     val showFamily = currentUser?.profileType?.let { it != ProfileType.INDIVIDUAL } == true
 
     Scaffold(
+        modifier = Modifier.semantics { testTagsAsResourceId = true },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
@@ -232,6 +239,8 @@ fun MantraApp(
 
             composable(Screen.Welcome.route) {
                 WelcomeScreen(
+                    modifier = Modifier.semantics { testTagsAsResourceId = true }
+                        .testTag("perf_welcome_ready").onGloballyPositioned { onStartupReady() },
                     onSelectParent = { navController.navigate(Screen.ParentAuth.route) },
                     onSelectChild = { navController.navigate(Screen.ChildAuth.route) }
                 )
@@ -288,6 +297,7 @@ fun MantraApp(
             composable(Screen.Home.route) {
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 HomeScreen(
+                    onUsable = onStartupReady,
                     viewModel = homeViewModel,
                     onNavigateToRecitation = { navController.navigate(Screen.Recitation.route) },
                     onNavigateToPractice = { navController.navigate(Screen.Practice.route) },

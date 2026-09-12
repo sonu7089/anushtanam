@@ -44,6 +44,7 @@ android {
         versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "PERF_PROBES", "false")
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -98,6 +99,14 @@ android {
         }
     }
 
+    buildTypes.create("benchmark") {
+        initWith(buildTypes.getByName("release"))
+        signingConfig = signingConfigs.getByName("debug")
+        matchingFallbacks += listOf("release")
+        isDebuggable = false
+        buildConfigField("boolean", "PERF_PROBES", "true")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -109,6 +118,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {

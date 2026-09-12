@@ -21,7 +21,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
@@ -31,10 +30,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(
-        @ApplicationContext context: Context,
-        userDaoProvider: Provider<UserDao>
+        @ApplicationContext context: Context
     ): MantraSiddhiDatabase {
-        return MantraSiddhiDatabase.buildDatabase(context, userDaoProvider)
+        return MantraSiddhiDatabase.buildDatabase(context)
     }
 
     @Provides

@@ -44,9 +44,13 @@ class RecitationRepositoryImpl @Inject constructor(
     }
 
     override fun getSessionsForUser(userId: Long): Flow<List<RecitationSession>> {
-        return recitationDao.getSessionsForUser(userId)
-            .map { list -> list.map { it.toDomain() } }
-            .flowOn(ioDispatcher)
+        return com.mantrasiddhi.domain.diagnostics.WorkProbe.observe("sessions.full",
+            recitationDao.getSessionsForUser(userId)
+                .map { list ->
+                    com.mantrasiddhi.domain.diagnostics.WorkProbe.increment("sessions.materializedRows", list.size.toLong())
+                    list.map { it.toDomain() }
+                }
+                .flowOn(ioDispatcher))
     }
 
     override fun getRecentSessionsForUser(userId: Long, limit: Int): Flow<List<RecitationSession>> =

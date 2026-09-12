@@ -7,8 +7,6 @@
 package com.mantrasiddhi.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
@@ -38,7 +36,4 @@ interface UserDao {
 
     @Upsert
     suspend fun insert(user: UserProfileEntity): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(users: List<UserProfileEntity>)
 }
