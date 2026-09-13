@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
@@ -80,7 +81,9 @@ class HomeViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        observers.forEach { it.cancel() }; Dispatchers.resetMain()
+        observers.forEach { it.cancel() }
+        if (::viewModel.isInitialized) androidx.lifecycle.ViewModelStore().apply { put("home", viewModel); clear() }
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -161,5 +164,45 @@ class HomeViewModelTest {
         calendarDays.value = calendarDays.value.first.plusDays(1) to calendarDays.value.second
         assertEquals("0", (viewModel.uiState.value as HomeUiState.Success).todayJapa)
         io.mockk.verify(exactly = 1) { japa(any()); getDashboardStatsUseCase(any()) }
+    }
+
+    @Test fun `returning to home retains every loaded section while fresh reads are pending`() = runTest {
+        every { getCurrentUserUseCase() } returns MutableStateFlow(testUser)
+        every { getDashboardStatsUseCase(any()) } returns flowOf(DashboardStats(testUser, 12, 3, null))
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
+        watch(viewModel)
+        val loaded = viewModel.uiState.value
+        observers.forEach { it.cancel() }; runCurrent()
+        advanceTimeBy(60_000)
+        assertEquals(loaded, viewModel.uiState.value)
+        // Returning must not rebuild the shell or discard each section's cached value.
+        every { getDashboardStatsUseCase(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+        every { getActivePurashcharanaUseCase(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+        every { japa(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+        val returned = mutableListOf<HomeUiState>()
+        observers += backgroundScope.launch(testDispatcher) { viewModel.uiState.collect { returned += it } }
+        runCurrent()
+        assertTrue(returned.isNotEmpty())
+        assertTrue(returned.all { it == loaded })
+    }
+
+    @Test fun `hidden home invalidates cached sections on account replacement and sign out`() = runTest {
+        val session = MutableStateFlow<com.mantrasiddhi.domain.model.UserProfile?>(testUser.copy(firebaseUid = "first"))
+        every { getCurrentUserUseCase() } returns session
+        every { getDashboardStatsUseCase(any()) } returns flowOf(DashboardStats(testUser, 12, 3, null))
+        viewModel = HomeViewModel(getCurrentUserUseCase, getDashboardStatsUseCase, getActivePurashcharanaUseCase, japa, teachings, calendarTime)
+        watch(viewModel)
+        observers.forEach { it.cancel() }; runCurrent()
+        session.value = session.value!!.copy(firebaseUid = "replacement")
+        runCurrent()
+        assertEquals(HomeUiState.Loading, viewModel.uiState.value)
+        every { getDashboardStatsUseCase(any()) } returns kotlinx.coroutines.flow.flow { kotlinx.coroutines.awaitCancellation() }
+        watch(viewModel)
+        val replaced = viewModel.uiState.value as HomeUiState.Success
+        assertTrue(replaced.statsLoading)
+        assertEquals(0, replaced.todayCount)
+        observers.forEach { it.cancel() }; runCurrent()
+        session.value = null; runCurrent()
+        assertTrue(viewModel.uiState.value is HomeUiState.Error)
     }
 }

@@ -69,8 +69,10 @@ class LotusUiTest {
             SettingsContent(ReviewFixtures.parent, theme.value, language.value,
                 { theme.value = it }, { language.value = it }, {})
         } }
-        compose.onNodeWithText(text(R.string.settings_theme_dark)).performScrollTo().performClick().assertIsSelected()
-        compose.onNodeWithText(text(R.string.settings_script_devanagari)).performScrollTo().performClick().assertIsSelected()
+        compose.onNodeWithTag("settings_sections").performScrollToNode(hasText(text(R.string.settings_theme_dark)))
+        compose.onNodeWithText(text(R.string.settings_theme_dark)).performClick().assertIsSelected()
+        compose.onNodeWithTag("settings_sections").performScrollToNode(hasText(text(R.string.settings_script_devanagari)))
+        compose.onNodeWithText(text(R.string.settings_script_devanagari)).performClick().assertIsSelected()
         compose.runOnIdle { assertEquals("DARK", theme.value); assertEquals("DEVANAGARI", language.value) }
         compose.onNodeWithText(text(R.string.settings_advanced_section)).assertDoesNotExist()
         compose.onAllNodes(isToggleable()).assertCountEquals(0)

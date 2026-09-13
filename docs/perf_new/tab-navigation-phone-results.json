@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-13",
+  "device": "Pixel 7 Pro",
+  "fixture": false,
+  "switchesPerRun": 25,
+  "renderFrameRateHz": 120,
+  "animatorScale": 1.0,
+  "thermalStatusBeforeAndAfter": 0,
+  "compilation": "Optimized benchmark APK, natural runtime warmup; no forced AOT compilation",
+  "metric": "Main-thread outer Choreographer doFrame wall duration, not Macrobenchmark CPU duration",
+  "before": {
+    "run": "before-timing-clean",
+    "apkSha256": "c260e53cac5d8e9fd712288c849e3700f3fe46aa01a0cd818e6ce300ea76b65c",
+    "timings": [
+      {
+        "kind": "main_frame",
+        "n": "1156",
+        "total_ms": "2728.440000",
+        "p50_ms": "1.300000",
+        "p95_ms": "7.990000",
+        "max_ms": "29.540000",
+        "over_8ms": "56",
+        "over_16ms": "19",
+        "over_33ms": "0"
+      },
+      {
+        "kind": "measure",
+        "n": "1019",
+        "total_ms": "541.600000",
+        "p50_ms": "0.170000",
+        "p95_ms": "1.300000",
+        "max_ms": "21.520000",
+        "over_8ms": "20",
+        "over_16ms": "3",
+        "over_33ms": "0"
+      }
+    ]
+  },
+  "after": {
+    "run": "after-timing",
+    "apkSha256": "f263d11588a8471a2dfcd210e188c89b1a049f7fdb5f262af71b59a58bdd066e",
+    "timings": [
+      {
+        "kind": "main_frame",
+        "n": "1151",
+        "total_ms": "2185.730000",
+        "p50_ms": "0.780000",
+        "p95_ms": "5.250000",
+        "max_ms": "32.830000",
+        "over_8ms": "46",
+        "over_16ms": "25",
+        "over_33ms": "0"
+      },
+      {
+        "kind": "measure",
+        "n": "75",
+        "total_ms": "414.280000",
+        "p50_ms": "1.030000",
+        "p95_ms": "17.470000",
+        "max_ms": "22.080000",
+        "over_8ms": "25",
+        "over_16ms": "8",
+        "over_33ms": "0"
+      }
+    ]
+  },
+  "attribution": {
+    "homeCompositionsBefore": 84,
+    "homeCompositionsAfter": 40,
+    "homeReturns": 10,
+    "warmProgressShimmerStartsBefore": 5,
+    "warmProgressShimmerStartsAfter": 0
+  },
+  "limitations": [
+    "One paired 25-switch warmed journey, not a broad device benchmark.",
+    "Long entry frames remain: frames over 16.67 ms increased from 19 to 25 in this pair.",
+    "The source fix removes state resets and full-screen tab slides; these results do not establish zero jank.",
+    "Debug performance is not equivalent to the optimized installed APK."
+  ]
+}

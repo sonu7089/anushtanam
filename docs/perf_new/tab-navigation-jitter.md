@@ -1,7 +1,8 @@
 # Tab navigation jitter: findings and resolution plan
 
 Date: 12 September 2026  
-Status: Investigation and proposal only; no application code changes  
+Status: Original investigation; implementation authorized subsequently and recorded in [implementation results](tab-navigation-implementation.md).
+
 Repository revision at document preparation: `71d9da1`
 
 ## Problem and conclusion

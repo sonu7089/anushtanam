@@ -4,8 +4,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,68 +67,76 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) },
     messagesContent: @Composable () -> Unit = {}) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            Box(Modifier.fillMaxWidth()) {
-                LotusArtwork(LotusArt.JASMINE, Modifier.align(Alignment.TopEnd).fillMaxWidth(0.22f).height(120.dp))
-                Column(Modifier.fillMaxWidth(0.74f).padding(vertical = 16.dp)) {
-                    Text(stringResource(R.string.lotus_settings_intro), style = MaterialTheme.typography.headlineMedium)
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.lotus_settings_description), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("settings_sections"),
+            contentPadding = PaddingValues(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            item(key = "intro") {
+                Box(Modifier.fillMaxWidth()) {
+                    LotusArtwork(LotusArt.JASMINE, Modifier.align(Alignment.TopEnd).fillMaxWidth(0.22f).height(120.dp))
+                    Column(Modifier.fillMaxWidth(0.74f).padding(vertical = 16.dp)) {
+                        Text(stringResource(R.string.lotus_settings_intro), style = MaterialTheme.typography.headlineMedium)
+                        Spacer(Modifier.height(8.dp))
+                        Text(stringResource(R.string.lotus_settings_description), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             user?.let {
-                Column(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ProfileAvatar(it.avatarIndex, it.name, 56.dp,
-                            photoUrl = it.photoUrl.takeIf { _ -> it.useGooglePhoto })
-                        Spacer(Modifier.width(16.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(it.name, style = MaterialTheme.typography.headlineSmall)
-                            Text(stringResource(when (it.profileType) {
-                                com.mantrasiddhi.domain.model.ProfileType.PARENT -> R.string.badge_parent
-                                com.mantrasiddhi.domain.model.ProfileType.CHILD -> R.string.badge_child
-                                com.mantrasiddhi.domain.model.ProfileType.INDIVIDUAL -> R.string.badge_individual
-                            }), style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.secondary)
+                item(key = "account") {
+                    Column(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ProfileAvatar(it.avatarIndex, it.name, 56.dp,
+                                photoUrl = it.photoUrl.takeIf { _ -> it.useGooglePhoto })
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(it.name, style = MaterialTheme.typography.headlineSmall)
+                                Text(stringResource(when (it.profileType) {
+                                    com.mantrasiddhi.domain.model.ProfileType.PARENT -> R.string.badge_parent
+                                    com.mantrasiddhi.domain.model.ProfileType.CHILD -> R.string.badge_child
+                                    com.mantrasiddhi.domain.model.ProfileType.INDIVIDUAL -> R.string.badge_individual
+                                }), style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.secondary)
+                            }
+                        }
+                        accountContent()
+                    }
+                }
+            }
+            item(key = "preferences") {
+                Column {
+                    SectionLabel(stringResource(R.string.settings_app_settings))
+                    Text(stringResource(R.string.settings_theme_preference), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("LIGHT" to R.string.settings_theme_light, "DARK" to R.string.settings_theme_dark,
+                            "SYSTEM" to R.string.settings_theme_system).forEach { (value, label) ->
+                            PreferenceChip(stringResource(label), themeMode == value, { onTheme(value) })
                         }
                     }
-                    accountContent()
-                }
-            }
-            Column {
-                SectionLabel(stringResource(R.string.settings_app_settings))
-                Text(stringResource(R.string.settings_theme_preference), style = MaterialTheme.typography.bodyLarge)
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("LIGHT" to R.string.settings_theme_light, "DARK" to R.string.settings_theme_dark,
-                        "SYSTEM" to R.string.settings_theme_system).forEach { (value, label) ->
-                        PreferenceChip(stringResource(label), themeMode == value, { onTheme(value) })
-                    }
-                }
-                Spacer(Modifier.height(20.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(20.dp))
-                Text(stringResource(R.string.settings_script_display), style = MaterialTheme.typography.bodyLarge)
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("DEVANAGARI" to R.string.settings_script_devanagari,
-                        "TRANSLITERATION" to R.string.settings_script_transliteration,
-                        "BOTH" to R.string.settings_script_both).forEach { (value, label) ->
-                        PreferenceChip(stringResource(label), languageDisplay == value, { onLanguage(value) })
+                    Spacer(Modifier.height(20.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(Modifier.height(20.dp))
+                    Text(stringResource(R.string.settings_script_display), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("DEVANAGARI" to R.string.settings_script_devanagari,
+                            "TRANSLITERATION" to R.string.settings_script_transliteration,
+                            "BOTH" to R.string.settings_script_both).forEach { (value, label) ->
+                            PreferenceChip(stringResource(label), languageDisplay == value, { onLanguage(value) })
+                        }
                     }
                 }
             }
-            SandhyaSettingsEntry(onOpenSandhyaSettings)
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                messagesContent()
-                backupContent()
-                OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Text(stringResource(R.string.settings_switch_profile))
+            item(key = "sandhya") { SandhyaSettingsEntry(onOpenSandhyaSettings) }
+            item(key = "backup_and_sign_out") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    messagesContent()
+                    backupContent()
+                    OutlinedButton(onClick = onLogout, enabled = signOutEnabled, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                        Text(stringResource(R.string.settings_switch_profile))
+                    }
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            item(key = "bottom_space") { Spacer(Modifier.height(8.dp)) }
         }
     }
 }

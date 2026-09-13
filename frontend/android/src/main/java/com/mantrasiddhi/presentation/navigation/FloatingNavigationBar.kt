@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import com.mantrasiddhi.presentation.theme.EmphasizedEasing
 import androidx.compose.ui.unit.sp
@@ -68,15 +69,17 @@ internal fun FloatingNavigationBar(
     BoxWithConstraints(modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
         val showLabels = maxWidth >= 336.dp && LocalDensity.current.fontScale <= 1.2f
         val itemHeight = if (showLabels) 64.dp else 56.dp
+        val slotWidth = (maxWidth - 8.dp).coerceAtLeast(0.dp) / destinations.size
         Surface(
             modifier = Modifier.fillMaxWidth().shadow(12.dp, CircleShape,
                 ambientColor = Color.Black.copy(alpha = 0.12f), spotColor = Color.Black.copy(alpha = 0.12f)),
             shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
         ) {
-            BoxWithConstraints(Modifier.padding(4.dp)) {
+            // The outer constraint scope already knows the available width. A second
+            // subcomposition here used to rebuild the bar during its measurement.
+            Box(Modifier.padding(4.dp)) {
                 val selectedIndex = destinations.indexOfFirst { it.screen.route == currentRoute }
-                val slotWidth = maxWidth / destinations.size
                 val indicatorOffset = animateDpAsState(
                     targetValue = slotWidth * selectedIndex.coerceAtLeast(0),
                     animationSpec = tween(320, easing = EmphasizedEasing),
@@ -89,28 +92,36 @@ internal fun FloatingNavigationBar(
                 }
                 Row(Modifier.fillMaxWidth().selectableGroup()) {
                     destinations.forEach { item ->
-                        val selected = item.screen.route == currentRoute
-                        val label = stringResource(item.screen.labelResId)
-                        val ink by animateColorAsState(
-                            if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                            animationSpec = tween(140), label = "navigationInk")
-                        Column(Modifier.weight(1f).height(itemHeight).clip(CircleShape)
-                            .testTag("${if (enabled) "perf" else "entry"}_tab_${item.screen.route}")
-                            .selectable(selected, enabled = enabled, role = Role.Tab, onClick = { onNavigate(item.screen) })
-                            .semantics { contentDescription = label },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center) {
-                            Icon(painterResource(item.icon), null, Modifier.size(24.dp), tint = if (enabled) ink else ink.copy(alpha = 0.38f))
-                            if (showLabels) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(label, Modifier.clearAndSetSemantics {}, color = if (enabled) ink else ink.copy(alpha = 0.38f),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
+                        NavigationTab(item.screen, item.icon, item.screen.route == currentRoute,
+                            enabled, showLabels, itemHeight, onNavigate, Modifier.weight(1f))
                     }
                 }
             }
+        }
+    }
+}
+
+/** Color ticks invalidate only this tab, not the constraint scope and every sibling. */
+@Composable
+private fun NavigationTab(screen: Screen, icon: Int, selected: Boolean, enabled: Boolean,
+    showLabel: Boolean, height: Dp, onNavigate: (Screen) -> Unit, modifier: Modifier = Modifier) {
+    val label = stringResource(screen.labelResId)
+    val ink by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(140), label = "navigationInk")
+    val color = if (enabled) ink else ink.copy(alpha = 0.38f)
+    Column(modifier.height(height).clip(CircleShape)
+        .testTag("${if (enabled) "perf" else "entry"}_tab_${screen.route}")
+        .selectable(selected, enabled = enabled, role = Role.Tab, onClick = { onNavigate(screen) })
+        .semantics { contentDescription = label },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        Icon(painterResource(icon), null, Modifier.size(24.dp), tint = color)
+        if (showLabel) {
+            Spacer(Modifier.height(4.dp))
+            Text(label, Modifier.clearAndSetSemantics {}, color = color,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

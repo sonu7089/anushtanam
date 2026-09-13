@@ -1,0 +1,117 @@
+{
+  "scope": "Fixed-data UI layout fixture; excludes account loading and speech readiness",
+  "before": {
+    "rawDirectory": "build/tab-jitter/before-stable",
+    "environment": {
+      "fixture": true,
+      "emulator": true,
+      "fingerprint": "google/sdk_gphone16k_x86_64/emu64xa16k:17/CP21.260330.005/15181570:user/dev-keys",
+      "size": "Physical size: 1080x2400",
+      "density": "Physical density: 420",
+      "fontScale": "1.0",
+      "animatorScale": "null",
+      "compilation": "None",
+      "graphics": [
+        "GLES: Google (NVIDIA Corporation), Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 4060/PCIe/SSE2), OpenGL ES 3.1 (4.5.0 NVIDIA 591.86)"
+      ]
+    },
+    "apkSha256": "74a6569574050c10e2bd3958288ad101180df214815f0def8425620a665dbf5e",
+    "iterations": 20,
+    "metrics": {
+      "frameDurationCpuMs": {
+        "P50": 15.2663,
+        "P90": 38.5931,
+        "P95": 44.674049999999994,
+        "P99": 64.43752999999981,
+        "samples": 2331
+      },
+      "frameOverrunMs": {
+        "P50": 7.744136,
+        "P90": 36.662894,
+        "P95": 46.734550999999996,
+        "P99": 73.60571159999935,
+        "samples": 2331,
+        "positiveOverrunPercent": 59.63105963105963
+      }
+    },
+    "observedTapToUsable": {
+      "home": {
+        "n": 40,
+        "medianMs": 207.37425000000002,
+        "p95Ms": 376.3214
+      },
+      "practice": {
+        "n": 20,
+        "medianMs": 208.1001,
+        "p95Ms": 472.186
+      },
+      "progress": {
+        "n": 20,
+        "medianMs": 259.77070000000003,
+        "p95Ms": 571.6771
+      },
+      "settings": {
+        "n": 20,
+        "medianMs": 299.8819,
+        "p95Ms": 444.9232
+      }
+    }
+  },
+  "after": {
+    "rawDirectory": "build/tab-jitter/after-host",
+    "environment": {
+      "fixture": true,
+      "emulator": true,
+      "fingerprint": "google/sdk_gphone16k_x86_64/emu64xa16k:17/CP21.260330.005/15181570:user/dev-keys",
+      "size": "Physical size: 1080x2400",
+      "density": "Physical density: 420",
+      "fontScale": "1.0",
+      "animatorScale": "null",
+      "compilation": "None",
+      "graphics": [
+        "GLES: Google (NVIDIA Corporation), Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 4060/PCIe/SSE2), OpenGL ES 3.1 (4.5.0 NVIDIA 591.86)"
+      ]
+    },
+    "apkSha256": "33568164fc84c6577bfb72fc393c189773c9622c9f3a4b6a8cc184ebc1aafc23",
+    "iterations": 20,
+    "metrics": {
+      "frameDurationCpuMs": {
+        "P50": 5.0906,
+        "P90": 18.25502000000001,
+        "P95": 20.57424,
+        "P99": 23.674004,
+        "samples": 2377
+      },
+      "frameOverrunMs": {
+        "P50": -8.911028,
+        "P90": 6.0463200000000015,
+        "P95": 7.682147599999999,
+        "P99": 22.823937999999906,
+        "samples": 2377,
+        "positiveOverrunPercent": 17.96381994110223
+      }
+    },
+    "observedTapToUsable": {
+      "home": {
+        "n": 40,
+        "medianMs": 176.17995,
+        "p95Ms": 226.1231
+      },
+      "practice": {
+        "n": 20,
+        "medianMs": 179.7991,
+        "p95Ms": 234.0604
+      },
+      "progress": {
+        "n": 20,
+        "medianMs": 178.44905,
+        "p95Ms": 239.9989
+      },
+      "settings": {
+        "n": 20,
+        "medianMs": 185.9894,
+        "p95Ms": 279.8587
+      }
+    }
+  }
+}

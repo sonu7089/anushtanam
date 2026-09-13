@@ -34,7 +34,8 @@ class BackupStatusUiTest {
                 BackupStatusContent(BackupUiState(localOnly = false))
             })
         } }
-        compose.onNodeWithText("Your practice is up to date.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("settings_sections").performScrollToNode(hasText("Your practice is up to date."))
+        compose.onNodeWithText("Your practice is up to date.").assertIsDisplayed()
         compose.onNodeWithText("About Anushtanam").assertDoesNotExist()
         compose.onNodeWithText("Upload").assertDoesNotExist()
         compose.onNodeWithContentDescription("Sync now").performScrollTo().assertIsEnabled()

@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <activity android:name="com.mantrasiddhi.perf.NavigationFixtureActivity"
+            android:exported="true" android:permission="android.permission.DUMP" />
         <profileable android:shell="true" />
         <receiver android:name="com.mantrasiddhi.perf.PerfSnapshotReceiver"
             android:exported="true" android:permission="android.permission.DUMP" />

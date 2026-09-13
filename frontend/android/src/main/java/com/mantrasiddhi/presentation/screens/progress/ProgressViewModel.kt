@@ -12,6 +12,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import com.mantrasiddhi.presentation.state.profileStateWhileSubscribed
 
 sealed interface ProgressUiState {
     data object Loading : ProgressUiState
@@ -42,7 +43,6 @@ class ProgressViewModel @Inject constructor(
     val selectedTab = _selectedTab.asStateFlow()
     private val retryRequest = MutableStateFlow(0)
     private val appendRequest = MutableStateFlow(0)
-    private var owner: Pair<Long, String?>? = null
     private val cache = mutableMapOf<Int, ProgressUiState.Success>()
     fun selectTab(tab: Int) { require(tab in 0..3); _selectedTab.value = tab }
     fun retry() { retryRequest.value++ }
@@ -51,10 +51,9 @@ class ProgressViewModel @Inject constructor(
         if (_selectedTab.value == 3 && current.hasMore && !current.appending) appendRequest.value++
     }
 
-    val uiState: StateFlow<ProgressUiState> = currentUser().distinctUntilChangedBy { it?.let { profile -> profile.id to profile.firebaseUid } }.flatMapLatest { user ->
-        val identity = user?.let { it.id to it.firebaseUid }
-        if (owner != identity) { cache.clear(); owner = identity }
-        if (user == null) flowOf(ProgressUiState.Loading) else
+    val uiState: StateFlow<ProgressUiState> = currentUser().distinctUntilChangedBy { it?.let { profile -> profile.id to profile.firebaseUid } }
+        .profileStateWhileSubscribed(viewModelScope, ProgressUiState.Loading,
+            reset = { cache.clear(); ProgressUiState.Loading }) { user ->
             combine(_selectedTab, retryRequest) { tab, _ -> tab }.flatMapLatest { tab ->
                 flow<ProgressUiState> {
                     emit(cache[tab]?.copy(refreshing = true, error = false) ?: ProgressUiState.Loading)
@@ -65,7 +64,7 @@ class ProgressViewModel @Inject constructor(
                         ?: ProgressUiState.Error("Unable to load this section."))
                 }
             }
-    }.buffer(0).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0, replayExpirationMillis = 0), ProgressUiState.Loading)
+    }
 
     private fun section(userId: Long, tab: Int): Flow<ProgressUiState.Success> = when (tab) {
         0 -> {

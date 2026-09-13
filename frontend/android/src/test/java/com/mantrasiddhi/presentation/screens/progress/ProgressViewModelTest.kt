@@ -96,6 +96,31 @@ class ProgressViewModelTest {
         assertEquals(0, active["stats"])
     }
 
+    @Test fun `returning to progress shows cached content while refreshing without a skeleton`() = runTest(dispatcher) {
+        val observer = backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        observer.cancel(); runCurrent()
+        advanceTimeBy(60_000)
+        assertTrue(active.values.all { it == 0 })
+        assertEquals(100, state().overviewStats.totalSessions)
+        every { stats(any()) } returns flow { awaitCancellation() }
+        val returned = mutableListOf<ProgressUiState>()
+        backgroundScope.launch(dispatcher) { vm.uiState.collect { returned += it } }
+        runCurrent()
+        assertTrue(returned.isNotEmpty())
+        assertTrue(returned.all { it is ProgressUiState.Success && it.overviewStats.totalSessions == 100 })
+    }
+
+    @Test fun `hidden progress clears cache when the same local profile belongs to a new account`() = runTest(dispatcher) {
+        val observer = backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        observer.cancel(); runCurrent()
+        user.value = user.value!!.copy(firebaseUid = "new-account")
+        runCurrent()
+        assertEquals(ProgressUiState.Loading, vm.uiState.value)
+        every { stats(any()) } returns flow { awaitCancellation() }
+        backgroundScope.launch(dispatcher) { vm.uiState.collect {} }
+        assertEquals(ProgressUiState.Loading, vm.uiState.value)
+    }
+
     @Test fun `cloud overview bypasses local reads and daily count needs no history`() = runTest(dispatcher) {
         every { cloud.summaryFlow() } returns flowOf(ProgressSummary(40, 30, 32.0, .97,
             mapOf(LocalDate.now().toString() to DayAggregate(4, 3, 3.2))))

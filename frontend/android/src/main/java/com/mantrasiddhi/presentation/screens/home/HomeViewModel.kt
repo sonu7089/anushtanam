@@ -15,16 +15,15 @@ import com.mantrasiddhi.domain.usecase.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.onEach
+import com.mantrasiddhi.presentation.state.profileStateWhileSubscribed
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -56,15 +55,24 @@ class HomeViewModel @Inject constructor(
     fun stopReflection() { reflectionJob?.cancel(); reflectionJob = null }
 
     private data class Section<T>(val value: T? = null, val loading: Boolean = true, val failed: Boolean = false)
-    private fun <T> kotlinx.coroutines.flow.Flow<T>.section(): kotlinx.coroutines.flow.Flow<Section<T>> =
-        map { Section(value = it, loading = false) }.onStart { emit(Section()) }
-            .catch { emit(Section(loading = false, failed = true)) }
+    private var cachedStats = Section<com.mantrasiddhi.domain.usecase.DashboardStats?>()
+    private var cachedVow = Section<com.mantrasiddhi.domain.model.Purashcharana?>()
+    private var cachedJapa = Section<com.mantrasiddhi.domain.usecase.JapaSummary>()
+    private fun <T> kotlinx.coroutines.flow.Flow<T>.section(initial: Section<T>, save: (Section<T>) -> Unit): kotlinx.coroutines.flow.Flow<Section<T>> =
+        map { Section(value = it, loading = false) }.onStart { emit(initial) }
+            .catch { emit(Section(loading = false, failed = true)) }.onEach(save)
 
-    val uiState: StateFlow<HomeUiState> = getCurrentUserUseCase().flatMapLatest { user ->
-        if (user == null) flowOf(HomeUiState.Error(R.string.home_error_no_profile)) else
+    val uiState: StateFlow<HomeUiState> = getCurrentUserUseCase().profileStateWhileSubscribed(
+        viewModelScope, HomeUiState.Loading,
+        reset = { user ->
+            cachedStats = Section(); cachedVow = Section(); cachedJapa = Section()
+            if (user == null) HomeUiState.Error(R.string.home_error_no_profile) else HomeUiState.Loading
+        }
+    ) { user ->
             retryRequest.flatMapLatest {
-                combine(getDashboardStatsUseCase(user.id).section(),
-                    getActivePurashcharanaUseCase(user.id).section(), getJapaSummary(user.id).section(), calendarTime.days()) { stats, vow, japa, calendar ->
+                combine(getDashboardStatsUseCase(user.id).section(cachedStats) { cachedStats = it },
+                    getActivePurashcharanaUseCase(user.id).section(cachedVow) { cachedVow = it },
+                    getJapaSummary(user.id).section(cachedJapa) { cachedJapa = it }, calendarTime.days()) { stats, vow, japa, calendar ->
                     HomeUiState.Success(user = user, todayCount = stats.value?.todayRecitationCount ?: 0,
                         todayJapa = japa.value?.on(calendar.first)?.toString(),
                         activeTarget = stats.value?.activeTarget, streakDays = stats.value?.streakDays ?: 0,
@@ -74,5 +82,5 @@ class HomeViewModel @Inject constructor(
                         vowLoading = vow.loading, vowFailed = vow.failed)
                 }
             }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(0, replayExpirationMillis = 0), HomeUiState.Loading)
+    }
 }
