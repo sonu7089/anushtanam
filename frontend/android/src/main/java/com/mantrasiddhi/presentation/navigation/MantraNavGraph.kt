@@ -10,6 +10,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -217,7 +220,8 @@ private fun ResolvedMantraApp(
 
     Scaffold(
         modifier = Modifier.semantics { testTagsAsResourceId = true },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        // Screens own vertical insets; the shared host protects landscape cutouts.
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         bottomBar = {
             ObserveNavigationRoute(navController) { currentRoute ->
                 val showBottomBar = currentRoute == null || currentRoute !in detailRoutes

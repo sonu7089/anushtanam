@@ -17,7 +17,7 @@ import com.mantrasiddhi.resources.R
 /** Standalone preview/fallback of the same Home layout used before and after profile readiness. */
 @Composable
 internal fun HomeEntryPlaceholder(modifier: Modifier = Modifier, showNavigation: Boolean = true) {
-    Scaffold(modifier = modifier, contentWindowInsets = WindowInsets(0, 0, 0, 0), bottomBar = {
+    Scaffold(modifier = modifier, contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal), bottomBar = {
         if (showNavigation) FloatingNavigationBar(navigationDestinations(false), Screen.Home.route, {}, enabled = false)
     }) { padding ->
         HomeContent(null, {}, {}, {}, {}, {}, Modifier.padding(padding).consumeWindowInsets(padding))

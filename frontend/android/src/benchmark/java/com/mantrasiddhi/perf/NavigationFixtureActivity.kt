@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.os.Trace
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import com.mantrasiddhi.presentation.configureAppWindow
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +37,7 @@ class NavigationFixtureActivity : ComponentActivity() {
     @OptIn(InternalComposeTracingApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        configureAppWindow()
         // Attribution runs only: normal before/after frame measurements leave this disabled.
         FixtureCompositionTracer.enabled = intent.getBooleanExtra("traceCompositions", false)
         Composer.setTracer(FixtureCompositionTracer)
@@ -67,7 +67,7 @@ private fun NavigationFixture() {
     val controller = rememberNavController()
     Scaffold(
         modifier = Modifier.semantics { testTagsAsResourceId = true },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         bottomBar = { MantraBottomBar(controller, showFamily = false) }
     ) { padding ->
         NavHost(controller, startDestination = Screen.Home.route,

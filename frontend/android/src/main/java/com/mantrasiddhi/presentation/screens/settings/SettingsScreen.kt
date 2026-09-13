@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.UserProfile
@@ -66,7 +67,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     onOpenSandhyaSettings: () -> Unit = {},
     backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) },
     messagesContent: @Composable () -> Unit = {}) {
-    Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title)) }) }) { padding ->
+    Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("settings_sections"),
             contentPadding = PaddingValues(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
             item(key = "intro") {

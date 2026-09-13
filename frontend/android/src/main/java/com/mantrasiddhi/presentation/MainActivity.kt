@@ -15,7 +15,6 @@ import androidx.compose.runtime.setValue
 import com.mantrasiddhi.presentation.navigation.SandhyaReminderTarget
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
@@ -74,8 +73,8 @@ class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        configureAppWindow()
         // Reveal the already-laid-out Home frame directly; the system splash's default
         // exit animation otherwise overlaps it with a second whole-window reveal.
         splashScreen.setOnExitAnimationListener { it.remove() }

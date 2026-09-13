@@ -107,7 +107,7 @@ internal fun HomeContent(
     Scaffold(modifier = modifier.testTag(if (state == null) "perf_entry_shell" else "perf_home_ready"), topBar = {
         LotusTopAppBar(modifier = Modifier.testTag("home_header"),
             title = { Text(if (state == null) stringResource(R.string.title_home) else stringResource(R.string.home_greeting, state.user.name),
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { if (state == null) stateDescription = opening }) },
             actions = {
                 if (state == null) Box(Modifier.padding(end = 20.dp).size(40.dp).clip(CircleShape)

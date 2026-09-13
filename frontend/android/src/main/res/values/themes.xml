@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MantraSiddhi" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.MantraSiddhi" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:colorBackground">#FFFFFFFF</item>
         <item name="android:windowBackground">#FFFFFFFF</item>
         <item name="android:windowSplashScreenBackground">#FFFFFFFF</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/lotus_launcher_foreground</item>
         <item name="android:windowSplashScreenIconBackgroundColor">#FFFFFFFF</item>
-        <item name="android:statusBarColor">?android:attr/colorBackground</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <!-- Also needed on API 35+ for three-button navigation: a nontransparent
+             inherited Material color can force light navigation in app dark mode. -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">true</item>
+    </style>
+
+    <!-- Android 13/14 need transparent bars explicitly; API 35+ uses its own theme. -->
+    <style name="Theme.MantraSiddhi" parent="Base.Theme.MantraSiddhi">
+        <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
     <style name="Theme.MantraSiddhi.Splash" parent="Theme.MantraSiddhi">
         <!-- White launch window so the launch screen never flashes a dark/grey background. -->
         <item name="android:windowBackground">#FFFFFFFF</item>
-        <item name="android:statusBarColor">#FFFFFFFF</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

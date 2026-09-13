@@ -3,7 +3,7 @@ package com.mantrasiddhi.review
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import com.mantrasiddhi.presentation.configureAppWindow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -48,7 +48,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class DesignReviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        configureAppWindow()
         val page = intent.getStringExtra("page") ?: "welcome"
         val initialDark = intent.getBooleanExtra("dark", false)
         setContent {
@@ -105,7 +105,7 @@ private fun ReviewNavigation(initialPage: String, dark: Boolean, onDarkChange: (
         return
     }
     val controller = rememberNavController()
-    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    Scaffold(contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         bottomBar = { MantraBottomBar(controller, showFamily = true) }) { padding ->
         NavHost(controller, startDestination = start.route,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),

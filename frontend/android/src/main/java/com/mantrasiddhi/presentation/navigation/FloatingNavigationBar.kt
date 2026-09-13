@@ -66,7 +66,9 @@ internal fun FloatingNavigationBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    BoxWithConstraints(modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
+    BoxWithConstraints(modifier.windowInsetsPadding(
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+    ).padding(horizontal = 12.dp, vertical = 8.dp)) {
         val showLabels = maxWidth >= 336.dp && LocalDensity.current.fontScale <= 1.2f
         val itemHeight = if (showLabels) 64.dp else 56.dp
         val slotWidth = (maxWidth - 8.dp).coerceAtLeast(0.dp) / destinations.size

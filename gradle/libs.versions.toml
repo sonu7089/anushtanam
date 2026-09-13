@@ -1,10 +1,7 @@
 [versions]
-# 8.10.1: first stable AGP line with official compileSdk 36 (Android 16) support;
-# it also includes the automatic
-# 16 KB zip alignment of uncompressed native libs (added in 8.5.1) that Play's
-# "memory page size" check requires. Deliberately NOT AGP 9.x — that would force
-# a Kotlin 2 migration (behavior risk) for an advisory-only console metric.
-agp = "8.10.1"
+# 8.13.2 supports SDK 36 and optimized resource shrinking while retaining Kotlin 1.9.
+# Native library 16 KB zip alignment remains enabled by AGP.
+agp = "8.13.2"
 kotlin = "1.9.24"
 ksp = "1.9.24-1.0.20"
 composeBom = "2024.06.00"

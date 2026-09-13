@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 15+ owns the status-bar background. Three-button navigation still
+         needs the base theme's transparent color to retain automatic contrast. -->
+    <style name="Theme.MantraSiddhi" parent="Base.Theme.MantraSiddhi" />
+</resources>
