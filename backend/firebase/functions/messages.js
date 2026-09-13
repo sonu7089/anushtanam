@@ -1,6 +1,8 @@
 "use strict";
 
 // The website uses this callable API. It must never write production documents directly.
+const { defineBoolean } = require("firebase-functions/params");
+const enforceAdminAppCheck = defineBoolean("ENFORCE_ADMIN_APP_CHECK", { default: false });
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentDeleted } = require("firebase-functions/v2/firestore");
@@ -28,7 +30,7 @@ async function revision(contentId, revisionNumber) {
   return snapshot.data();
 }
 
-exports.adminMessages = onCall(options, async request => {
+exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppCheck }, async request => {
   try {
     const input = request.data || {};
     const uid = authorize(request);

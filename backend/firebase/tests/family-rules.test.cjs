@@ -7,9 +7,9 @@ const { doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc, writeBat
 let env;
 const token = 'a'.repeat(64);
 const fresh = 'b'.repeat(64);
-const user = (uid, provider = 'google.com') => env.authenticatedContext(uid, {
+const user = (uid, provider = 'google.com', authTime = Math.floor(Date.now() / 1000)) => env.authenticatedContext(uid, {
   email: uid === 'child' ? 'c123456789012@child.anushtanam.app' : `${uid}@example.test`,
-  firebase: { sign_in_provider: provider }
+  auth_time: authTime, firebase: { sign_in_provider: provider }
 }).firestore();
 const link = (parent = 'parent', method = 'QR') => ({
   parentUid: parent, childUid: 'child', parentName: parent, childName: 'Aarav',
@@ -114,9 +114,10 @@ test('individual and signed-out accounts cannot redeem invitations', async () =>
   await assertFails(redeem('individual'));
   await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), `familyInvites/${token}`)));
 });
-test('verified child password session can link directly and keep progress private from others', async () => {
-  await assertSucceeds(setDoc(doc(user('child', 'password'), 'links/parent_child'), link('parent', 'PIN')));
-  await assertSucceeds(getDoc(doc(user('parent'), 'progress/child')));
+test('child password session cannot create a PIN link or access child data', async () => {
+  await assertFails(setDoc(doc(user('child', 'password'), 'links/parent_child'), link('parent', 'PIN')));
+  await assertFails(getDoc(doc(user('child', 'password'), 'users/child')));
+  await assertFails(getDoc(doc(user('parent'), 'progress/child')));
   await assertFails(getDoc(doc(user('parent2'), 'progress/child')));
 });
 test('parent cannot claim that a PIN was verified', async () => {
@@ -151,16 +152,36 @@ test('a Google account cannot change from parent to child or change an existing 
   await assertFails(updateDoc(doc(user('parent'), 'users/parent'), { role: 'CHILD' }));
   await assertFails(updateDoc(doc(user('child'), 'users/child'), { linkCode: '999999999999' }));
 });
-test('Google child can atomically reserve a child ID; other owners cannot take it', async () => {
-  const db = user('new-child');
-  const batch = writeBatch(db);
-  batch.set(doc(db, 'users/new-child'), { role: 'CHILD', displayName: 'Tara', linkCode: '234567890123' });
-  batch.set(doc(db, 'childCodes/234567890123'), { uid: 'new-child' });
-  await assertSucceeds(batch.commit());
-  await assertFails(setDoc(doc(user('child2'), 'childCodes/234567890123'), { uid: 'child2' }));
+test('retired child IDs cannot be created, read or enumerated', async () => {
+  await assertFails(setDoc(doc(user('child'), 'childCodes/234567890123'), { uid: 'child' }));
+  await assertFails(getDoc(doc(user('parent'), 'childCodes/234567890123')));
   await assertFails(getDocs(collection(user('parent'), 'childCodes')));
 });
 
+test('only a Google session can create a child profile', async () => {
+  await assertFails(setDoc(doc(user('new-child', 'password'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara' }));
+  await assertSucceeds(setDoc(doc(user('new-child'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara' }));
+  await assertFails(deleteDoc(doc(user('new-child'), 'users/new-child')));
+});
+
+test('stale or missing authentication time cannot issue an invitation', async () => {
+  for (const time of [Math.floor(Date.now() / 1000) - 600, null, Math.floor(Date.now() / 1000) + 600]) {
+    const db = user('child', 'google.com', time);
+    const batch = writeBatch(db);
+    batch.set(doc(db, `familyInvites/${token}`), { childUid: 'child', childName: 'Aarav', createdAt: serverTimestamp(), usedBy: '' });
+    batch.set(doc(db, 'familyInviteState/child'), { token });
+    await assertFails(batch.commit());
+  }
+});
+
+test('stale child session cannot approve a pending request', async () => {
+  const pending = { ...link('parent', 'PIN'), status: 'PENDING', childName: '' };
+  delete pending.method;
+  await setDoc(doc(user('parent'), 'links/parent_child'), pending);
+  await assertFails(updateDoc(doc(user('child', 'google.com', Math.floor(Date.now() / 1000) - 600), 'links/parent_child'), {
+    status: 'APPROVED', childName: 'Aarav', updatedAt: serverTimestamp()
+  }));
+});
 
 test('japa entries are private and corrections cannot move them to another goal', async () => {
   const fixtures = require('./backup-fixtures.cjs');

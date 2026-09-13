@@ -179,13 +179,8 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                         }
                         "welcome" -> WelcomeScreen({}, {})
                         "parent-auth" -> ParentAuthScreen(hiltViewModel(), {}, {})
-                        "child-auth" -> ChildAuthScreen(hiltViewModel(), {}, {})
-                        "child-google-pin" -> ReviewPage(R.string.auth_child_signup_title) {
-                            ChildGooglePinSetup(GoogleAuthUiState(account = AuthAccount("child-preview", AccountRole.CHILD,
-                                "Aarav", linkCode = "123456789012", googleLinked = true, needsChildPinSetup = true),
-                                needsChildPin = true), { _, _ -> })
-                        }
-                        "child-id" -> ChildIdReveal("123456789012", false, {})
+                        "child-auth" -> ChildAuthScreen({}, {})
+
                         "home" -> {
                             var guideVisible by remember { mutableStateOf(false) }
                             HomeContent(ReviewFixtures.home, {}, {}, {}, {}, {},
@@ -245,7 +240,7 @@ private fun ReviewContent(page: String, dark: Boolean, onDarkChange: (Boolean) -
                             PageIntro(stringResource(R.string.lotus_family_intro), stringResource(R.string.lotus_family_description), LotusArt.FAMILY)
                             com.mantrasiddhi.presentation.screens.family.FamilyProgressEntry({})
                             Spacer(Modifier.height(20.dp))
-                            ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), { _, _ -> }, {}, {})
+                            ParentSection(FamilyUiState(account = AuthAccount("preview", AccountRole.PARENT, "Ananya")), {}, {})
                         }
                         "family-child", "family-child-qr" -> ReviewPage(R.string.family_title) {
                             val invite = remember { com.mantrasiddhi.domain.model.FamilyQrInvite("a".repeat(64),

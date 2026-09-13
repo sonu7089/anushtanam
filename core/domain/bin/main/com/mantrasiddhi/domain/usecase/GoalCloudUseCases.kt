@@ -32,7 +32,7 @@ class CreateChildGoalUseCase @Inject constructor(
 class ObserveChildGoalsUseCase @Inject constructor(
     private val goalRepository: GoalRepository
 ) {
-    operator fun invoke(): Flow<List<CloudGoal>> = goalRepository.goalsForChild()
+    operator fun invoke(childUid: String): Flow<List<CloudGoal>> = goalRepository.goalsForChild(childUid)
 }
 
 /** Parent: stream of goals the signed-in parent set for a given child. */
@@ -55,9 +55,10 @@ class IncrementActiveCloudGoalUseCase @Inject constructor(
     private val authRepository: AuthRepository,
     private val goalRepository: GoalRepository
 ) {
-    suspend operator fun invoke(): Result<Boolean> {
+    suspend operator fun invoke(savedUserUid: String?): Result<Boolean> {
+        if (savedUserUid == null) return Result.success(false)
         val account = authRepository.currentAccount.first()
-        if (account?.role != AccountRole.CHILD) return Result.success(false)
-        return goalRepository.incrementActiveGoalProgress()
+        if (account?.uid != savedUserUid || account.role != AccountRole.CHILD) return Result.success(false)
+        return goalRepository.incrementActiveGoalProgress(savedUserUid)
     }
 }

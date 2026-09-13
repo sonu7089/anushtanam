@@ -100,34 +100,13 @@ class GoogleAuthViewModelTest {
         coVerify(exactly = 0) { profiles(any()) }
     }
 
-    @Test fun `new Google child sets a PIN before any local profile is opened`() = runTest(dispatcher) {
-        val child = AuthAccount("child", AccountRole.CHILD, "Aarav", linkCode = "123456789012",
-            googleLinked = true, needsChildPinSetup = true)
+    @Test fun `Google child opens directly without a PIN or adult import`() = runTest(dispatcher) {
+        val child = AuthAccount("child", AccountRole.CHILD, "Aarav", googleLinked = true)
         coEvery { auth.signInWithGoogle("test-token", AccountRole.CHILD) } returns Result.success(child)
         model.start(context, AccountRole.CHILD)
-        assertTrue(model.state.value.needsChildPin)
-        assertFalse(model.state.value.completed)
-        coVerify(exactly = 0) { profiles(any()); profiles.profilesForImport(any()) }
-        model.saveChildPin("123456", "654321")
-        assertEquals(R.string.child_pin_mismatch, model.state.value.errorRes)
-        coVerify(exactly = 0) { auth.completeChildGoogleSetup(any(), any()) }
-        val ready = child.copy(needsChildPinSetup = false)
-        coEvery { auth.completeChildGoogleSetup("123456", child.uid) } returns Result.success(ready)
-        model.saveChildPin("123456", "123456")
         assertTrue(model.state.value.completed)
-        coVerify(exactly = 1) { profiles(ready) }
+        coVerify(exactly = 1) { profiles(child) }
         coVerify(exactly = 0) { profiles.profilesForImport(any()) }
-    }
-
-    @Test fun `interrupted child setup resumes without choosing Google again`() = runTest(dispatcher) {
-        val child = AuthAccount("child", AccountRole.CHILD, "Aarav", linkCode = "123456789012", needsChildPinSetup = true)
-        model.resumeChildSetup(child)
-        coEvery { auth.completeChildGoogleSetup("123456", child.uid) } returns Result.failure(GoogleAuthFailure(GoogleAuthProblem.OFFLINE))
-        model.saveChildPin("123456", "123456")
-        assertTrue(model.state.value.needsChildPin)
-        assertFalse(model.state.value.busy)
-        assertEquals(R.string.google_offline, model.state.value.errorRes)
-        coVerify(exactly = 0) { picker.pick(any()); auth.signInWithGoogle(any(), any()); profiles(any()) }
     }
 
     @Test fun `adult Google account cannot open a child profile`() = runTest(dispatcher) {

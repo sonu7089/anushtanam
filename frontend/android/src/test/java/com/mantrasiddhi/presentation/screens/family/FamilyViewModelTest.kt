@@ -28,12 +28,16 @@ class FamilyViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val account = MutableStateFlow<AuthAccount?>(AuthAccount("parent", AccountRole.PARENT, "Amma"))
     private val links = mockk<LinkRepository>()
+    private val auth = mockk<com.mantrasiddhi.domain.repository.AuthRepository>()
+    private val picker = mockk<com.mantrasiddhi.presentation.screens.auth.GoogleCredentialPicker>()
     private val scanner = mockk<FamilyQrScanner>()
     private val context = mockk<Context>()
     private lateinit var model: FamilyViewModel
 
     @BeforeEach fun setup() {
         Dispatchers.setMain(dispatcher)
+        coEvery { picker.pick(context) } returns "google-token"
+        coEvery { auth.linkGoogle("google-token", any()) } answers { Result.success(account.value!!) }
         every { links.approvedParentsForChild() } returns flowOf(emptyList())
         model = FamilyViewModel(
             observeAuthAccountUseCase = mockk { every { this@mockk.invoke() } returns account },
@@ -41,7 +45,7 @@ class FamilyViewModelTest {
             observeLinkedChildrenUseCase = mockk { every { this@mockk.invoke() } returns flowOf(emptyList()) },
             observePendingLinkRequestsUseCase = mockk { every { this@mockk.invoke() } returns flowOf(emptyList()) },
             observeChildGoalsUseCase = mockk { every { this@mockk.invoke(any()) } returns flowOf(emptyList()) },
-            observeGoalsForChildUseCase = mockk(), links = links, scanner = scanner
+            observeGoalsForChildUseCase = mockk(), links = links, scanner = scanner, auth = auth, picker = picker
         )
         watch(model)
     }
@@ -55,14 +59,6 @@ class FamilyViewModelTest {
         coVerify(exactly = 0) { links.linkWithQr(any()) }
     }
 
-    @Test fun `wrong PIN has a clear message and never creates a pending request`() = runTest(dispatcher) {
-        coEvery { links.linkWithPin("123456789012", "000000") } returns Result.failure(FamilyLinkFailure(FamilyLinkProblem.INVALID_CREDENTIALS))
-        model.requestLink("123456789012", "000000")
-        assertEquals(R.string.family_pin_invalid, model.uiState.value.errorRes)
-        assertFalse(model.uiState.value.isBusy)
-        coVerify(exactly = 0) { links.requestLink(any()) }
-    }
-
     @Test fun `account switch while scanner is open discards its result`() = runTest(dispatcher) {
         val result = CompletableDeferred<String?>()
         coEvery { scanner.scan(context) } coAnswers { result.await() }
@@ -74,13 +70,30 @@ class FamilyViewModelTest {
         assertFalse(model.uiState.value.isBusy)
     }
 
-    @Test fun `repeated taps verify the PIN only once`() = runTest(dispatcher) {
+    @Test fun `repeated taps scan only once`() = runTest(dispatcher) {
         val result = CompletableDeferred<Result<Unit>>()
-        coEvery { links.linkWithPin(any(), any()) } coAnswers { result.await() }
-        model.requestLink("123456789012", "123456")
-        model.requestLink("123456789012", "123456")
+        coEvery { scanner.scan(context) } returns "payload"
+        coEvery { links.linkWithQr(any()) } coAnswers { result.await() }
+        model.scanQr(context)
+        model.scanQr(context)
         result.complete(Result.success(Unit))
-        coVerify(exactly = 1) { links.linkWithPin(any(), any()) }
+        coVerify(exactly = 1) { links.linkWithQr(any()) }
+        assertFalse(model.uiState.value.isBusy)
+    }
+
+    @Test fun `cancelled Google confirmation cannot issue a family invitation`() = runTest(dispatcher) {
+        account.value = AuthAccount("child", AccountRole.CHILD, "Aarav", googleLinked = true)
+        coEvery { picker.pick(context) } returns null
+        model.createQr(context)
+        coVerify(exactly = 0) { links.createQrInvite(); auth.linkGoogle(any(), any()) }
+        assertFalse(model.uiState.value.isBusy)
+    }
+
+    @Test fun `wrong Google account cannot issue a family invitation`() = runTest(dispatcher) {
+        account.value = AuthAccount("child", AccountRole.CHILD, "Aarav", googleLinked = true)
+        coEvery { auth.linkGoogle(any(), any()) } returns Result.failure(GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT))
+        model.createQr(context)
+        coVerify(exactly = 0) { links.createQrInvite() }
         assertFalse(model.uiState.value.isBusy)
     }
 
@@ -90,7 +103,7 @@ class FamilyViewModelTest {
         val updates = MutableStateFlow<FamilyQrInvite?>(invite)
         coEvery { links.createQrInvite() } returns Result.success(invite)
         every { links.observeQrInvite(invite.token) } returns updates
-        model.createQr()
+        model.createQr(context)
         assertEquals(invite, model.uiState.value.qrInvite)
         updates.value = invite.copy(used = true)
         assertTrue(model.uiState.value.qrInvite!!.used)

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Cloud sync for the compact per-user progress summary (`progress/{uid}`), so the
  * Progress-tab headline stats and charts survive reinstall / device switch. Detailed
- * session history stays device-local (Room) by design.
+ * session history is backed up as immutable canonical records.
  */
 interface ProgressSyncRepository {
 
@@ -22,12 +22,7 @@ interface ProgressSyncRepository {
      */
     fun summaryFlow(): Flow<ProgressSummary?>
 
-    /**
-     * Records one evaluated session ([overallScore] in `0..1`, [isCorrect] pass
-     * verdict) into the cloud summary; seeds the doc from local history
-     * ([localUserId]) on first use. Best-effort: never throws — a sync failure must
-     * not affect the evaluation flow. Success means accepted for background sync,
-     * not that the server has acknowledged it.
-     */
+    /** Retired anonymous API. Counts must commit with a stable saved session. */
+    @Deprecated("Use RecitationRepository.saveSession; it commits every counting event")
     suspend fun recordSession(localUserId: Long, overallScore: Double, isCorrect: Boolean): Result<Unit>
 }

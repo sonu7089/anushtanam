@@ -99,10 +99,6 @@ class MainViewModel @Inject constructor(
             _authGateState.value = AuthGateState.NeedsRecovery
             return@withLock
         }
-        if (account.needsChildPinSetup) {
-            _authGateState.value = AuthGateState.NeedsChildSetup
-            return@withLock
-        }
         _authGateState.value = AuthGateState.Loading
         try {
             syncSignedInUserUseCase(account)
@@ -124,7 +120,7 @@ class MainViewModel @Inject constructor(
             auth.accountResolution.distinctUntilChangedBy { resolution ->
                 when (resolution) {
                     is AccountResolution.Resolved -> resolution.account.let {
-                        listOf(it.uid, it.role, it.googleLinked, it.profileNeedsSync, it.needsChildPinSetup)
+                        listOf(it.uid, it.role, it.googleLinked, it.profileNeedsSync)
                     }
                     else -> resolution
                 }

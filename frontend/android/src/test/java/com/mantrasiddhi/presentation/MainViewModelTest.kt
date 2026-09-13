@@ -42,7 +42,7 @@ class MainViewModelTest {
     }
     @AfterEach fun tearDown() { store.clear(); Dispatchers.resetMain() }
 
-    @Test fun `startup waits for resolution and preserves recovery and child setup`() = runTest(dispatcher) {
+    @Test fun `startup waits for resolution and preserves recovery`() = runTest(dispatcher) {
         runCurrent()
         assertEquals(AuthGateState.Loading, model.authGateState.value)
         coVerify(exactly = 0) { session.logout() }
@@ -52,10 +52,6 @@ class MainViewModelTest {
         resolution.value = AccountResolution.Resolved(child().copy(googleLinked = true, profileNeedsSync = true))
         runCurrent()
         assertEquals(AuthGateState.NeedsRecovery, model.authGateState.value)
-        resolution.value = AccountResolution.Resolved(child().copy(googleLinked = true, needsChildPinSetup = true))
-        runCurrent()
-        assertEquals(AuthGateState.NeedsChildSetup, model.authGateState.value)
-        coVerify(exactly = 0) { bridge(any()) }
         resolution.value = AccountResolution.Resolved(child())
         runCurrent()
         assertEquals(AuthGateState.Authenticated, model.authGateState.value)

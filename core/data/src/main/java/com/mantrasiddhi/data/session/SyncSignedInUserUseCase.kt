@@ -79,7 +79,6 @@ class SyncSignedInUserUseCase @Inject constructor(
     suspend fun importProfile(account: AuthAccount, profileId: Long): Long = sync(account, profileId)
 
     private suspend fun sync(account: AuthAccount, importId: Long?): Long = mutex.withLock {
-        check(!account.needsChildPinSetup)
         check(account.role != AccountRole.CHILD || importId == null)
         check(auth.currentUser?.uid == account.uid) { "Please sign in again to open your practice." }
         val profileType = when (account.role) {

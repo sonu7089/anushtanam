@@ -67,6 +67,8 @@ class FamilyViewModel @Inject constructor(
     observeChildGoalsUseCase: ObserveChildGoalsUseCase,
     private val observeGoalsForChildUseCase: ObserveGoalsForChildUseCase,
     private val links: LinkRepository,
+    private val auth: com.mantrasiddhi.domain.repository.AuthRepository,
+    private val picker: com.mantrasiddhi.presentation.screens.auth.GoogleCredentialPicker,
     private val scanner: FamilyQrScanner
 ) : ViewModel() {
 
@@ -142,11 +144,6 @@ class FamilyViewModel @Inject constructor(
     private fun <T> accountData(source: () -> Flow<List<T>>): Flow<List<T>> =
         flow { emitAll(source()) }.catch { emit(emptyList()) }
 
-    fun requestLink(childCode: String, pin: String) = runLink {
-        links.linkWithPin(childCode, pin).getOrThrow()
-        _messages.emit(MSG_LINK_APPROVED)
-    }
-
     fun scanQr(context: Context) = runLink {
         val owner = _uiState.value.account?.uid
         val payload = try { scanner.scan(context) }
@@ -161,7 +158,8 @@ class FamilyViewModel @Inject constructor(
         }
     }
 
-    fun createQr() = runLink {
+    fun createQr(context: Context) = runLink {
+        if (!confirmChild(context)) return@runLink
         val uid = _uiState.value.account?.uid
         inviteWatch?.cancel()
         _uiState.update { it.copy(qrInvite = null) }
@@ -189,14 +187,23 @@ class FamilyViewModel @Inject constructor(
             }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
-                if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(errorRes = when ((failure as? FamilyLinkFailure)?.problem) {
-                    FamilyLinkProblem.INVALID_CREDENTIALS -> R.string.family_pin_invalid
+                if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(errorRes = when {
+                    failure is com.mantrasiddhi.presentation.screens.auth.GooglePickerFailure -> failure.messageRes
+                    failure is com.mantrasiddhi.domain.model.GoogleAuthFailure -> when (failure.problem) {
+                        com.mantrasiddhi.domain.model.GoogleAuthProblem.WRONG_ACCOUNT -> R.string.google_wrong_account
+                        com.mantrasiddhi.domain.model.GoogleAuthProblem.EXPIRED -> R.string.family_reauth_required
+                        com.mantrasiddhi.domain.model.GoogleAuthProblem.OFFLINE -> R.string.google_offline
+                        else -> R.string.google_try_again
+                    }
+                    else -> when ((failure as? FamilyLinkFailure)?.problem) {
+                    FamilyLinkProblem.INVALID_CREDENTIALS -> R.string.family_link_unavailable
                     FamilyLinkProblem.INVALID_QR -> R.string.family_qr_invalid
                     FamilyLinkProblem.QR_UNAVAILABLE -> R.string.family_qr_unavailable
                     FamilyLinkProblem.OFFLINE -> R.string.family_link_offline
                     FamilyLinkProblem.TOO_MANY_ATTEMPTS -> R.string.family_link_wait
                     FamilyLinkProblem.WRONG_ACCOUNT -> R.string.family_link_wrong_account
                     else -> R.string.family_link_unavailable
+                    }
                 }) }
             } finally {
                 if (_uiState.value.account?.uid == uid) _uiState.update { it.copy(isBusy = false) }
@@ -204,12 +211,18 @@ class FamilyViewModel @Inject constructor(
         }
     }
 
-    fun approve(linkId: String) {
-        viewModelScope.launch {
-            approveLinkUseCase(linkId)
-                .onSuccess { _messages.emit(MSG_LINK_APPROVED) }
-                .onFailure { e -> _messages.emit(e.message ?: MSG_GENERIC_ERROR) }
-        }
+    private suspend fun confirmChild(context: Context): Boolean {
+        val selected = _uiState.value.account?.takeIf { it.role == AccountRole.CHILD } ?: return false
+        val token = picker.pick(context) ?: return false
+        if (_uiState.value.account?.uid != selected.uid) return false
+        auth.linkGoogle(token, selected.uid).getOrThrow()
+        return _uiState.value.account?.uid == selected.uid
+    }
+
+    fun approve(linkId: String, context: Context) = runLink {
+        if (!confirmChild(context)) return@runLink
+        approveLinkUseCase(linkId).getOrThrow()
+        _messages.emit(MSG_LINK_APPROVED)
     }
 
     fun reject(linkId: String) {

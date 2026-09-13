@@ -70,28 +70,6 @@ object FirebaseContract {
     const val FIELD_COMPLETED_AT = "completedAtMillis"
     const val FIELD_IS_ACTIVE = "isActive"
 
-    /** Synthetic email domain for child accounts (no real mailbox). */
-    const val CHILD_EMAIL_DOMAIN = "@child.anushtanam.app"
-
-    /** Length of the numeric child ID / link code. */
-    const val CODE_LENGTH = 12
-
-    const val PIN_LENGTH = 6
-
-    /** Builds the synthetic Firebase email for a child [code]: `c<code>@child.anushtanam.app`. */
-    fun childEmail(code: String): String = "c$code$CHILD_EMAIL_DOMAIN"
-
     /** Builds the `links` document id for a (parent, child) pair. */
     fun linkId(parentUid: String, childUid: String): String = "${parentUid}_$childUid"
-
-    /** True when [email] is a synthetic child email. */
-    fun isChildEmail(email: String?): Boolean = email?.endsWith(CHILD_EMAIL_DOMAIN) == true
-
-    /** Extracts the 12-digit code from a synthetic child [email], or null. */
-    fun codeFromChildEmail(email: String?): String? {
-        if (!isChildEmail(email)) return null
-        val local = email!!.substringBefore(CHILD_EMAIL_DOMAIN)
-        val code = local.removePrefix("c")
-        return code.takeIf { it.length == CODE_LENGTH && it.all(Char::isDigit) }
-    }
 }

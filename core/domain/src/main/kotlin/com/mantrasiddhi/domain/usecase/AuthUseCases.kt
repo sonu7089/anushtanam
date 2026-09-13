@@ -33,20 +33,6 @@ class SignInParentUseCase @Inject constructor(
         authRepository.signInParent(email, password)
 }
 
-class SignUpChildUseCase @Inject constructor(
-    private val authRepository: AuthRepository
-) {
-    suspend operator fun invoke(displayName: String, pin: String): Result<AuthAccount> =
-        authRepository.signUpChild(displayName, pin)
-}
-
-class SignInChildUseCase @Inject constructor(
-    private val authRepository: AuthRepository
-) {
-    suspend operator fun invoke(code: String, pin: String): Result<AuthAccount> =
-        authRepository.signInChild(code, pin)
-}
-
 class SendParentPasswordResetUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {

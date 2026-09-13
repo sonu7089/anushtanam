@@ -92,15 +92,6 @@ class EvaluateRecitationUseCase @Inject constructor(
         val swara = analyzeSwara(audio, config)
         val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
         saveSession(userId, mode, transcription, recitationTimeMs, assessment)
-        // Mirror the session into the cloud progress summary (all sessions, both
-        // modes). Best-effort: a sync failure must never affect the evaluation.
-        runCatching {
-            progressSyncRepository.recordSession(
-                localUserId = userId,
-                overallScore = assessment.overall.score.toDouble(),
-                isCorrect = evaluation.isCorrect
-            )
-        }
         recordDiagnostics(transcription, assessment, acoustic, audio)
 
         // Session persistence also commits eligible goal credit in the same transaction.

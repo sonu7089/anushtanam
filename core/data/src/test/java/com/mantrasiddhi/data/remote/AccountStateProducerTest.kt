@@ -28,9 +28,9 @@ class AccountStateProducerTest {
         assertEquals(1, loads)
     }
 
-    @Test fun `unresolved signed out recovery and child setup remain distinct`() = runTest {
+    @Test fun `unresolved signed out and recovery remain distinct`() = runTest {
         var uid: String? = null
-        val recovery = account("A").copy(googleLinked = true, profileNeedsSync = true, needsChildPinSetup = true)
+        val recovery = account("A").copy(googleLinked = true, profileNeedsSync = true)
         val producer = AccountStateProducer(backgroundScope, { uid }, { recovery }, { recovery.copy(profileNeedsSync = false) })
         assertEquals(AccountResolution.Unresolved(), producer.state.value)
         producer.identityChanged(null)
@@ -40,7 +40,7 @@ class AccountStateProducerTest {
         assertEquals(AccountResolution.Unresolved("A"), producer.state.value)
         runCurrent()
         assertEquals(AccountResolution.Resolved(recovery), producer.state.value)
-        assertTrue(producer.refresh("A").needsChildPinSetup)
+        assertEquals(false, producer.refresh("A").profileNeedsSync)
         uid = null
         producer.identityChanged(null)
         assertEquals(AccountResolution.SignedOut, producer.state.value)
@@ -149,7 +149,7 @@ class AccountStateProducerTest {
         uid = "A"; producer.identityChanged(uid)
         runCurrent()
         assertEquals(0, loads)
-        val created = account("A").copy(needsChildPinSetup = true)
+        val created = account("A").copy(profileNeedsSync = true)
         producer.finishInteractive(created)
         runCurrent()
         assertEquals(AccountResolution.Resolved(created), producer.state.value)

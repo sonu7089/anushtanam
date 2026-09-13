@@ -22,7 +22,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * [LinkRepository] over Firestore `links` and `childCodes`.
+ * [LinkRepository] over Firestore `links`.
  */
 @Singleton
 class FirestoreLinkRepositoryImpl @Inject constructor(
@@ -33,57 +33,10 @@ class FirestoreLinkRepositoryImpl @Inject constructor(
 
     private val links get() = firestore.collection(FirebaseContract.COLLECTION_LINKS)
     private val users get() = firestore.collection(FirebaseContract.COLLECTION_USERS)
-    private val childCodes get() = firestore.collection(FirebaseContract.COLLECTION_CHILD_CODES)
 
-    override suspend fun linkWithPin(childCode: String, pin: String) = directLinks.linkWithPin(childCode, pin)
     override suspend fun createQrInvite() = directLinks.createQrInvite()
     override suspend fun linkWithQr(payload: String) = directLinks.linkWithQr(payload)
     override fun observeQrInvite(token: String) = directLinks.observeQrInvite(token)
-
-    override suspend fun requestLink(childCode: String): Result<Unit> = runCatching {
-        val parentUid = auth.currentUser?.uid
-            ?: error("Not signed in")
-        val code = childCode.trim()
-        require(code.length == FirebaseContract.CODE_LENGTH && code.all(Char::isDigit)) {
-            "Enter a valid ${FirebaseContract.CODE_LENGTH}-digit ID"
-        }
-
-        val codeSnap = childCodes.document(code).get().awaitResult()
-        val childUid = codeSnap.getString(FirebaseContract.FIELD_UID)
-            ?: error("No child found for that ID")
-        require(childUid != parentUid) { "You cannot link to yourself" }
-
-        val linkId = FirebaseContract.linkId(parentUid, childUid)
-        // Tolerant read: the security rules deny reading a link doc that doesn't exist
-        // yet (the rule dereferences resource.data), so a first-time request would throw
-        // PERMISSION_DENIED here. Treat any read failure as "no existing link, proceed".
-        val existing = runCatching { links.document(linkId).get().awaitResult() }.getOrNull()
-        if (existing != null && existing.exists()) {
-            val status = LinkStatus.fromName(existing.getString(FirebaseContract.FIELD_STATUS))
-            require(status == LinkStatus.REJECTED) {
-                if (status == LinkStatus.APPROVED) "You are already linked to this child"
-                else "A request is already pending for this child"
-            }
-        }
-
-        // Only the parent's own name is set here — the security rules forbid reading the
-        // child's users doc before the link is APPROVED. The child stamps their own name
-        // onto the link when they approve it (see updateStatus).
-        val parentName = users.document(parentUid).get().awaitResult()
-            .getString(FirebaseContract.FIELD_DISPLAY_NAME) ?: ""
-
-        val data = hashMapOf(
-            FirebaseContract.FIELD_PARENT_UID to parentUid,
-            FirebaseContract.FIELD_CHILD_UID to childUid,
-            FirebaseContract.FIELD_PARENT_NAME to parentName,
-            FirebaseContract.FIELD_CHILD_NAME to "",
-            FirebaseContract.FIELD_STATUS to LinkStatus.PENDING.name,
-            FirebaseContract.FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-            FirebaseContract.FIELD_UPDATED_AT to FieldValue.serverTimestamp()
-        )
-        links.document(linkId).set(data).awaitResult()
-        Unit
-    }
 
     override fun pendingRequestsForChild(): Flow<List<ParentChildLink>> {
         val childUid = auth.currentUser?.uid ?: return flowOf(emptyList())

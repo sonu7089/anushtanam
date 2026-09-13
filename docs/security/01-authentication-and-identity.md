@@ -2,6 +2,44 @@
 
 [← Back to index](README.md)
 
+## Implementation review — 2026-09-13
+
+The original audit below is a historical snapshot. The owner confirmed that the app
+has no users and chose **Google-only child authentication**, with no migration.
+See [implementation and rollout](01-implementation.md) for the current controls,
+verification results, and remaining console work.
+
+Review corrections:
+
+- **A-01 is valid:** a six-digit PIN was a Firebase password, including for Google-first
+  children. The original `completeChildGoogleSetup` added the weak password provider;
+  using Google did not remove the PIN attack path.
+- **A-02 overstates username secrecy:** a username need not be confidential. The
+  weakness was the shareable identifier combined with a weak password. The new child
+  flow uses Google identity and independent, rotating, expiring QR tokens.
+- Firebase throttling scope, resistance to distributed attacks, PIN-frequency figures,
+  and enumeration responses were not established by this static review. Enumeration
+  behavior depends on project configuration; do not claim the oracle is confirmed.
+- A callable login wrapper cannot protect accounts while direct password login remains
+  usable. There is no domain-specific password-endpoint toggle implemented here.
+- App Check is defense in depth, not proof of an uncompromised device. Android API level
+  alone does not guarantee Play Integrity eligibility. Firebase Authentication App Check
+  requires Identity Platform and separate enforcement configuration. Android attestation
+  does not configure the external admin website.
+- **A-05:** refreshing an ID token is not reauthentication. Firestore does not impose
+  recent login automatically; the new family rules explicitly inspect `auth_time`.
+  No child PIN-change or account-deletion UI existed to remediate.
+- The original claim that role escalation was fully blocked missed self-deletion and
+  recreation of the user mirror. Client deletion of that mirror is now denied.
+
+Sources: [App Check with Play Integrity](https://firebase.google.com/docs/app-check/android/play-integrity-provider),
+[Authentication App Check](https://docs.cloud.google.com/identity-platform/docs/admin/app-check-integration),
+[email enumeration protection](https://docs.cloud.google.com/identity-platform/docs/admin/email-enumeration-protection).
+
+---
+
+## Original audit (superseded where noted above)
+
 This is the most serious area of the audit. The child authentication scheme has a
 structural weakness that cannot be fixed by adjusting a security rule.
 

@@ -111,16 +111,15 @@ fun FamilyScreen(
             when (uiState.account?.role) {
                 AccountRole.PARENT -> ParentSection(
                     uiState = uiState,
-                    onRequestLink = viewModel::requestLink,
                     onSelectChild = viewModel::selectChild,
                     onSetGoal = { goalForChild = it },
                     onScan = { viewModel.scanQr(context) }
                 )
                 AccountRole.CHILD -> ChildSection(
                     uiState = uiState,
-                    onApprove = viewModel::approve,
+                    onApprove = { viewModel.approve(it, context) },
                     onReject = viewModel::reject,
-                    onShowQr = viewModel::createQr
+                    onShowQr = { viewModel.createQr(context) }
                 )
                 AccountRole.INDIVIDUAL -> Text(stringResource(R.string.google_role_individual))
                 null -> Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -146,13 +145,10 @@ fun FamilyScreen(
 @Composable
 internal fun ParentSection(
     uiState: FamilyUiState,
-    onRequestLink: (String, String) -> Unit,
     onSelectChild: (ParentChildLink?) -> Unit,
     onSetGoal: (ParentChildLink) -> Unit,
     onScan: () -> Unit = {}
 ) {
-    var code by remember { mutableStateOf("") }
-    var pin by remember { mutableStateOf("") }
 
     LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
         Column(modifier = Modifier.padding(24.dp)) {
@@ -170,35 +166,6 @@ internal fun ParentSection(
             Spacer(modifier = Modifier.height(12.dp))
             Button(onScan, enabled = !uiState.isBusy, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.family_scan_qr))
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.family_manual_link), style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = code,
-                onValueChange = { if (it.matches(Regex("[0-9]{0,12}"))) code = it },
-                enabled = !uiState.isBusy,
-                label = { Text(stringResource(R.string.family_child_id_label)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(pin, { if (it.matches(Regex("[0-9]{0,6}"))) pin = it },
-                label = { Text(stringResource(R.string.auth_pin_label)) },
-                singleLine = true, enabled = !uiState.isBusy,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium)
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = { onRequestLink(code, pin); pin = "" },
-                enabled = !uiState.isBusy && code.length == 12 && pin.length == 6,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(stringResource(R.string.family_link_now))
             }
             FamilyLinkFeedback(uiState)
         }
@@ -279,44 +246,9 @@ internal fun ChildSection(
     onReject: (String) -> Unit,
     onShowQr: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
-    val myId = uiState.account?.linkCode
-
     LotusCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Text(
-                text = stringResource(R.string.family_your_id_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.family_your_id_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = myId ?: stringResource(R.string.family_id_loading),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                if (myId != null) {
-                    OutlinedButton(onClick = {
-                        clipboard.setText(AnnotatedString(myId))
-                        Toast.makeText(context, context.getString(R.string.auth_child_id_copied), Toast.LENGTH_SHORT).show()
-                    }) {
-                        Text(stringResource(R.string.auth_copy))
-                    }
-                }
-            }
+            Text(stringResource(R.string.family_google_qr_help), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(12.dp))
             ChildFamilyQr(uiState, onShowQr)
             FamilyLinkFeedback(uiState)

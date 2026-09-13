@@ -56,6 +56,7 @@ function harness() {
   vm.runInNewContext(fs.readFileSync(require.resolve('../functions/messages'), 'utf8'), {
     exports: exported, Date, Intl, Set, console,
     require: name => {
+      if (name === 'firebase-functions/params') return { defineBoolean: (_, options) => options.default };
       if (name === 'firebase-functions/v2/https') return { onCall: (_, fn) => fn, HttpsError };
       if (name === 'firebase-functions/v2/scheduler') return { onSchedule: (_, fn) => fn };
       if (name === 'firebase-functions/v2/firestore') return { onDocumentDeleted: (_, fn) => fn };

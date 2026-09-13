@@ -46,6 +46,7 @@ class GoogleAccountLinkingTest {
         every { auth.currentUser } returns user
         every { user.uid } returns "original-owner"
         every { user.email } returns "meera@example.com"
+        every { user.getIdToken(true) } returns task(mockk(relaxed = true))
         every { user.displayName } returns "Meera from Google"
         every { user.providerData } answers { if (linked) listOf(provider) else emptyList() }
         every { provider.providerId } returns "google.com"
@@ -80,6 +81,15 @@ class GoogleAccountLinkingTest {
         verify(exactly = 0) { auth.signInWithCredential(any()) }
     }
 
+    @Test fun `existing Google identity reauthenticates and refreshes the Firebase token`() = runTest {
+        linked = true
+        createRepository()
+        every { user.reauthenticate(any()) } returns task<Void>(null)
+        repository.linkGoogle("test-token", "original-owner").getOrThrow()
+        verify(exactly = 1) { user.reauthenticate(any()); user.getIdToken(true) }
+        verify(exactly = 0) { user.linkWithCredential(any()); auth.signInWithCredential(any()) }
+    }
+
     @Test fun `credential already owned elsewhere returns collision without switching accounts`() = runTest {
         createRepository()
         every { user.linkWithCredential(any()) } returns task(failure = mockk<FirebaseAuthUserCollisionException>(relaxed = true))
@@ -94,25 +104,6 @@ class GoogleAccountLinkingTest {
         val error = repository.linkGoogle("test-token", "someone-else").exceptionOrNull()
         assertEquals(GoogleAuthProblem.WRONG_ACCOUNT, (error as GoogleAuthFailure).problem)
         verify(exactly = 0) { user.linkWithCredential(any()); auth.signInWithCredential(any()) }
-    }
-
-    @Test fun `existing ID and PIN child can link Google without changing ID role or UID`() = runTest {
-        createRepository()
-        fields["role"] = "CHILD"
-        fields["linkCode"] = "123456789012"
-        every { user.email } returns "c123456789012@child.anushtanam.app"
-        val password = mockk<UserInfo>(relaxed = true) { every { providerId } returns "password" }
-        every { user.providerData } answers { if (linked) listOf(password, provider) else listOf(password) }
-        every { user.linkWithCredential(any()) } answers {
-            linked = true
-            task(mockk<AuthResult> { every { user } returns this@GoogleAccountLinkingTest.user })
-        }
-        val result = repository.linkGoogle("test-token", "original-owner").getOrThrow()
-        assertEquals(AccountRole.CHILD, result.role)
-        assertEquals("123456789012", result.linkCode)
-        assertEquals("original-owner", result.uid)
-        assertFalse(result.needsChildPinSetup)
-        verify(exactly = 0) { auth.signInWithCredential(any()) }
     }
 
     @Test fun `child entry rejects an existing adult Google account and signs it out`() = runTest {

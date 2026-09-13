@@ -50,7 +50,7 @@ class AccountSharingDeviceTest {
             val producer = AccountStateProducer(scope, { uid.get() }, {
                 if (it == "A") try { started.complete(Unit); awaitCancellation() }
                 finally { cancelled.complete(Unit) }
-                child(it).copy(needsChildPinSetup = true)
+                child(it).copy(profileNeedsSync = true)
             }, { child(it) })
             producer.identityChanged("A")
             withTimeout(5_000) { started.await() }
@@ -58,7 +58,7 @@ class AccountSharingDeviceTest {
             withTimeout(5_000) { cancelled.await() }
             val resolved = withTimeout(5_000) { producer.state.first { it is AccountResolution.Resolved } } as AccountResolution.Resolved
             assertEquals("B", resolved.account.uid)
-            assertTrue(resolved.account.needsChildPinSetup)
+            assertTrue(resolved.account.profileNeedsSync)
             uid.set(null); producer.identityChanged(null)
             assertEquals(AccountResolution.SignedOut, producer.state.value)
         } finally { scope.cancel(); scope.coroutineContext.job.join() }

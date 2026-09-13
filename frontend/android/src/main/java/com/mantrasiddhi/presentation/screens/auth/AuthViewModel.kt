@@ -12,9 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.mantrasiddhi.resources.R
 import com.mantrasiddhi.domain.model.AuthAccount
 import com.mantrasiddhi.domain.usecase.SendParentPasswordResetUseCase
-import com.mantrasiddhi.domain.usecase.SignInChildUseCase
 import com.mantrasiddhi.domain.usecase.SignInParentUseCase
-import com.mantrasiddhi.domain.usecase.SignUpChildUseCase
 import com.mantrasiddhi.domain.usecase.SignUpParentUseCase
 import com.mantrasiddhi.data.session.SyncSignedInUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,8 +36,6 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val signUpParentUseCase: SignUpParentUseCase,
     private val signInParentUseCase: SignInParentUseCase,
-    private val signUpChildUseCase: SignUpChildUseCase,
-    private val signInChildUseCase: SignInChildUseCase,
     private val sendParentPasswordResetUseCase: SendParentPasswordResetUseCase,
     private val syncSignedInUserUseCase: SyncSignedInUserUseCase
 ) : ViewModel() {
@@ -50,8 +46,6 @@ class AuthViewModel @Inject constructor(
     private val _events = MutableSharedFlow<AuthEvent>()
     val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
 
-    /** The child account awaiting the "share your ID then continue" step. */
-    private var pendingChildAccount: AuthAccount? = null
     private var pendingProfile: AuthAccount? = null
 
     fun clearError() {
@@ -72,39 +66,6 @@ class AuthViewModel @Inject constructor(
             return
         }
         run { signUpParentUseCase(email, password, displayName) }
-    }
-
-    fun signInChild(code: String, pin: String) {
-        run { signInChildUseCase(code, pin) }
-    }
-
-    /**
-     * Child sign-up. On success the account is signed in immediately; we surface the
-     * generated 12-digit ID and wait for the child to tap Continue ([continueAfterChildSignup]).
-     */
-    fun signUpChild(displayName: String, pin: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessageResId = null, errorDetail = null) }
-            signUpChildUseCase(displayName, pin)
-                .onSuccess { account ->
-                    pendingChildAccount = account
-                    _uiState.update {
-                        it.copy(isLoading = false, generatedChildId = account.linkCode)
-                    }
-                }
-                .onFailure { e -> failWith(e) }
-        }
-    }
-
-    fun continueAfterChildSignup() {
-        val account = pendingChildAccount ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            syncSignedInUserUseCase(account)
-            pendingChildAccount = null
-            _uiState.update { it.copy(isLoading = false, generatedChildId = null) }
-            _events.emit(AuthEvent.NavigateToHome)
-        }
     }
 
     fun sendParentPasswordReset(email: String) {

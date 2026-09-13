@@ -13,15 +13,6 @@ import kotlinx.coroutines.flow.Flow
  * Parent <-> child linking over Firestore `links`.
  */
 interface LinkRepository {
-    /**
-     * Parent action: resolve [childCode] (12-digit ID) to a child uid and create a
-     * PENDING link. Fails on self-link, unknown code, or an existing pending/approved link.
-     */
-    suspend fun requestLink(childCode: String): Result<Unit>
-
-    /** Verifies the child's credentials without changing the parent's session. */
-    suspend fun linkWithPin(childCode: String, pin: String): Result<Unit>
-
     /** Child creates a short-lived, single-use invitation. It contains no login credentials. */
     suspend fun createQrInvite(): Result<com.mantrasiddhi.domain.model.FamilyQrInvite>
     suspend fun linkWithQr(payload: String): Result<Unit>

@@ -710,7 +710,7 @@
     <string name="family_manual_link">Or enter their ID and PIN</string>
     <string name="family_link_now">Connect with my child</string>
     <string name="family_id_loading">Getting your ID ready</string>
-    <string name="family_qr_body">Show this code to your parent. Scanning it connects you right away, without entering your ID or PIN.</string>
+    <string name="family_qr_body">Show this code only to the parent you want to connect with. Scanning it connects you right away.</string>
     <string name="family_qr_description">QR code for connecting with your parent</string>
     <string name="family_qr_lifetime">This code works once and expires after 5 minutes. Show it only to the parent you want to connect with.</string>
     <string name="family_qr_used">You are connected. Your parent can now follow your practice.</string>
@@ -718,7 +718,7 @@
     <string name="family_show_qr">Show my QR code</string>
     <string name="family_new_qr">Make a new QR code</string>
     <string name="family_linked_with">Connected with you</string>
-    <string name="family_scan_unavailable">The scanner could not open. Please try again, or use your child\'s ID and PIN below.</string>
+    <string name="family_scan_unavailable">The scanner could not open. Please try again.</string>
     <string name="family_pin_invalid">The ID or PIN does not match. Please check both with your child and try again.</string>
     <string name="family_qr_invalid">That is not an Anushtanam family code. Ask your child to open Family and show their QR code.</string>
     <string name="family_qr_unavailable">This code is no longer available. Ask your child to make a new one.</string>
@@ -837,4 +837,7 @@
     <string name="backup_review_error">This entry may have changed again. Please check the counts and try once more.</string>
     <string name="section_retry">Retry</string>
     <string name="progress_load_more">Load more</string>
+    <string name="child_google_only_help">Sign in with your own Google account. To connect with a parent, show them a family QR code from the Family page.</string>
+    <string name="family_google_qr_help">Confirm your Google account, then show this QR code to the parent you want to connect with. Each code expires after five minutes and can be used once.</string>
+    <string name="family_reauth_required">Confirm your Google account again to create a family QR code.</string>
 </resources>

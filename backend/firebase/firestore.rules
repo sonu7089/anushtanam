@@ -6,8 +6,7 @@ rules_version = '2';
 //
 // Identity model:
 //   - Adult: Google or real email and password, one profile per account.
-//   - Child: own Google account, with a synthetic email for ID and PIN sign-in.
-//     The 12-digit ID and PIN can also verify a direct family link.
+//   - Child: own Google account only; expiring, single-use QR tokens authorize links.
 //
 // Account data requires authentication. MF-10 adds a public projection containing
 // only generic teachings; publishing and campaign records remain private.
@@ -20,8 +19,8 @@ service cloud.firestore {
       allow write: if false;
     }
     match /messageInstallations/{installationId} {
-      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
-      allow create, update: if request.auth != null &&
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if isSignedIn() &&
         request.resource.data.uid == request.auth.uid &&
         (!exists(/databases/$(database)/documents/messageInstallations/$(installationId)) || resource.data.uid == request.auth.uid) &&
         request.resource.data.keys().hasOnly(['uid', 'token', 'enabled', 'schemaVersion', 'locale', 'appVersion', 'updatedAt', 'notificationOnly']) &&
@@ -37,7 +36,10 @@ service cloud.firestore {
     // --- helpers ---------------------------------------------------------------
 
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null &&
+        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'CHILD' ||
+         request.auth.token.firebase.sign_in_provider == 'google.com');
     }
 
     function hasRole(uid, role) {
@@ -65,9 +67,11 @@ service cloud.firestore {
         redeemed.usedBy == request.auth.uid && redeemed.usedAt == request.time;
     }
 
-    function childPinLink(data) {
-      return data.childUid == request.auth.uid && data.method == 'PIN' &&
-        request.auth.token.firebase.sign_in_provider == 'password';
+    function recentGoogleAuth() {
+      return request.auth.token.firebase.sign_in_provider == 'google.com' &&
+        request.auth.token.auth_time is int &&
+        request.auth.token.auth_time <= request.time.toMillis() / 1000 &&
+        request.time.toMillis() / 1000 - request.auth.token.auth_time < 300;
     }
 
     // True if an APPROVED link exists between the given parent and child uids.
@@ -80,8 +84,7 @@ service cloud.firestore {
     // --- users/{uid} -----------------------------------------------------------
     // A user may always read their own doc. Another user's doc is readable only when
     // an APPROVED link exists between them (either direction) — this lets a parent
-    // read a linked child's displayName / fcmToken, and vice versa. Code lookups go
-    // through the dedicated childCodes collection, so users reads stay self-or-linked.
+    // read a linked child's displayName / fcmToken, and vice versa.
     // A user may only write their own doc.
     match /users/{uid} {
       allow read: if isSignedIn() && (
@@ -90,31 +93,21 @@ service cloud.firestore {
         isApprovedLink(uid, request.auth.uid)
       );
       allow create: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.role in ['PARENT', 'CHILD', 'INDIVIDUAL'];
+        request.resource.data.role in ['PARENT', 'CHILD', 'INDIVIDUAL'] &&
+        (request.resource.data.role != 'CHILD' || request.auth.token.firebase.sign_in_provider == 'google.com');
       // A Google identity belongs to one profile. Its family role cannot be changed.
       allow update: if isSignedIn() && request.auth.uid == uid &&
         request.resource.data.role == resource.data.role &&
         (!('linkCode' in resource.data) || request.resource.data.linkCode == resource.data.linkCode);
-      allow delete: if isSignedIn() && request.auth.uid == uid;
+      // Account erasure must preserve role integrity and run through a trusted backend.
+      allow delete: if false;
     }
 
-    // --- childCodes/{code} -----------------------------------------------------
-    // Maps a 12-digit code -> child uid. Any signed-in user may read (a parent must
-    // resolve a code to send a link request). A child may create only their own code
-    // doc (uid must equal their auth uid). Codes are immutable: no update/delete.
-    match /childCodes/{code} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn() && code.matches('[0-9]{12}') &&
-        request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid &&
-        (request.auth.token.email == 'c' + code + '@child.anushtanam.app' ||
-          (getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'CHILD' &&
-           getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.linkCode == code));
-      allow update, delete: if false;
-    }
+    // Retired public identifier directory. Family sharing now uses only QR tokens.
+    match /childCodes/{code} { allow read, write: if false; }
 
     // --- links/{parentUid}_{childUid} -----------------------------------------
-    // Direct approval requires the child's password session or atomic QR redemption.
+    // Direct approval requires atomic QR redemption; child approval requires recent Google auth.
     // Old pending requests remain readable and can still be answered by the child.
     match /links/{linkId} {
       allow get: if isSignedIn() && (
@@ -128,13 +121,14 @@ service cloud.firestore {
         request.resource.data.createdAt == request.time && (
           (request.resource.data.parentUid == request.auth.uid && request.resource.data.status == 'PENDING') ||
           (request.resource.data.status == 'APPROVED' &&
-            (childPinLink(request.resource.data) || validQrLink(request.resource.data)))
+            validQrLink(request.resource.data))
         );
       allow update: if isSignedIn() && validParticipants(request.resource.data, linkId) &&
         request.resource.data.parentUid == resource.data.parentUid &&
         request.resource.data.childUid == resource.data.childUid &&
         request.resource.data.createdAt == resource.data.createdAt && (
-          (request.auth.uid == resource.data.childUid && request.resource.data.status in ['APPROVED', 'REJECTED']) ||
+          (request.auth.uid == resource.data.childUid && request.resource.data.status in ['APPROVED', 'REJECTED'] &&
+            (request.resource.data.status == 'REJECTED' || recentGoogleAuth())) ||
           (request.resource.data.status == 'APPROVED' && validQrLink(request.resource.data))
         );
       allow delete: if false;
@@ -145,7 +139,7 @@ service cloud.firestore {
     // child's current token. Rules inspect that private state during redemption.
     match /familyInviteState/{childUid} {
       allow read: if isSignedIn() && request.auth.uid == childUid;
-      allow create, update: if isSignedIn() && request.auth.uid == childUid && hasRole(childUid, 'CHILD') &&
+      allow create, update: if isSignedIn() && recentGoogleAuth() && request.auth.uid == childUid && hasRole(childUid, 'CHILD') &&
         request.resource.data.keys().hasOnly(['token']) && request.resource.data.token.matches('[a-f0-9]{64}') &&
         getAfter(/databases/$(database)/documents/familyInvites/$(request.resource.data.token)).data.childUid == childUid &&
         getAfter(/databases/$(database)/documents/familyInvites/$(request.resource.data.token)).data.createdAt == request.time;
@@ -155,7 +149,7 @@ service cloud.firestore {
     match /familyInvites/{token} {
       allow get: if isSignedIn() && (resource.data.childUid == request.auth.uid || hasRole(request.auth.uid, 'PARENT'));
       allow list: if false;
-      allow create: if isSignedIn() && token.matches('[a-f0-9]{64}') &&
+      allow create: if isSignedIn() && recentGoogleAuth() && token.matches('[a-f0-9]{64}') &&
         request.resource.data.keys().hasOnly(['childUid', 'childName', 'createdAt', 'usedBy']) &&
         request.resource.data.childUid == request.auth.uid && hasRole(request.auth.uid, 'CHILD') &&
         request.resource.data.childName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName &&

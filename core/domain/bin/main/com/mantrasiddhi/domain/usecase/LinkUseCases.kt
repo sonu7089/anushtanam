@@ -11,14 +11,6 @@ import com.mantrasiddhi.domain.repository.LinkRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-/** Parent: send a link request to a child's 12-digit ID. */
-class RequestChildLinkUseCase @Inject constructor(
-    private val linkRepository: LinkRepository
-) {
-    suspend operator fun invoke(childCode: String): Result<Unit> =
-        linkRepository.requestLink(childCode)
-}
-
 /** Child: stream of link requests awaiting approval. */
 class ObservePendingLinkRequestsUseCase @Inject constructor(
     private val linkRepository: LinkRepository

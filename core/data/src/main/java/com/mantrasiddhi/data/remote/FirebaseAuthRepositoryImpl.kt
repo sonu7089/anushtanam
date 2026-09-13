@@ -12,7 +12,6 @@ import androidx.credentials.ClearCredentialStateRequest
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.SetOptions
 import com.mantrasiddhi.domain.model.GoogleAuthFailure
@@ -49,17 +48,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.mantrasiddhi.domain.model.AccountResolution
 import com.mantrasiddhi.domain.diagnostics.WorkProbe
-import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * [AuthRepository] over Firebase Auth + a Firestore `users` mirror + FCM.
- *
- * Child accounts have no email: a synthetic credential (`c<12digits>@child.anushtanam.app`
- * + the 6-digit PIN) lets a child sign in on any device with (12-digit ID + PIN).
- * Code uniqueness is enforced by Firebase Auth itself — the email is derived from the
- * code, so a colliding code fails account creation and we simply retry a fresh code.
+ * Children sign in exclusively with Google. Family QR tokens are separate from credentials.
  */
 @Singleton
 class FirebaseAuthRepositoryImpl @Inject constructor(
@@ -74,7 +68,6 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     @AccountScope scope: CoroutineScope
 ) : AuthRepository {
 
-    private val random = SecureRandom()
     private val interactiveMutex = Mutex()
     private val accounts = AccountStateProducer(
         scope = scope,
@@ -164,77 +157,6 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             accounts.resolve(user.uid)
         }
 
-    override suspend fun signUpChild(displayName: String, pin: String): Result<AuthAccount> =
-        accountResult {
-            require(pin.length == FirebaseContract.PIN_LENGTH && pin.all(Char::isDigit)) {
-                "PIN must be exactly ${FirebaseContract.PIN_LENGTH} digits"
-            }
-            require(displayName.isNotBlank()) { "Name is required" }
-
-            var uid: String? = null
-            var code = ""
-            var attempts = 0
-            while (uid == null) {
-                attempts++
-                code = generateCode()
-                try {
-                    val result = auth
-                        .createUserWithEmailAndPassword(FirebaseContract.childEmail(code), pin)
-                        .awaitResult()
-                    uid = result.signedInUser().uid
-                } catch (_: FirebaseAuthUserCollisionException) {
-                    // Code already in use (email collision) — retry with a fresh code.
-                    if (attempts >= MAX_CODE_ATTEMPTS) {
-                        throw IllegalStateException("Could not allocate a unique child ID; please retry")
-                    }
-                }
-            }
-
-            auth.currentUser?.updateProfile(
-                UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
-            )?.awaitResult()
-
-            // Claim the code doc so a parent can resolve code -> uid.
-            firestore.collection(FirebaseContract.COLLECTION_CHILD_CODES).document(code)
-                .set(hashMapOf(FirebaseContract.FIELD_UID to uid)).awaitResult()
-
-            val token = fetchTokenOrNull()
-            val data = hashMapOf(
-                FirebaseContract.FIELD_ROLE to AccountRole.CHILD.name,
-                FirebaseContract.FIELD_DISPLAY_NAME to displayName,
-                FirebaseContract.FIELD_LINK_CODE to code,
-                FirebaseContract.FIELD_FCM_TOKEN to token,
-                FirebaseContract.FIELD_CREATED_AT to FieldValue.serverTimestamp()
-            )
-            firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
-                .set(data).awaitResult()
-
-            AuthAccount(
-                uid = uid,
-                role = AccountRole.CHILD,
-                displayName = displayName,
-                linkCode = code,
-                email = FirebaseContract.childEmail(code)
-            )
-        }
-
-    override suspend fun signInChild(code: String, pin: String): Result<AuthAccount> =
-        accountResult {
-            val trimmed = code.trim()
-            require(trimmed.length == FirebaseContract.CODE_LENGTH && trimmed.all(Char::isDigit)) {
-                "ID must be exactly ${FirebaseContract.CODE_LENGTH} digits"
-            }
-            require(pin.length == FirebaseContract.PIN_LENGTH && pin.all(Char::isDigit)) {
-                "PIN must be exactly ${FirebaseContract.PIN_LENGTH} digits"
-            }
-            val result = auth
-                .signInWithEmailAndPassword(FirebaseContract.childEmail(trimmed), pin)
-                .awaitResult()
-            val user = result.signedInUser()
-            persistTokenBestEffort(user.uid)
-            accounts.resolve(user.uid)
-        }
-
     override suspend fun signOut() {
         // Clear the local owner first. Outbox rows keep the UID captured when saved.
         sessionRepository.logout()
@@ -293,6 +215,7 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             user.reauthenticate(GoogleAuthProvider.getCredential(idToken, null)).awaitResult()
             user
         }
+        linkedUser.getIdToken(true).awaitResult()
         check(linkedUser.uid == expectedUid)
         // Linking preserves the existing UID, cloud role, name and family documents.
         googleAccount(linkedUser, before.role)
@@ -314,34 +237,12 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         return if (existing.googleLinked) googleAccount(user, existing.role) else existing
     }
 
-    override suspend fun completeChildGoogleSetup(pin: String, expectedUid: String): Result<AuthAccount> = googleInteractiveResult {
-        require(pin.matches(Regex("[0-9]{6}")))
-        val user = auth.currentUser?.takeIf { it.uid == expectedUid }
-            ?: throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
-        WorkProbe.increment("auth.profile.get")
-        val snapshot = firestore.collection(FirebaseContract.COLLECTION_USERS)
-            .document(user.uid).get(Source.SERVER).awaitResult()
-        if (snapshot.getString(FirebaseContract.FIELD_ROLE) != AccountRole.CHILD.name) {
-            throw GoogleAuthFailure(GoogleAuthProblem.WRONG_ACCOUNT)
-        }
-        val account = googleAccount(user, AccountRole.CHILD)
-        val code = account.linkCode ?: throw GoogleAuthFailure(GoogleAuthProblem.OFFLINE)
-        if (user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID }) {
-            user.linkWithCredential(EmailAuthProvider.getCredential(FirebaseContract.childEmail(code), pin))
-                .awaitResult()
-        }
-        // A retry after an interrupted response must reuse the same ID and Firebase UID.
-        user.reload().awaitResult()
-        account.withIdentity(requireUser(expectedUid))
-    }
-
     private suspend fun googleAccount(user: FirebaseUser, fallbackRole: AccountRole): AuthAccount {
         val google = user.providerData.firstOrNull { it.providerId == GoogleAuthProvider.PROVIDER_ID }
         val photo = google?.photoUrl?.toString()?.takeIf { it.startsWith("https://") }
         // A failed profile write is recoverable on the next sign-in. Never wait for a photo download.
         val mirrored = withTimeoutOrNull(8_000) {
             try {
-                if (fallbackRole == AccountRole.CHILD) ensureGoogleChildIdentity(user)
                 val ref = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
                 firestore.runTransaction { transaction ->
                     val existing = transaction.get(ref)
@@ -367,37 +268,6 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
                 role = if (it.profileNeedsSync) fallbackRole else it.role,
                 profileNeedsSync = !mirrored || it.profileNeedsSync).withIdentity(user)
         }
-    }
-
-    private suspend fun ensureGoogleChildIdentity(user: FirebaseUser) {
-        val ref = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
-        repeat(MAX_CODE_ATTEMPTS) {
-            val candidate = generateCode()
-            val claimed = firestore.runTransaction { transaction ->
-                val existing = transaction.get(ref)
-                if (existing.exists()) {
-                    check(existing.getString(FirebaseContract.FIELD_ROLE) == AccountRole.CHILD.name)
-                    if (existing.getString(FirebaseContract.FIELD_LINK_CODE) != null) return@runTransaction true
-                }
-                val code = FirebaseContract.codeFromChildEmail(user.email) ?: candidate
-                val codeRef = firestore.collection(FirebaseContract.COLLECTION_CHILD_CODES).document(code)
-                val owner = transaction.get(codeRef)
-                if (owner.exists() && owner.getString(FirebaseContract.FIELD_UID) != user.uid) {
-                    return@runTransaction false
-                }
-                val fields = mutableMapOf<String, Any?>(FirebaseContract.FIELD_LINK_CODE to code)
-                if (!existing.exists()) {
-                    fields[FirebaseContract.FIELD_ROLE] = AccountRole.CHILD.name
-                    fields[FirebaseContract.FIELD_DISPLAY_NAME] = user.displayName.orEmpty()
-                    fields[FirebaseContract.FIELD_CREATED_AT] = FieldValue.serverTimestamp()
-                }
-                if (!owner.exists()) transaction.set(codeRef, mapOf(FirebaseContract.FIELD_UID to user.uid))
-                transaction.set(ref, fields, SetOptions.merge())
-                true
-            }.awaitResult()
-            if (claimed) return
-        }
-        error("Please try setting up your child ID again.")
     }
 
     private suspend fun googleResult(block: suspend () -> AuthAccount): Result<AuthAccount> = try {
@@ -472,11 +342,10 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         if (!exists()) return inferAccount(uid, email, fallbackName).copy(profileNeedsSync = true)
         val roleName = getString(FirebaseContract.FIELD_ROLE)
         val role = AccountRole.entries.firstOrNull { it.name == roleName }
-            ?: inferRole(email)
+            ?: inferRole()
         val displayName = getString(FirebaseContract.FIELD_DISPLAY_NAME)
             ?: fallbackName ?: ""
         val linkCode = getString(FirebaseContract.FIELD_LINK_CODE)
-            ?: FirebaseContract.codeFromChildEmail(email)
         return AuthAccount(
             uid = uid,
             role = role,
@@ -489,26 +358,23 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
     }
 
     private fun inferAccount(uid: String, email: String?, fallbackName: String?): AuthAccount {
-        val role = inferRole(email)
+        val role = inferRole()
         return AuthAccount(
             uid = uid,
             role = role,
             displayName = fallbackName ?: "",
-            linkCode = if (role == AccountRole.CHILD) FirebaseContract.codeFromChildEmail(email) else null,
+            linkCode = null,
             email = email
         )
     }
 
-    private fun inferRole(email: String?): AccountRole =
-        if (FirebaseContract.isChildEmail(email)) AccountRole.CHILD
-        else if (auth.currentUser?.providerData?.any { it.providerId == "password" } == true) AccountRole.PARENT
+    private fun inferRole(): AccountRole =
+        if (auth.currentUser?.providerData?.any { it.providerId == "password" } == true) AccountRole.PARENT
         else AccountRole.INDIVIDUAL
 
     private fun AuthAccount.withIdentity(user: FirebaseUser): AuthAccount {
         val google = user.providerData.firstOrNull { it.providerId == GoogleAuthProvider.PROVIDER_ID }
         return copy(googleLinked = google != null,
-            needsChildPinSetup = role == AccountRole.CHILD && google != null &&
-                (linkCode == null || user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID }),
             photoSource = photoSource ?: if (google != null) "GOOGLE" else null,
             photoUrl = photoUrl ?: google?.photoUrl?.toString()?.takeIf { it.startsWith("https://") })
     }
@@ -524,15 +390,4 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun generateCode(): String {
-        val sb = StringBuilder(FirebaseContract.CODE_LENGTH)
-        // First digit 1-9 so the code is always a full 12-digit string.
-        sb.append(1 + random.nextInt(9))
-        repeat(FirebaseContract.CODE_LENGTH - 1) { sb.append(random.nextInt(10)) }
-        return sb.toString()
-    }
-
-    private companion object {
-        const val MAX_CODE_ATTEMPTS = 8
-    }
 }

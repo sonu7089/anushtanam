@@ -20,20 +20,9 @@ import javax.inject.Singleton
 @Singleton
 class DirectFamilyLinkService @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore,
-    private val pinLinker: ChildPinLinker
+    private val firestore: FirebaseFirestore
 ) {
     private val random = SecureRandom()
-
-    suspend fun linkWithPin(code: String, pin: String): Result<Unit> = familyResult {
-        val trimmed = code.trim()
-        if (!trimmed.matches(Regex("[0-9]{12}")) || !pin.matches(Regex("[0-9]{6}"))) {
-            throw FamilyLinkFailure(FamilyLinkProblem.INVALID_CREDENTIALS)
-        }
-        val parent = ownProfile("PARENT")
-        pinLinker.link(parent.id, parent.getString("displayName").orEmpty(), trimmed, pin)
-        Unit
-    }
 
     suspend fun createQrInvite(): Result<FamilyQrInvite> = familyResult {
         val child = ownProfile("CHILD")

@@ -301,9 +301,7 @@ private fun ResolvedMantraApp(
             }
 
             composable(Screen.ChildAuth.route) {
-                val authViewModel: AuthViewModel = hiltViewModel()
                 ChildAuthScreen(
-                    viewModel = authViewModel,
                     onBack = { navController.popBackStack() },
                     onAuthenticated = {
                         navController.navigate(Screen.Home.route) {

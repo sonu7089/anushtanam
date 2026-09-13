@@ -29,6 +29,8 @@ class MantraSiddhiApplication : Application() {
     @Inject lateinit var calendarTime: com.mantrasiddhi.domain.util.CalendarTime
 
     override fun onCreate() {
+        // FirebaseInitProvider has initialized Firebase; install before Hilt creates repositories.
+        AppCheckBootstrap.install()
         super.onCreate()
         registerReceiver(object : android.content.BroadcastReceiver() {
             override fun onReceive(context: android.content.Context, intent: android.content.Intent) {

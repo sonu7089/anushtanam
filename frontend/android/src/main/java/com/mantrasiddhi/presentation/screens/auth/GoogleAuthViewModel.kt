@@ -20,8 +20,7 @@ data class GoogleAuthUiState(
     val importChoices: List<UserProfile> = emptyList(),
     val needsProfileRetry: Boolean = false,
     val completed: Boolean = false,
-    val linked: Boolean = false,
-    val needsChildPin: Boolean = false
+    val linked: Boolean = false
 )
 
 @HiltViewModel
@@ -35,31 +34,6 @@ class GoogleAuthViewModel @Inject constructor(
     val account = auth.currentAccount.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     private var linking = false
     private var importId: Long? = null
-
-    fun resumeChildSetup(selected: AuthAccount) {
-        if (_state.value.busy || _state.value.completed || !selected.needsChildPinSetup) return
-        _state.update { it.copy(account = selected, needsChildPin = true) }
-    }
-
-    fun saveChildPin(pin: String, confirmation: String) {
-        if (_state.value.busy || !_state.value.needsChildPin) return
-        val owner = _state.value.account?.uid ?: return
-        if (!pin.matches(Regex("[0-9]{6}"))) {
-            _state.update { it.copy(errorRes = R.string.child_pin_six_digits) }; return
-        }
-        if (pin != confirmation) {
-            _state.update { it.copy(errorRes = R.string.child_pin_mismatch) }; return
-        }
-        _state.update { it.copy(busy = true, errorRes = null) }
-        viewModelScope.launch {
-            try {
-                val selected = auth.completeChildGoogleSetup(pin, owner).getOrThrow()
-                _state.update { it.copy(account = selected, needsChildPin = selected.needsChildPinSetup) }
-                prepareProfile(selected)
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { _state.update { it.copy(busy = false, errorRes = messageFor(failure)) } }
-        }
-    }
 
     fun chooseAnotherAccount() {
         if (_state.value.busy) return
@@ -89,7 +63,7 @@ class GoogleAuthViewModel @Inject constructor(
     }
 
     fun start(context: Context, role: AccountRole = AccountRole.INDIVIDUAL, linkTo: AuthAccount? = null) {
-        if (_state.value.busy || _state.value.needsProfileRetry || _state.value.needsChildPin || _state.value.importChoices.isNotEmpty()) return
+        if (_state.value.busy || _state.value.needsProfileRetry || _state.value.importChoices.isNotEmpty()) return
         linking = linkTo != null
         importId = null
         _state.value = GoogleAuthUiState(busy = true)
@@ -114,10 +88,6 @@ class GoogleAuthViewModel @Inject constructor(
     }
 
     private suspend fun prepareProfile(selected: AuthAccount) {
-        if (selected.needsChildPinSetup) {
-            _state.update { it.copy(busy = false, needsChildPin = true, needsProfileRetry = false) }
-            return
-        }
         try {
             val choices = if (linking || selected.role == AccountRole.CHILD) emptyList() else profiles.profilesForImport(selected)
             if (choices.isNotEmpty()) {
