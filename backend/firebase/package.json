@@ -6,7 +6,7 @@
     "test:perf": "firebase emulators:exec --config firebase.perf.json --only firestore,auth --project demo-anushtanam \"node --test tests/backup-rules.test.cjs tests/backup-validation.test.cjs tests/family-rules.test.cjs ../../doc/perf/database-rules-audit.cjs\""
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "4.0.1",
+    "@firebase/rules-unit-testing": "5.0.2",
     "firebase": "11.10.0",
     "firebase-tools": "14.12.0"
   }
