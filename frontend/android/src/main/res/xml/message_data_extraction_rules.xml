@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
-    <cloud-backup><exclude domain="sharedpref" path="teaching_notifications.xml" /></cloud-backup>
-    <device-transfer><exclude domain="sharedpref" path="teaching_notifications.xml" /></device-transfer>
+    <!-- Only practice history travels. SharedPreferences (including Firebase Auth),
+         DataStore files (including location), and SDK databases are not included. -->
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="database" path="mantra_siddhi_db" />
+        <include domain="database" path="mantra_siddhi_db-wal" />
+        <include domain="database" path="mantra_siddhi_db-shm" />
+        <include domain="database" path="mantra_siddhi_db-journal" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="mantra_siddhi_db" />
+        <include domain="database" path="mantra_siddhi_db-wal" />
+        <include domain="database" path="mantra_siddhi_db-shm" />
+        <include domain="database" path="mantra_siddhi_db-journal" />
+    </device-transfer>
 </data-extraction-rules>

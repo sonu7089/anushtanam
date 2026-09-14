@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <exclude domain="sharedpref" path="teaching_notifications.xml" />
+    <!-- Explicit allowlist: no Firebase sessions, DataStore location/identity settings,
+         notification state, or SDK databases. Keep SQLite sidecars with the history. -->
+    <include domain="database" path="mantra_siddhi_db" requireFlags="clientSideEncryption" />
+    <include domain="database" path="mantra_siddhi_db-wal" requireFlags="clientSideEncryption" />
+    <include domain="database" path="mantra_siddhi_db-shm" requireFlags="clientSideEncryption" />
+    <include domain="database" path="mantra_siddhi_db-journal" requireFlags="clientSideEncryption" />
 </full-backup-content>

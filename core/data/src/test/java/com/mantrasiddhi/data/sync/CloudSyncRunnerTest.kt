@@ -96,12 +96,14 @@ class CloudSyncRunnerTest {
     @Test fun `failed upload remains queued and succeeds on the next minute`() = runTest {
         mockkStatic(Log::class)
         try {
-            every { Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
+            every { Log.w(any<String>(), any<String>()) } returns 0
             val runner = runner()
-            coEvery { transport.deliver(any()) } throws IOException("offline")
+            coEvery { transport.deliver(any()) } throws IOException("users/private-uid/private-document")
             advanceTimeBy(60_000)
             assertTrue(runner.runPending())
             assertEquals(2, rows.size)
+            verify(exactly = 1) { Log.w("CloudSync", "Pending cloud changes retained for retry") }
+            verify(exactly = 0) { Log.w(any<String>(), any<String>(), any<Throwable>()) }
             coVerify(exactly = 0) { dao.acknowledgeBatch(any()) }
             coEvery { transport.deliver(any()) } returns Unit
             advanceTimeBy(60_000)
@@ -226,7 +228,7 @@ class CloudSyncRunnerTest {
     @Test fun `capture failures retain recovery and cannot spin before a claim`() = runTest {
         mockkStatic(Log::class)
         try {
-            every { Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
+            every { Log.w(any<String>(), any<String>()) } returns 0
             val runner = runner()
             coEvery { japaSync.capture("owner") } throws IOException("bad capture")
             advanceTimeBy(60_000)

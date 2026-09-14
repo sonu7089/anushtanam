@@ -99,10 +99,11 @@ class CloudSyncRunner @Inject constructor(
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (failure: Exception) {
+            } catch (_: Exception) {
                 if (auth.currentUser?.uid != uid) return false
                 failed(uid)
-                Log.w("CloudSync", "Pending cloud changes retained for retry", failure)
+                // Backend exceptions can contain account IDs and document paths.
+                Log.w("CloudSync", "Pending cloud changes retained for retry")
                 return auth.currentUser?.uid == uid
             }
             gate.succeeded(uid)

@@ -23,7 +23,7 @@ class SandhyaAlarmReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 runCatching { entry.scheduler().scheduleNext(period, stage, event) }
-                    .onFailure { Log.w("SandhyaReminder", "Rearm failed", it) }
+                    .onFailure { Log.w("SandhyaReminder", "Rearm failed") }
                 withTimeoutOrNull(8_000) {
                     deliveryLock.withLock {
                         val settings = entry.preferences().current()
@@ -45,7 +45,7 @@ class SandhyaAlarmReceiver : BroadcastReceiver() {
                         }
                     }
                 }
-            } catch (error: Exception) { Log.w("SandhyaReminder", "Delivery failed", error) }
+            } catch (_: Exception) { Log.w("SandhyaReminder", "Delivery failed") }
             finally { pending.finish() }
         }
     }

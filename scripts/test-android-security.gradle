@@ -1,0 +1,60 @@
+// Run: ./gradlew -I scripts/test-android-security.gradle :app:testAndroidSecurityPolicy
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    def releaseGuard = app.tasks.getByName('verifyReleaseManifestSecurity')
+    def fixtureDir = app.layout.buildDirectory.dir('security-policy-fixtures').get().asFile
+    def fixtureGuard = app.tasks.create('securityManifestFixtureValidator', releaseGuard.class.superclass)
+    fixtureGuard.inputManifest.set(new File(fixtureDir, 'input.xml'))
+    fixtureGuard.outputManifest.set(new File(fixtureDir, 'output.xml'))
+
+    app.tasks.register('testAndroidSecurityPolicy') {
+        inputs.file(releaseGuard.inputManifest)
+        doLast {
+            fixtureDir.mkdirs()
+            def good = releaseGuard.inputManifest.get().asFile.text
+            def cases = [
+                valid: good,
+                debuggable: good.replaceFirst('<application', '<application android:debuggable="true"'),
+                testOnly: good.replaceFirst('<application', '<application android:testOnly="true"'),
+                cleartext: good.replaceFirst('<application', '<application android:usesCleartextTraffic="true"'),
+                networkConfig: good.replaceFirst('<application', '<application android:networkSecurityConfig="@xml/unsafe"'),
+                reviewActivity: good.replace('</application>', '<activity android:name="com.mantrasiddhi.review.DesignReviewActivity" /></application>'),
+                reviewAlias: good.replace('</application>', '<activity-alias android:name="example.Alias" android:targetActivity=".review.DesignReviewActivity" /></application>'),
+                composeTooling: good.replace('</application>', '<activity android:name="androidx.compose.ui.tooling.PreviewActivity" /></application>')
+            ]
+            cases.each { name, xml ->
+                fixtureGuard.inputManifest.get().asFile.text = xml
+                boolean rejected = false
+                try { fixtureGuard.verify() }
+                catch (IllegalStateException expected) { rejected = true }
+                assert rejected == (name != 'valid'): "Unexpected manifest result: $name"
+            }
+
+            def factory = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+            factory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
+            def parse = { String path -> factory.newDocumentBuilder().parse(app.file(path)) }
+            def legacy = parse('src/main/res/xml/message_backup_rules.xml')
+            def modern = parse('src/main/res/xml/message_data_extraction_rules.xml')
+            def dbSource = gradle.rootProject.file('core/data/src/main/java/com/mantrasiddhi/data/local/MantraSiddhiDatabase.kt').text
+            def dbName = (dbSource =~ /const val DATABASE_NAME = "([^"]+)"/)[0][1]
+            def expected = ['', '-wal', '-shm', '-journal'].collect { "database:$dbName$it".toString() }.toSet()
+            [legacy.documentElement, modern.getElementsByTagName('cloud-backup').item(0),
+             modern.getElementsByTagName('device-transfer').item(0)].each { section ->
+                def includes = section.getElementsByTagName('include')
+                def actual = (0..<includes.length).collect { i ->
+                    def entry = includes.item(i)
+                    "${entry.getAttribute('domain')}:${entry.getAttribute('path')}".toString()
+                }.toSet()
+                assert actual == expected: "Backup must contain only the practice database and sidecars: $actual"
+                assert section.getElementsByTagName('exclude').length == 0: 'Excludes must not override required history files'
+            }
+            assert modern.getElementsByTagName('cloud-backup').item(0)
+                .getAttribute('disableIfNoEncryptionCapabilities') == 'true'
+            def legacyIncludes = legacy.getElementsByTagName('include')
+            (0..<legacyIncludes.length).each { i ->
+                assert legacyIncludes.item(i).getAttribute('requireFlags') == 'clientSideEncryption'
+            }
+            logger.lifecycle('Passed 8 release-manifest cases and backup allowlist/encryption checks.')
+        }
+    }
+}

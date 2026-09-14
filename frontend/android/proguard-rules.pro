@@ -8,6 +8,14 @@
 -keep class kotlin.Metadata { *; }
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault,Signature,InnerClasses,EnclosingMethod,Exceptions
 
+# Remove routine diagnostics (including prayer schedules) from optimized builds.
+# Warning/error call sites must avoid user data and backend exception messages.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
+
 # --- Room ---
 -keep class * extends androidx.room.RoomDatabase { *; }
 -keep @androidx.room.Entity class * { *; }

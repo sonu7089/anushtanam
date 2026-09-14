@@ -32,6 +32,8 @@ request path, so a rules gap is a direct, unmediated data breach.
 
 > Cloud Functions remediation is implemented in source; see [audit corrections, tests and remaining rollout work](03-implementation.md).
 
+> Android hardening is implemented in source; see [review corrections, backup policy and remaining device verification](04-implementation.md). Application-level database encryption remains a separate decision.
+
 ## Findings at a glance
 
 | # | Finding | Severity | Report |

@@ -57,9 +57,9 @@ class SandhyaScheduler @Inject constructor(
                             scheduleFor(userId, observedLogs = entries)
                             retryUser = null
                         } catch (cancelled: CancellationException) { throw cancelled }
-                        catch (failure: Exception) {
+                        catch (_: Exception) {
                             retryUser = userId
-                            Log.w("SandhyaReminder", "Reminder update failed; retry on next change or startup", failure)
+                            Log.w("SandhyaReminder", "Reminder update failed; retry on next change or startup")
                         }
                     }
                 }

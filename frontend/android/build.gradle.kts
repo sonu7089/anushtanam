@@ -1,5 +1,49 @@
 import java.util.Properties
 import java.security.MessageDigest
+import com.android.build.api.artifact.SingleArtifact
+import javax.xml.parsers.DocumentBuilderFactory
+
+abstract class VerifyReleaseManifest : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val inputManifest: RegularFileProperty
+
+    @get:OutputFile
+    abstract val outputManifest: RegularFileProperty
+
+    @TaskAction
+    fun verify() {
+        val factory = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        }
+        val manifest = inputManifest.get().asFile
+        val document = factory.newDocumentBuilder().parse(manifest)
+        val androidNs = "http://schemas.android.com/apk/res/android"
+        val application = document.getElementsByTagName("application").item(0) as org.w3c.dom.Element
+        for (attribute in listOf("debuggable", "testOnly", "usesCleartextTraffic")) {
+            check(application.getAttributeNS(androidNs, attribute) in listOf("", "false")) {
+                "Release manifest must not enable android:$attribute"
+            }
+        }
+        // A network config can override usesCleartextTraffic; require review before adding one.
+        check(!application.hasAttributeNS(androidNs, "networkSecurityConfig")) {
+            "Review the release network security config and extend this guard before enabling it"
+        }
+        val elements = document.getElementsByTagName("*")
+        for (index in 0 until elements.length) {
+            val element = elements.item(index) as org.w3c.dom.Element
+            for (attribute in listOf("name", "targetActivity")) {
+                val name = element.getAttributeNS(androidNs, attribute)
+                check(!name.startsWith("com.mantrasiddhi.review.") &&
+                    !name.startsWith(".review.") && !name.startsWith("androidx.compose.ui.tooling.")) {
+                    "Debug-only component in release manifest: $name"
+                }
+            }
+        }
+        manifest.copyTo(outputManifest.get().asFile.apply { parentFile.mkdirs() }, overwrite = true)
+    }
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -138,6 +182,17 @@ android {
         language { enableSplit = true }
         density { enableSplit = true }
         abi { enableSplit = true }
+    }
+}
+
+// Transforming the artifact makes verification mandatory for APK and bundle consumers.
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        val verify = tasks.register<VerifyReleaseManifest>("verifyReleaseManifestSecurity")
+        variant.artifacts.use(verify)
+            .wiredWithFiles(VerifyReleaseManifest::inputManifest, VerifyReleaseManifest::outputManifest)
+            .toTransform(SingleArtifact.MERGED_MANIFEST)
+        tasks.named("check") { dependsOn(verify) }
     }
 }
 

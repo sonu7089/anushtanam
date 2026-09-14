@@ -2,6 +2,10 @@
 
 [← Back to index](README.md)
 
+> Reviewed and remediated in source on 2026-09-14. See
+> [corrections, implementation and device verification requirements](04-implementation.md).
+> The findings below describe the original audit, not current closure status.
+
 **Files reviewed:** `frontend/android/src/main/AndroidManifest.xml`,
 `frontend/android/build.gradle.kts`, `proguard-rules.pro`, the `core:data` storage and
 notification layers, `MainActivity.kt`, and the debug source sets.
