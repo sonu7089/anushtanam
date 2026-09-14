@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      compatible-versions:
+        applies-to: version-updates
+        update-types: [minor, patch]
+    # No auto-merge and no blanket ignores: security fixes remain visible.
+    # Review catalog constraints before accepting Kotlin/Compose/AGP/DataStore changes.
+  - package-ecosystem: npm
+    directories:
+      - /backend/firebase
+      - /backend/firebase/functions
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      compatible-versions:
+        applies-to: version-updates
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

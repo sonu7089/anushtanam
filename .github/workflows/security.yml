@@ -1,0 +1,118 @@
+name: Security and build
+
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 4 * * 1'
+    - cron: '30 4 14 3,6,9,12 *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quarterly-review:
+    name: Quarterly dependency review checklist
+    if: github.event_name == 'schedule' && github.event.schedule == '30 4 14 3,6,9,12 *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish the maintainer review checklist
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Quarterly dependency review due
+          - Review Firebase, Coil and credentials advisories and supported versions.
+          - Triage the Functions production audit, including moderate findings.
+          - Revalidate Kotlin/KSP/Compose/AGP compatibility and DataStore 16 KB alignment.
+          - Review Dependabot PRs and advance review dates in gradle/libs.versions.toml.
+          - Record decisions in docs/security/06-implementation.md.
+          This scheduled run supplies checks and a checklist; a maintainer must perform the review.
+          EOF
+
+  android:
+    name: Android build and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Build and verify without production signing credentials
+        run: >-
+          bash ./gradlew --no-daemon --no-configuration-cache
+          -I scripts/test-android-security.gradle
+          :app:assembleRelease :app:verifyArtwork :app:testDebugUnitTest
+          :core:domain:test :core:data:testDebugUnitTest
+          :app:testAndroidSecurityPolicy
+
+  firestore:
+    name: Firestore rules and performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend/firebase
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            backend/firebase/package-lock.json
+            backend/firebase/functions/package-lock.json
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm ci --prefix functions
+      - run: npm test
+      - run: npm run test:perf
+
+  audit:
+    name: Functions production audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+      # Moderate advisories are recorded in 06-implementation.md for triage.
+      # All severities are printed; high/critical findings and audit errors fail CI.
+      - run: npm audit --omit=dev --audit-level=high --prefix backend/firebase/functions
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: '8.30.1'
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+          GITLEAKS_ENABLE_SUMMARY: 'true'

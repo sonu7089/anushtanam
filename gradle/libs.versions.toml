@@ -1,4 +1,8 @@
 [versions]
+# Pin review: 2026-09-14; next review: 2026-12-14, then quarterly.
+# Review Firebase, Coil and credentials first. Kotlin/KSP/Compose and AGP migrations
+# require compatibility testing; dependency age alone is not proof of a vulnerability.
+# Recheck the DataStore native-alignment constraint on every proposed update.
 # 8.13.2 supports SDK 36 and optimized resource shrinking while retaining Kotlin 1.9.
 # Native library 16 KB zip alignment remains enabled by AGP.
 agp = "8.13.2"

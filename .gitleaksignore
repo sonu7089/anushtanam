@@ -1,0 +1,3 @@
+# Public Firebase client identifier in the original Android configuration.
+# Suppress only this reviewed historical finding, never a directory or key pattern.
+91336b9c8924cb7725ca59bf422dcded0108370e:app/google-services.json:gcp-api-key:18

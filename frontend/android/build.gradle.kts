@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.security.MessageDigest
+import java.io.File
 import com.android.build.api.artifact.SingleArtifact
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -53,14 +53,29 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
-// Optional release-signing config. When `keystore.properties` (gitignored) is present,
-// release builds are signed with the real upload key for Play; otherwise they fall back
-// to the debug key so local release builds stay installable.
-val keystorePropertiesFile = rootProject.file("keystore.properties")
-val keystoreProperties = Properties().apply {
-    if (keystorePropertiesFile.exists()) {
-        keystorePropertiesFile.inputStream().use { load(it) }
+// Inject credentials from an OS vault/secret manager into this process only.
+// Never read the legacy plaintext keystore.properties file.
+val signingEnvironment = listOf(
+    "ANDROID_KEYSTORE_PATH", "ANDROID_KEYSTORE_PASSWORD",
+    "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"
+).associateWith { providers.environmentVariable(it).orNull }
+val hasReleaseSigning = signingEnvironment.values.any { it != null }
+val requireReleaseSigning = providers.environmentVariable("ANDROID_REQUIRE_RELEASE_SIGNING")
+    .map { it.toBoolean() }.getOrElse(false)
+if (hasReleaseSigning) {
+    require(signingEnvironment.values.all { !it.isNullOrBlank() }) {
+        "Release signing requires all four ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, " +
+            "ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD environment variables."
     }
+    val keyFile = File(signingEnvironment.getValue("ANDROID_KEYSTORE_PATH")!!)
+    require(keyFile.isAbsolute && keyFile.isFile) {
+        "ANDROID_KEYSTORE_PATH must be an absolute path to an existing keystore."
+    }
+    require(!keyFile.canonicalFile.toPath().startsWith(rootDir.canonicalFile.toPath())) {
+        "Store the release keystore outside the project tree."
+    }
+} else {
+    require(!requireReleaseSigning) { "Publishable build requested but release signing is missing." }
 }
 
 // Keep this resource present even before Google is enabled in Firebase. Referencing it
@@ -103,29 +118,25 @@ android {
     }
 
     signingConfigs {
-        // Real Play upload key, used automatically when keystore.properties is present.
-        // storeFile is resolved relative to the repo root (where keystore.properties lives).
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseSigning) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = File(signingEnvironment.getValue("ANDROID_KEYSTORE_PATH")!!)
+                storePassword = signingEnvironment.getValue("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signingEnvironment.getValue("ANDROID_KEY_ALIAS")
+                keyPassword = signingEnvironment.getValue("ANDROID_KEY_PASSWORD")
             }
         }
     }
 
     buildTypes {
         release {
-            // With keystore.properties → real upload key (publishable). Without it → the
-            // AGP-managed debug key so local release builds still install (CI-safe, the
-            // keystore is auto-generated). A debug-signed build is NOT publishable to Play;
-            // Play rejects the debug certificate, and we warn loudly here.
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            // CI validates release code with a disposable debug key. Publishing must set
+            // ANDROID_REQUIRE_RELEASE_SIGNING=true to fail closed without credentials.
+            signingConfig = if (hasReleaseSigning) {
                 signingConfigs.getByName("release")
             } else {
                 logger.warn(
-                    "keystore.properties not found — signing release with the DEBUG key. " +
+                    "Release signing environment not configured — signing release with the DEBUG key. " +
                         "This build is NOT publishable to Google Play."
                 )
                 signingConfigs.getByName("debug")
@@ -198,13 +209,14 @@ androidComponents {
 
 // Package the same documents used for publication; policy access works offline.
 val bundlePrivacyDocuments by tasks.registering(Copy::class) {
-    from(rootProject.file("playstore-assets")) { include("privacy-policy.html", "delete-account.html") }
-    into(layout.buildDirectory.dir("generated/privacyAssets/privacy"))
+    from(rootProject.file("playstore-assets")) {
+        include("privacy-policy.html", "delete-account.html")
+        into("privacy")
+    }
+    into(layout.buildDirectory.dir("generated/privacyAssets"))
 }
-android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/privacyAssets"))
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
-    dependsOn(bundlePrivacyDocuments)
-}
+// A task-backed source directory also wires lint consumers, not only asset merging.
+android.sourceSets.getByName("main").assets.srcDir(bundlePrivacyDocuments)
 
 dependencies {
     implementation(libs.google.code.scanner)

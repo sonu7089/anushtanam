@@ -2,6 +2,9 @@
 
 [← Back to index](README.md)
 
+> Implementation update (2026-09-14): see [changes, validation and remaining setup](06-implementation.md).
+> The findings below are the original audit snapshot.
+
 **Files reviewed:** `gradle/libs.versions.toml`, `frontend/android/build.gradle.kts`,
 `backend/firebase/functions/package.json`, `.gitignore`, `keystore.properties.template`,
 and the working-tree state.
