@@ -36,6 +36,11 @@ request path, so a rules gap is a direct, unmediated data breach.
 
 ## Findings at a glance
 
+For current priorities, use the [reviewed remediation plan](07-remediation-plan.md)
+(14 September 2026). It reconciles the original actions with implementation records,
+preserves later product decisions and separates source changes from deployment and
+operational verification. The findings below are historical.
+
 | # | Finding | Severity | Report |
 |---|---------|----------|--------|
 | A-01 | Child accounts are protected by a 6-digit PIN with no lockout or weak-PIN rejection | **Critical** | [Auth](01-authentication-and-identity.md) |
