@@ -53,6 +53,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onLogout: () -> Unit, modifier:
         }, signOutEnabled = !googleState.busy,
         onOpenSandhyaSettings = onOpenSandhyaSettings,
         messagesContent = { com.mantrasiddhi.presentation.screens.messages.MessageNotificationSetting() },
+        privacyContent = { PrivacySettingsContent(account?.uid, viewModel::logout) },
         backupContent = { BackupStatusContent(backupState, backupSaving, backupFailed,
             backupViewModel::resolve, backupViewModel::syncNow, backupViewModel::setReviewing, backupViewModel::retryReview) })
 }
@@ -66,7 +67,8 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
     signOutEnabled: Boolean = true,
     onOpenSandhyaSettings: () -> Unit = {},
     backupContent: @Composable () -> Unit = { BackupStatusContent(BackupUiState()) },
-    messagesContent: @Composable () -> Unit = {}) {
+    messagesContent: @Composable () -> Unit = {},
+    privacyContent: @Composable () -> Unit = {}) {
     Scaffold(modifier, topBar = { LotusTopAppBar(title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).testTag("settings_sections"),
             contentPadding = PaddingValues(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -137,6 +139,7 @@ internal fun SettingsContent(user: UserProfile?, themeMode: String, languageDisp
                     }
                 }
             }
+            item(key = "privacy") { privacyContent() }
             item(key = "bottom_space") { Spacer(Modifier.height(8.dp)) }
         }
     }

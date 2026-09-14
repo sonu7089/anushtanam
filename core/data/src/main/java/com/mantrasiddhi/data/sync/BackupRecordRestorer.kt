@@ -97,7 +97,7 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
             if (value["type"] == "session") {
                 val old = database.backupDao().session(userId, value.text("id"))
                 val session = PracticeRecordCodec.session(value, userId, old?.id ?: 0)
-                if (old != null && old != session.copy(acceptedEntryId = old.acceptedEntryId)) return "Saved assessments are immutable"
+                if (old != null && !SpeechRetention.compatible(old, session)) return "Saved assessments are immutable"
                 if (old?.acceptedEntryId != null && session.acceptedEntryId != null && old.acceptedEntryId != session.acceptedEntryId) return "Session entry identity is immutable"
                 val existingClaim = database.backupDao().sessionForEntry(userId, value.text("entryId"))
                 if (existingClaim != null && existingClaim.stableId != session.stableId) return "Entry is already claimed by another session"

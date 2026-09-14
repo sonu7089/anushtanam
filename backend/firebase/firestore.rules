@@ -37,13 +37,31 @@ service cloud.firestore {
 
     function isSignedIn() {
       return request.auth != null &&
+        !deleting(request.auth.uid) &&
         (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'CHILD' ||
          request.auth.token.firebase.sign_in_provider == 'google.com');
     }
 
     function hasRole(uid, role) {
-      return get(/databases/$(database)/documents/users/$(uid)).data.role == role;
+      return !deleting(uid) && get(/databases/$(database)/documents/users/$(uid)).data.role == role;
+    }
+
+    function deleting(uid) {
+      return exists(/databases/$(database)/documents/accountDeletionRequests/$(uid));
+    }
+
+    // A durable request doubles as the write barrier until outstanding ID tokens expire.
+    match /accountDeletionRequests/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        request.auth.token.firebase.sign_in_provider in ['google.com', 'password'] &&
+        request.auth.token.auth_time is int &&
+        request.auth.token.auth_time <= request.time.toMillis() / 1000 &&
+        request.time.toMillis() / 1000 - request.auth.token.auth_time < 300 &&
+        request.resource.data.keys().hasOnly(['state', 'requestedAt']) &&
+        request.resource.data.state == 'pending' && request.resource.data.requestedAt == request.time;
+      allow update, delete, list: if false;
     }
 
     function validParticipants(data, linkId) {
@@ -77,7 +95,7 @@ service cloud.firestore {
     // True if an APPROVED link exists between the given parent and child uids.
     function isApprovedLink(parentUid, childUid) {
       let id = parentUid + '_' + childUid;
-      return exists(/databases/$(database)/documents/links/$(id)) &&
+      return !deleting(parentUid) && !deleting(childUid) && exists(/databases/$(database)/documents/links/$(id)) &&
         get(/databases/$(database)/documents/links/$(id)).data.status == 'APPROVED';
     }
 
@@ -231,7 +249,8 @@ service cloud.firestore {
       return feed.type == type && feed.id == id && feed.value == value && feed.changedAt == request.time;
     }
     function validAssignedGoal(d) {
-      return d.keys().hasOnly(['parentUid', 'childUid', 'rewardType', 'rewardDescription', 'targetRecitationCount',
+      return !deleting(d.parentUid) && !deleting(d.childUid) &&
+        d.keys().hasOnly(['parentUid', 'childUid', 'rewardType', 'rewardDescription', 'targetRecitationCount',
           'currentRecitationCount', 'isCompleted', 'createdAt']) &&
         identity(d.parentUid) && identity(d.childUid) && d.parentUid != d.childUid &&
         d.rewardType in ['MONEY', 'FOOD', 'GIFT', 'OUTING', 'TOY', 'OTHER'] &&
@@ -337,7 +356,7 @@ service cloud.firestore {
             score(d.overallScore) && score(d.correctness) && score(d.completeness) &&
             score(d.pronunciation) && count(d.durationMs) && millis(d.createdAt) &&
             d.wordScoresJson is string && d.wordScoresJson.size() < 200000 &&
-            d.transcription is string && d.transcription.size() < 200000) ||
+            d.transcription is string && d.transcription.size() < 200000 && retainedSpeech(d)) ||
           (d.type == 'sandhya' && d.keys().hasOnly(['type', 'id', 'dateKey', 'period',
             'scheduledEpochMillis', 'status', 'observedEpochMillis', 'schemaVersion']) &&
             dateKey(d.dateKey) && period(d.period) && d.id == d.dateKey + '_' + d.period &&
@@ -392,6 +411,11 @@ service cloud.firestore {
     }
 
     // Feed contents must match the canonical record in the same atomic write.
+    function retainedSpeech(d) {
+      return d.type != 'session' || d.createdAt > request.time.toMillis() - 31536000000 ||
+        (d.transcription == '' && d.wordScoresJson == '');
+    }
+
     match /users/{uid}/backupChanges/{changeId} {
       function canonical(d) {
         return (d.type == 'entry' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaEntries/$(d.id)).data) ||
@@ -403,7 +427,8 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && request.auth.uid == uid &&
         request.resource.data.keys().hasOnly(['type', 'id', 'value', 'changedAt']) &&
         changeId == request.resource.data.type + '_' + request.resource.data.id &&
-        request.resource.data.changedAt == request.time && canonical(request.resource.data);
+        request.resource.data.changedAt == request.time && canonical(request.resource.data) &&
+        (request.resource.data.type != 'practice' || retainedSpeech(request.resource.data.value));
       allow delete: if false;
     }
 

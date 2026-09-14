@@ -17,6 +17,7 @@ const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 Object.assign(exports, require("./messages"));
+Object.assign(exports, require("./privacy"));
 
 exports.onGoalCreated = onDocumentCreated({ document: "goals/{goalId}", retry: false }, async (event) => {
   const snap = event.data;

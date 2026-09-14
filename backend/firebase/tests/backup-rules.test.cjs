@@ -13,7 +13,7 @@ beforeEach(async () => env.clearFirestore());
 
 const performance = () => ({ type: 'session', id: 'session-one', entryId: null, mantraId: 'gayatri', mode: 'PRACTICE',
   overallScore: .86, correctness: .9, completeness: .8, pronunciation: .88,
-  wordScoresJson: 'om:0.91', transcription: 'om', isCorrect: false, durationMs: 24000, createdAt: 100 });
+  wordScoresJson: 'om:0.91', transcription: 'om', isCorrect: false, durationMs: 24000, createdAt: Date.now() });
 
 async function publish(db, value) {
   const id = `${value.type}_${value.id}`;

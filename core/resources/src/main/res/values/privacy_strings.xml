@@ -1,0 +1,26 @@
+<resources>
+    <string name="privacy_title">Your account and privacy</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="privacy_policy_summary">What we save and how we use it</string>
+    <string name="privacy_deletion_info">About deleting your account</string>
+    <string name="privacy_deletion_summary">What gets removed and what stays</string>
+    <string name="privacy_delete_account">Delete my account</string>
+    <string name="privacy_email_request">Email us for help</string>
+    <string name="privacy_email_unavailable">You can reach us at NitishSongara75@gmail.com for help with your account.</string>
+    <string name="privacy_delete_title">Delete your account?</string>
+    <string name="privacy_delete_confirmation">This will remove your Anushtanam account, practice history saved online and family links. You cannot undo this.</string>
+    <string name="privacy_delete_other_accounts">Your Google account and your family\'s accounts will stay.</string>
+    <string name="privacy_delete_verify">We\'ll ask you to sign in again to make sure it\'s you.</string>
+    <string name="privacy_delete_verify_password">Enter your password so we can make sure it\'s you.</string>
+    <string name="privacy_delete_phone">Practice saved on this phone will stay. To remove it, clear the app\'s storage in Android Settings.</string>
+    <string name="privacy_password">Account password</string>
+    <string name="privacy_request_failed">We couldn\'t check whether your request went through. Please try again, or email us for help.</string>
+    <string name="privacy_confirm_delete">Sign in and delete</string>
+    <string name="privacy_confirm_delete_password">Delete my account</string>
+    <string name="privacy_request_busy">Sending your request…</string>
+    <string name="privacy_cancel">Cancel</string>
+    <string name="privacy_close">Close</string>
+    <string name="privacy_request_accepted">We\'ve received your request</string>
+    <string name="privacy_request_accepted_detail">We\'ll remove your account and practice history saved online within 30 days. You can sign out now.</string>
+    <string name="privacy_sign_out">Sign out</string>
+</resources>

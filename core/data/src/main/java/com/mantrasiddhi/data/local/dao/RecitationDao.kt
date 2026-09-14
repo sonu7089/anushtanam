@@ -18,6 +18,9 @@ data class CorrectDayCount(val dateKey: String, val count: Int)
 
 @Dao
 interface RecitationDao {
+    @Query("UPDATE recitation_sessions SET transcription = '', wordScoresJson = '' WHERE id = :id")
+    suspend fun clearSpeech(id: Long)
+
     @Query("SELECT COUNT(*) AS total, COALESCE(SUM(isCorrect), 0) AS correct, COALESCE(AVG(overallScore), 0.0) AS average, COALESCE(MAX(overallScore), 0.0) AS best FROM recitation_sessions WHERE userId = :userId")
     fun observeTotals(userId: Long): Flow<com.mantrasiddhi.domain.model.SessionTotals>
 

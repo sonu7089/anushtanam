@@ -196,6 +196,16 @@ androidComponents {
     }
 }
 
+// Package the same documents used for publication; policy access works offline.
+val bundlePrivacyDocuments by tasks.registering(Copy::class) {
+    from(rootProject.file("playstore-assets")) { include("privacy-policy.html", "delete-account.html") }
+    into(layout.buildDirectory.dir("generated/privacyAssets/privacy"))
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/privacyAssets"))
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+    dependsOn(bundlePrivacyDocuments)
+}
+
 dependencies {
     implementation(libs.google.code.scanner)
     implementation(libs.zxing.core)

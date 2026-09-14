@@ -19,7 +19,7 @@ function goalHarness(token = 'device-token', failure) {
       if (name === 'firebase-admin/messaging') return { getMessaging: () => ({ send: async message => {
         sends.push(message); if (failure) throw failure;
       } }) };
-      if (name === './messages') return {};
+      if (name === './messages' || name === './privacy') return {};
       throw new Error(name);
     }
   });

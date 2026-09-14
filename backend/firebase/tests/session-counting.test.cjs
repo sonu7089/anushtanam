@@ -12,7 +12,7 @@ const db = () => env.authenticatedContext('owner').firestore();
 const summary = { sessionProjectionVersion: 2, sessionProjectionRevision: 1, totalSessions: 0, correctSessions: 0, scoreSum: 0, bestScore: 0, daily: {} };
 const session = { type: 'session', id: 'one', entryId: null, mantraId: 'gayatri', mode: 'NORMAL',
   overallScore: .9, correctness: .9, completeness: .9, pronunciation: .9,
-  wordScoresJson: '', transcription: 'om', isCorrect: true, durationMs: 1000, createdAt: 0,
+  wordScoresJson: '', transcription: '', isCorrect: true, durationMs: 1000, createdAt: 0,
   projectionDate: '1970-01-01', projectionZoneId: 'UTC', childGoalEligible: true };
 
 test('after cutover a canonical session and its summary must commit together', async () => {

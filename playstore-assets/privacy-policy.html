@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy — Anushtanam</title>
+<title>Privacy Policy | Anushtanam</title>
 <style>
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.65;
          max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; color: #1c1c1e; }
@@ -20,11 +20,11 @@
 <body>
 
 <h1>Privacy Policy for Anushtanam</h1>
-<p class="updated">Last updated: 8 September 2026</p>
+<p class="updated">Last updated: 14 September 2026</p>
 
 <div class="callout">
-  <strong>Summary:</strong> Anushtanam is a mantra practice app. Most of what you do — reciting,
-  pronunciation feedback, and reminders — happens entirely on your device. If you choose to create
+  <strong>Summary:</strong> Anushtanam is a mantra practice app. Reciting,
+  pronunciation feedback and reminders happen on your device. If you choose to create
   an account, some data (such as your email, profile name, and practice goals) is stored securely in
   the cloud using Google Firebase so features like parent–child linking and goal sync can work. We do
   not use advertising, and we do not sell your data.
@@ -42,11 +42,11 @@
   Speech recognition and reminder timing run on your phone. Signed-in practice history syncs automatically as described below:
 </p>
 <ul>
-  <li><strong>Speech / pronunciation feedback</strong> — recitation is processed by your device's
+  <li><strong>Speech and pronunciation feedback:</strong> Recitation is processed by your device's
       on-device speech recognition. Audio is not recorded, stored, or uploaded.</li>
-  <li><strong>Approximate location</strong> — used only in an on-device calculation of local sunrise
+  <li><strong>Approximate location:</strong> Used only in an on-device calculation of local sunrise
       and sunset times for Sandhya reminders. It is not transmitted or stored off your device.</li>
-  <li><strong>Local practice history</strong> — your recitation history and progress are stored in a
+  <li><strong>Practice on your phone:</strong> Your recitation history and progress are stored in a
       private database on your device. When you sign in, saved practice and performance records also sync to your account.</li>
 </ul>
 
@@ -73,7 +73,7 @@
     <td>Firebase Authentication, Cloud Firestore and the private database on your phone. A cached photo may stay on your phone until the cache or app storage is cleared.</td>
   </tr>
   <tr>
-    <td>Account identifiers (user ID, link codes, child code)</td>
+    <td>Your account ID and family invitation codes. Older child codes may stay until you delete the account.</td>
     <td>To manage accounts and to link a parent to a child profile.</td>
     <td>Firebase Authentication and Cloud Firestore.</td>
   </tr>
@@ -129,17 +129,16 @@
 
 <h2>6. Children's privacy</h2>
 <p>
-  Children can sign in with their own Google account or with an app-generated 12-digit ID and a
-  6-digit PIN. Each Google account belongs to one profile. If a child chooses Google, we use the
+  Children sign in with their own Google account. Each Google account belongs to one profile. We use the
   name, email address and available profile photo link that Google provides.
 </p>
 <p>
-  A parent can connect by entering the child's ID and PIN, or by scanning a QR code shown in the
-  child's app. Both methods connect the accounts directly. Firebase Authentication checks the PIN;
-  the app does not store it in Firestore, the QR code or its local database. QR codes contain a random
+  A parent can connect by scanning a QR code shown in the child's app. QR codes contain a random
   invitation token. They work once and expire after five minutes. Making a new code disables the old
   one. We store the invitation, creation time and the account that used it in Cloud Firestore.
   Expired invitations cannot be used, even if their records remain stored.
+  Signing in with Google or linking accounts does not check whether an adult is the child's
+  legal guardian or has agreed to the child using the app.
 </p>
 <p>
   A connected parent can see the child's profile name, shared practice progress and goals.
@@ -149,10 +148,26 @@
 
 <h2>7. Data retention and deletion</h2>
 <p>
-  On-device data is removed when you clear the app's storage or uninstall the app. For account and cloud
-  data, you can request deletion of your account and associated data — including a linked child profile —
-  by emailing <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>. We will delete
-  the associated cloud data on request.
+  The words recognised during your practice and individual word scores are due for removal from
+  your online history after 365 days. We check for older details every hour, including copies used
+  to restore your practice on another phone. A large amount of saved history may take longer to clear.
+  Older practice added to your account leaves out these speech details.
+  Your overall scores, practice dates, counts and goals stay until you delete your account.
+  Speech details are also removed from your phone when it next syncs those records.
+  A phone that stays offline may keep them until it syncs or you clear the app's storage.
+</p>
+<p>
+  To delete your account, open Settings &gt; Your account and privacy &gt; Delete my account, or email
+  <a href="mailto:NitishSongara75@gmail.com">NitishSongara75@gmail.com</a>.
+  If you use the app, we ask you to sign in again to make sure it's you. Once your request is accepted,
+  access to your online account stops while we remove it and its saved information.
+  We keep a short record of the request for two hours after deletion to stop older sign-ins from
+  restoring access. That record is then removed during the next hourly check.
+  Deleting your account removes its family links and shared goals. Your family's accounts stay.
+  To ask us to delete a child's separate account, please email us. We will need to check that you
+  are allowed to make that request.
+  See <a href="./delete-account.html">account deletion details</a> for the 30-day timeframe.
+  Clear app storage in Android Settings to remove history saved on this phone.
 </p>
 
 <h2>8. Security</h2>

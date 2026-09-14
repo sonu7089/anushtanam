@@ -2,6 +2,84 @@
 
 [← Back to index](README.md)
 
+## Implementation review — 14 September 2026
+
+The findings below are the original audit, not a description of the current code.
+
+- **P-01 remains open.** Child accounts now use Google; PIN registration and PIN linking were
+  removed by earlier security work. Google authentication and the QR handshake do not establish
+  guardian consent. Per the product owner's decision, this change does not restrict child
+  registration or features. An age question or email confirmation alone must not be represented
+  as verified guardian consent. Controller details, lawful basis, processing region, applicable
+  jurisdictions and consent design still need a factual/legal review; they are not invented here.
+  The original legal discussion also needs qualification: the DPDP rules have phased commencement,
+  and applicability/exemptions must be checked against the
+  [official rules and enforcement timeline](https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa?pageTitle=Digit).
+- **P-02 implemented in source.** Settings exposes the bundled privacy/deletion documents,
+  an email fallback and a confirmed, reauthenticated deletion request. Instead of an additional
+  callable SDK dependency, rules authorize a create-only `accountDeletionRequests/{uid}` document;
+  an Admin SDK trigger performs erasure, with scheduled retries. The request blocks stale-token
+  writes immediately. Nested user data, shared links/goals, legacy child codes, invitations,
+  push registrations and user mirrors are removed; Firebase Auth is deleted last. The request
+  barrier expires two hours after completion and is removed by hourly maintenance. Another
+  linked Google account is never deleted merely because a self-asserted parent asks to delete
+  their own account. Local history requires clearing app storage, as explained in the UI.
+- **P-03 implemented in source.** Hourly, cursor-based maintenance clears cloud speech text and
+  per-word results after 365 days, including restore-feed copies. It preserves session scores,
+  times and counts. Rules prevent uploading expired speech; the client strips it from delayed
+  uploads and accepts redaction during restore without accepting assessment tampering.
+  Cleanup processes up to 4,000 records per collection group per run; monitor backlog and failures.
+  This applies to all cloud accounts, avoiding age inference and retaining long-term aggregates.
+  Firestore TTL deletes whole documents, so field cleanup uses transactions instead
+  ([Firebase TTL documentation](https://firebase.google.com/docs/firestore/ttl)).
+- **Other stale statements:** user documents are no longer client-deletable; push tokens are in
+  `users/{uid}/private/messaging`, not readable by linked family accounts.
+
+### Rollout and operations
+
+Deploy `firestore:rules`, `firestore:indexes` and the two privacy functions (`eraseRequestedAccount`,
+`maintainPrivacy`) together before releasing the Android build. Collection-group indexes must be
+ready before maintenance runs. Functions require the existing Blaze environment. Publish the
+updated privacy and deletion HTML with that release; the Android build packages those same sources.
+The rules and both functions were deployed to `anushtanam-shastralife` on 14 September 2026,
+with the product owner's approval. The live rules match the tested source. Both Node.js 22
+functions are active in `us-central1`; account deletion retries are enabled and privacy maintenance
+is scheduled every 60 minutes. Both retention collection-group indexes were verified `READY`.
+No account deletion was manually requested as part of verification.
+The deployment used the existing `ENFORCE_ADMIN_APP_CHECK=false` source default in a temporary
+dotenv file, as in the previous security deployment. Existing admin functions were not redeployed.
+Older Android versions must be updated to upload sessions older than 365 days: they do not
+strip expired speech before writing, so the new rules reject those uploads. Coordinate that
+client rollout with rule enforcement and maintenance activation. Existing scores/counts are preserved.
+
+For a verified email request, run `node scripts/request-account-deletion.cjs PROJECT_ID VERIFIED_UID`
+from `backend/firebase` to check the account, then add `--execute` to enqueue it. Verify requester
+authority independently; possession of a family link alone is insufficient. Check request state
+becomes `complete`, monitor function errors and the hourly cleanup, and follow up within the
+documented 30 days. Maintenance cursors contain a document path until the next scan advances/reset;
+these operational records are Admin-only. Existing device copies/backups are not remotely wiped.
+
+### Validation
+
+- Firebase Auth/Firestore emulator regression suite: **74 passed**, including fresh-auth and
+  ownership enforcement, stale-token barriers, linked-account isolation, interrupted erasure,
+  canonical/feed redaction, re-upload rejection and multi-page retention cursors.
+- `:core:data:testDebugUnitTest` and `:app:compileDebugKotlin`: passed. The new retention tests
+  cover the exact age boundary and reject changes to scores, timestamps or nonempty transcripts.
+- Four `AccountDeletionViewModelTest` tests passed: canceled verification, wrong-account/auth
+  failures, fresh verification before submission and retries of accepted requests.
+- `:app:mergeDebugAssets`: passed; both published HTML sources are packaged for offline access.
+- UI copy was revised to use simple English, with no em dashes in the privacy strings or bundled
+  documents. The section uses the existing Lotus card, spacing, typography and theme colours.
+  Confirmation text is split into short paragraphs and scrolls with larger text. Help email is
+  separate from requesting deletion. Offline document pages also follow the active theme.
+- The refined UI compiled and all four deletion-flow tests passed again. Both HTML sources were
+  bundled successfully. No Android device or configured emulator was available for a visual review.
+- Backend deployment was verified against the live rules release, function status and scheduler.
+  Android UI changes and the revised public HTML still need distribution/publication.
+
+---
+
 **Artifacts reviewed:** `playstore-assets/privacy-policy.html` (updated 8 Sep 2026),
 `playstore-assets/delete-account.html` (updated 23 Jul 2026), the storage layer, and the
 data flows in `core/data`.

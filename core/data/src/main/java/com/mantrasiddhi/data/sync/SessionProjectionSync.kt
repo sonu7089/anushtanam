@@ -117,8 +117,9 @@ internal class SessionProjectionSync(private val cloud: FirebaseFirestore, priva
         error("Session history changed during bootstrap; retry required")
     }
 
-    suspend fun deliver(uid: String, payload: Map<String, Any?>,
+    suspend fun deliver(uid: String, source: Map<String, Any?>,
         event: com.mantrasiddhi.data.local.entity.CloudSyncEntity? = null) {
+        val payload = SpeechRetention.forUpload(source)
         require(BackupRecordValidator.validate("practice", "session_${payload.text("id")}", payload) == null)
         ensureReady(uid)
         checkOwner(uid)
