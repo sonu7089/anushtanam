@@ -28,6 +28,10 @@ request path, so a rules gap is a direct, unmediated data breach.
 
 > Authentication remediation is implemented in source; see the [2026-09-13 review and rollout status](01-implementation.md). The table below describes the original audit, not current closure status.
 
+> Firestore rules remediation has also been reviewed and implemented in source; see [corrections, verification and deployment requirements](02-implementation.md).
+
+> Cloud Functions remediation is implemented in source; see [audit corrections, tests and remaining rollout work](03-implementation.md).
+
 ## Findings at a glance
 
 | # | Finding | Severity | Report |

@@ -27,6 +27,7 @@ object FirebaseContract {
     const val FIELD_ROLE = "role"
     const val FIELD_DISPLAY_NAME = "displayName"
     const val FIELD_LINK_CODE = "linkCode"
+    // Stored only at users/{uid}/private/messaging.
     const val FIELD_FCM_TOKEN = "fcmToken"
     const val FIELD_CREATED_AT = "createdAt"
 

@@ -19,12 +19,25 @@ function authorize(request, publishing = false) {
   }
   return request.auth.uid;
 }
+// Shared across instances. One budget per uid prevents bypass by switching operations.
+// Audience estimates consume ten credits; other calls consume one (60 credits/minute).
+async function throttle(uid, op, now) {
+  const key = require("node:crypto").createHash("sha256").update(uid).digest("hex");
+  const bucket = db().collection("messageRateLimits").doc(key);
+  await db().runTransaction(async tx => {
+    const prior = (await tx.get(bucket)).data();
+    const tokens = prior ? Math.min(60, prior.tokens + Math.max(0, now - prior.at) / 1000) : 60;
+    const cost = op === "estimateAudience" ? 10 : 1;
+    if (tokens < cost) throw new HttpsError("resource-exhausted", "Too many actions. Wait a moment and try again.");
+    tx.set(bucket, { tokens: tokens - cost, at: Math.max(prior?.at || 0, now) });
+  });
+}
 function ref(collection, id) { return db().collection(collection).doc(policy.id(id)); }
 function audit(tx, uid, action, target) {
   tx.set(db().collection("messageAudit").doc(), { uid, action, target, at: Date.now() });
 }
 async function revision(contentId, revisionNumber) {
-  if (!Number.isSafeInteger(revisionNumber) || revisionNumber < 1) throw new Error("Choose a saved revision.");
+  if (!Number.isSafeInteger(revisionNumber) || revisionNumber < 1) throw new policy.PolicyError("Choose a saved revision.");
   const snapshot = await ref("contentDrafts", contentId).collection("revisions").doc(String(revisionNumber)).get();
   if (!snapshot.exists) throw new HttpsError("not-found", "That revision was not found.");
   return snapshot.data();
@@ -35,6 +48,7 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
     const input = request.data || {};
     const uid = authorize(request);
     const now = Date.now();
+    await throttle(uid, input.op, now);
     switch (input.op) {
       case "saveDraft": {
         const draftRef = ref("contentDrafts", input.contentId);
@@ -70,9 +84,8 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
         authorize(request, true);
         policy.window(input.startsAt, input.expiresAt, now);
         const content = await revision(input.contentId, input.revision);
-        const timezone = policy.text(input.timezone, 80);
+        const timezone = policy.timezone(input.timezone);
         // Validate the IANA timezone. Dates remain UTC milliseconds at the API boundary.
-        new Intl.DateTimeFormat("en", { timeZone: timezone });
         const published = { ...policy.content(content), contentId: input.contentId, revision: input.revision,
           published: true, publishedAt: input.startsAt, expiresAt: input.expiresAt };
         await db().runTransaction(async tx => {
@@ -95,12 +108,11 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
       }
       case "estimateAudience": {
         authorize(request, true);
+        if (!["all", "test"].includes(input.audience)) throw new policy.PolicyError("Choose an audience.");
+        if (input.kind !== undefined && !["teaching", "nudge"].includes(input.kind)) throw new policy.PolicyError("Choose a supported notification type.");
         // Bounded, sampled estimate. Never call this an exact count of recipients.
         const registrations = await db().collection("messageInstallations").limit(1000).get();
-        const tests = await db().collection("messageTestDevices").get();
-        const testIds = new Set(tests.docs.map(d => d.id));
-        if (!["all", "test"].includes(input.audience)) throw new Error("Choose an audience.");
-        if (input.kind !== undefined && !["teaching", "nudge"].includes(input.kind)) throw new Error("Choose a supported notification type.");
+        const testIds = input.audience === "test" ? await testDeviceIds(registrations.docs) : new Set();
         return { eligible: registrations.docs.filter(d => policy.eligible(d.data(), input, now, testIds, d.id)).length,
           sampled: registrations.size === 1000, scanned: registrations.size };
       }
@@ -108,9 +120,8 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
         authorize(request, true);
         const campaignRef = ref("campaigns", input.campaignId);
         const contentId = policy.id(input.contentId);
-        if (!["test", "all"].includes(input.audience)) throw new Error("Choose a test or general audience.");
-        const timezone = policy.text(input.timezone, 80);
-        new Intl.DateTimeFormat("en", { timeZone: timezone });
+        if (!["test", "all"].includes(input.audience)) throw new policy.PolicyError("Choose a test or general audience.");
+        const timezone = policy.timezone(input.timezone);
         const content = await revision(contentId, input.revision);
         // Content is held by revision. An edit never creates another send.
         const contract = { contentId, revision: input.revision, audience: input.audience,
@@ -129,7 +140,7 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
           const destination = job.data()?.projection?.revision === input.revision
             ? job.data().projection : publication.data();
           if (!destination || destination.revision !== input.revision || destination.publishedAt > input.sendAt ||
-              destination.expiresAt < input.expiresAt) throw new Error("Publish or schedule this revision before sending it.");
+              destination.expiresAt < input.expiresAt) throw new policy.PolicyError("Publish or schedule this revision before sending it.");
           tx.create(campaignRef, { ...contract, request: JSON.stringify(contract),
             title: content.title, summary: content.summary, state: "queued", createdBy: uid, createdAt: now,
             cursor: null, leaseUntil: 0, accepted: 0, failed: 0, skipped: 0 });
@@ -141,10 +152,9 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
         authorize(request, true);
         const campaignRef = ref("campaigns", input.campaignId);
         const notification = policy.nudge(input);
-        if (input.contentId !== undefined || input.revision !== undefined) throw new Error("A notification-only send does not need a message.");
-        if (!["test", "all"].includes(input.audience)) throw new Error("Choose a test or general audience.");
-        const timezone = policy.text(input.timezone, 80);
-        new Intl.DateTimeFormat("en", { timeZone: timezone });
+        if (input.contentId !== undefined || input.revision !== undefined) throw new policy.PolicyError("A notification-only send does not need a message.");
+        if (!["test", "all"].includes(input.audience)) throw new policy.PolicyError("Choose a test or general audience.");
+        const timezone = policy.timezone(input.timezone);
         const contract = { ...notification, audience: input.audience,
           sendAt: input.sendAt, expiresAt: input.expiresAt, timezone };
         return await db().runTransaction(async tx => {
@@ -177,7 +187,7 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
       }
       case "pause": {
         authorize(request, true);
-        if (typeof input.paused !== "boolean") throw new Error("Choose whether to pause sending.");
+        if (typeof input.paused !== "boolean") throw new policy.PolicyError("Choose whether to pause sending.");
         await db().runTransaction(async tx => {
           tx.set(db().doc("messageControls/sending"), { paused: input.paused, uid, changedAt: now });
           audit(tx, uid, input.paused ? "pause" : "resume", "sending");
@@ -191,7 +201,7 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
         const target = ref("messageTestDevices", input.installationId);
         if (input.enabled === true) await target.set({ label: policy.text(input.label, 100), addedBy: uid, addedAt: now });
         else if (input.enabled === false) await target.delete();
-        else throw new Error("Choose whether this is a test phone.");
+        else throw new policy.PolicyError("Choose whether this is a test phone.");
         return { ok: true };
       }
       case "listDevices": {
@@ -199,10 +209,10 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
         let query = db().collection("messageInstallations").orderBy(FieldPath.documentId()).limit(50);
         if (input.after) query = query.startAfter(policy.id(input.after));
         const snapshot = await query.get();
-        const tests = await db().collection("messageTestDevices").get();
+        const testIds = await testDeviceIds(snapshot.docs);
         return { items: snapshot.docs.map(doc => {
           const { token, ...visible } = doc.data();
-          return { id: doc.id, ...visible, test: tests.docs.some(d => d.id === doc.id) };
+          return { id: doc.id, ...visible, test: testIds.has(doc.id) };
         }), next: snapshot.size === 50 ? snapshot.docs.at(-1).id : null };
       }
       case "listCampaigns": {
@@ -242,10 +252,18 @@ exports.adminMessages = onCall({ ...options, enforceAppCheck: enforceAdminAppChe
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     // Do not return database paths, provider details, or tokens to a browser.
-    if (error.code) throw new HttpsError("internal", "We could not finish that action. Please try again.");
-    throw new HttpsError("invalid-argument", error.message || "Check the details and try again.");
+    if (error instanceof policy.PolicyError) throw new HttpsError("invalid-argument", error.message);
+    // Log diagnostics without request data, provider messages, or device tokens.
+    console.error("adminMessages failed", { type: error?.name || "UnknownError" });
+    throw new HttpsError("internal", "We could not finish that action. Please try again.");
   }
 });
+
+async function testDeviceIds(devices) {
+  const snapshots = await Promise.all(devices.map(device =>
+    db().collection("messageTestDevices").doc(device.id).get()));
+  return new Set(snapshots.filter(doc => doc.exists).map(doc => doc.id));
+}
 
 async function dispatchCampaign(campaignRef) {
   const lease = require("node:crypto").randomUUID();
@@ -263,8 +281,7 @@ async function dispatchCampaign(campaignRef) {
     let query = db().collection("messageInstallations").orderBy(FieldPath.documentId()).limit(50);
     if (campaign.cursor) query = query.startAfter(campaign.cursor);
     const registrations = await query.get();
-    const testDevices = await db().collection("messageTestDevices").get();
-    const testIds = new Set(testDevices.docs.map(d => d.id));
+    const testIds = campaign.audience === "test" ? await testDeviceIds(registrations.docs) : new Set();
     for (const registration of registrations.docs) {
       const dispatchRef = campaignRef.collection("dispatch").doc(registration.id);
       // Recheck each recipient after enumeration, including cancellation and opt-out.

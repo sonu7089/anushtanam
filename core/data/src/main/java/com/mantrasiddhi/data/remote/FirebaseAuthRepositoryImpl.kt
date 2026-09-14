@@ -137,15 +137,14 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             UserProfileChangeRequest.Builder().setDisplayName(displayName).build()
         ).awaitResult()
 
-        val token = fetchTokenOrNull()
         val data = hashMapOf(
             FirebaseContract.FIELD_ROLE to AccountRole.PARENT.name,
-            FirebaseContract.FIELD_DISPLAY_NAME to displayName,
-            FirebaseContract.FIELD_FCM_TOKEN to token,
+            FirebaseContract.FIELD_DISPLAY_NAME to displayName.take(100),
             FirebaseContract.FIELD_CREATED_AT to FieldValue.serverTimestamp()
         )
         firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
             .set(data).awaitResult()
+        persistTokenBestEffort(uid)
 
         AuthAccount(uid = uid, role = AccountRole.PARENT, displayName = displayName, email = email.trim())
     }
@@ -246,10 +245,10 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
                 val ref = firestore.collection(FirebaseContract.COLLECTION_USERS).document(user.uid)
                 firestore.runTransaction { transaction ->
                     val existing = transaction.get(ref)
-                    val fields = mutableMapOf<String, Any?>()
+                    val fields = mutableMapOf<String, Any?>(FirebaseContract.FIELD_FCM_TOKEN to FieldValue.delete())
                     if (!existing.exists()) {
                         fields[FirebaseContract.FIELD_ROLE] = fallbackRole.name
-                        fields[FirebaseContract.FIELD_DISPLAY_NAME] = user.displayName ?: google?.displayName.orEmpty()
+                        fields[FirebaseContract.FIELD_DISPLAY_NAME] = (user.displayName ?: google?.displayName.orEmpty()).take(100)
                         fields[FirebaseContract.FIELD_CREATED_AT] = FieldValue.serverTimestamp()
                     }
                     if (existing.getString("photoSource") in listOf(null, "GOOGLE")) {
@@ -379,14 +378,14 @@ class FirebaseAuthRepositoryImpl @Inject constructor(
             photoUrl = photoUrl ?: google?.photoUrl?.toString()?.takeIf { it.startsWith("https://") })
     }
 
-    private suspend fun fetchTokenOrNull(): String? =
-        runCatching { messaging.token.awaitResult() }.getOrNull()
-
     private suspend fun persistTokenBestEffort(uid: String) {
         runCatching {
             val token = messaging.token.awaitResult()
             firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
-                .update(FirebaseContract.FIELD_FCM_TOKEN, token).awaitResult()
+                .collection("private").document("messaging")
+                .set(mapOf(FirebaseContract.FIELD_FCM_TOKEN to token)).awaitResult()
+            firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
+                .update(FirebaseContract.FIELD_FCM_TOKEN, FieldValue.delete()).awaitResult()
         }
     }
 

@@ -250,3 +250,32 @@ test('standalone general sends skip old apps and retry without creating another 
   assert.equal(h.records.get('campaigns/nudge-1/dispatch/old-phone').state, 'skipped');
   assert.equal(h.records.get('campaigns/nudge-1').state, 'complete');
 });
+
+
+test('only tagged validation errors reach the caller', async () => {
+  const h = harness();
+  await assert.rejects(h.call({ op: 'saveDraft', contentId: 'bad/id' }),
+    error => error.code === 'invalid-argument' && error.message === 'Choose a valid ID.');
+  // Malformed stored data produces an untagged runtime error inside eligibility.
+  h.records.set('messageInstallations/broken', { enabled: true, schemaVersion: 1,
+    locale: 'en', token: 'secret-token', updatedAt: {} });
+  await assert.rejects(h.call({ op: 'estimateAudience', audience: 'all' }),
+    error => error.code === 'internal' && !error.message.includes('toMillis'));
+});
+
+test('audience estimates exhaust a shared budget and refill over time', async () => {
+  const h = harness();
+  for (let i = 0; i < 6; i++) await h.call({ op: 'estimateAudience', audience: 'all' });
+  await assert.rejects(h.call({ op: 'estimateAudience', audience: 'all' }),
+    error => error.code === 'resource-exhausted');
+  await assert.rejects(h.call({ op: 'listContent' }), error => error.code === 'resource-exhausted');
+  const bucket = [...h.records.keys()].find(key => key.startsWith('messageRateLimits/'));
+  h.records.get(bucket).at -= 60000;
+  await h.call({ op: 'estimateAudience', audience: 'all' });
+});
+
+test('unauthorized callers cannot create rate-limit records', async () => {
+  const h = harness();
+  await assert.rejects(h.call({ op: 'listContent' }, null), error => error.code === 'permission-denied');
+  assert.equal(h.records.size, 0);
+});

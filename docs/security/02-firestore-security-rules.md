@@ -2,6 +2,8 @@
 
 [← Back to index](README.md)
 
+> Reviewed and remediated in source on 2026-09-13. See [implementation, corrections and rollout status](02-implementation.md). The findings below describe the original audit.
+
 **File reviewed:** `backend/firebase/firestore.rules` (429 lines)
 
 Because there is no application server, these rules are the **entire** authorization

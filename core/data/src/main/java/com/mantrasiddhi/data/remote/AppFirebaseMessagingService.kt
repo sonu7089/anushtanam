@@ -51,6 +51,7 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
         // Persist directly (the service may run without an active ViewModel scope).
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
         firestore.collection(FirebaseContract.COLLECTION_USERS).document(uid)
-            .update(FirebaseContract.FIELD_FCM_TOKEN, token)
+            .collection("private").document("messaging")
+            .set(mapOf(FirebaseContract.FIELD_FCM_TOKEN to token))
     }
 }

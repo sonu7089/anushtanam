@@ -159,8 +159,8 @@ test('retired child IDs cannot be created, read or enumerated', async () => {
 });
 
 test('only a Google session can create a child profile', async () => {
-  await assertFails(setDoc(doc(user('new-child', 'password'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara' }));
-  await assertSucceeds(setDoc(doc(user('new-child'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara' }));
+  await assertFails(setDoc(doc(user('new-child', 'password'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara', createdAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(user('new-child'), 'users/new-child'), { role: 'CHILD', displayName: 'Tara', createdAt: serverTimestamp() }));
   await assertFails(deleteDoc(doc(user('new-child'), 'users/new-child')));
 });
 

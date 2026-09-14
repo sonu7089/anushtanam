@@ -40,9 +40,9 @@ android {
         minSdk = 33
         // targetSdk 36 (Android 16): required by Play policy from Aug 31, 2026.
         targetSdk = 36
-        // Version 2.0 follows the previous release's versionCode 11.
-        versionCode = 12
-        versionName = "2.0"
+        // Version 2.1 follows the previous build's versionCode 13.
+        versionCode = 14
+        versionName = "2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "PERF_PROBES", "false")

@@ -81,24 +81,46 @@ service cloud.firestore {
         get(/databases/$(database)/documents/links/$(id)).data.status == 'APPROVED';
     }
 
+    function validProfile(d) {
+      return d.keys().hasOnly(['role', 'displayName', 'createdAt', 'photoUrl', 'photoSource', 'syncCheckpoints', 'linkCode']) &&
+        d.role in ['PARENT', 'CHILD', 'INDIVIDUAL'] &&
+        d.displayName is string && d.displayName.size() <= 100 &&
+        (!('createdAt' in d) || d.createdAt is timestamp) &&
+        (!('photoUrl' in d) || d.photoUrl == null ||
+          (d.photoUrl is string && d.photoUrl.size() <= 2048 && d.photoUrl.matches('https://.+'))) &&
+        (!('photoSource' in d) || d.photoSource == null || d.photoSource in ['GOOGLE', 'CUSTOM']) &&
+        (!('syncCheckpoints' in d) || (d.syncCheckpoints is map && d.syncCheckpoints.size() <= 100)) &&
+        (!('linkCode' in d) || (d.linkCode is string && d.linkCode.matches('[0-9]{12}')));
+    }
+
+    // Notification tokens are never readable by linked family members.
+    match /users/{uid}/private/messaging {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid &&
+        request.resource.data.keys().hasOnly(['fcmToken']) &&
+        request.resource.data.fcmToken is string && request.resource.data.fcmToken.size() > 0 &&
+        request.resource.data.fcmToken.size() <= 4096;
+    }
+
     // --- users/{uid} -----------------------------------------------------------
     // A user may always read their own doc. Another user's doc is readable only when
     // an APPROVED link exists between them (either direction) — this lets a parent
-    // read a linked child's displayName / fcmToken, and vice versa.
+    // read a linked child's displayName, and vice versa.
     // A user may only write their own doc.
     match /users/{uid} {
       allow read: if isSignedIn() && (
         request.auth.uid == uid ||
-        isApprovedLink(request.auth.uid, uid) ||
-        isApprovedLink(uid, request.auth.uid)
+        (!('fcmToken' in resource.data) && (isApprovedLink(request.auth.uid, uid) ||
+        isApprovedLink(uid, request.auth.uid)))
       );
       allow create: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.role in ['PARENT', 'CHILD', 'INDIVIDUAL'] &&
+        validProfile(request.resource.data) && !('linkCode' in request.resource.data) &&
+        request.resource.data.createdAt == request.time &&
         (request.resource.data.role != 'CHILD' || request.auth.token.firebase.sign_in_provider == 'google.com');
       // A Google identity belongs to one profile. Its family role cannot be changed.
       allow update: if isSignedIn() && request.auth.uid == uid &&
-        request.resource.data.role == resource.data.role &&
-        (!('linkCode' in resource.data) || request.resource.data.linkCode == resource.data.linkCode);
+        validProfile(request.resource.data) && request.resource.data.role == resource.data.role &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'linkCode', 'createdAt']);
       // Account erasure must preserve role integrity and run through a trusted backend.
       allow delete: if false;
     }
@@ -385,12 +407,52 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function mirrorIdentity(d) {
+      return (!('stableId' in d) || identity(d.stableId)) &&
+        (!('mantraId' in d) || identity(d.mantraId)) &&
+        (!('baselineCount' in d) || count(d.baselineCount)) &&
+        (!('startedAtMillis' in d) || millis(d.startedAtMillis)) && d.updatedAt == request.time;
+    }
+    function validTarget(d) {
+      return d.keys().hasOnly(['stableId', 'mantraId', 'startedAtMillis', 'baselineCount',
+        'targetRecitationCount', 'currentRecitationCount', 'rewardType', 'rewardDescription', 'isCompleted', 'updatedAt']) &&
+        mirrorIdentity(d) && d.targetRecitationCount is int && d.targetRecitationCount > 0 &&
+        d.targetRecitationCount <= 2147483647 && count(d.currentRecitationCount) &&
+        d.currentRecitationCount <= d.targetRecitationCount &&
+        d.rewardType in ['MONEY', 'FOOD', 'GIFT', 'OUTING', 'TOY', 'OTHER'] &&
+        d.rewardDescription is string && d.rewardDescription.size() <= 200000 &&
+        d.isCompleted is bool && d.isCompleted == (d.currentRecitationCount == d.targetRecitationCount);
+    }
+    function validVow(d) {
+      return d.keys().hasOnly(['stableId', 'baselineCount', 'mantraId', 'mantraAksharaCount',
+        'targetJapaCount', 'currentJapaCount', 'startedAtMillis', 'completedAtMillis', 'isActive', 'isCompleted', 'updatedAt']) &&
+        mirrorIdentity(d) && millis(d.startedAtMillis) && nullableMillis(d.completedAtMillis) &&
+        d.mantraAksharaCount is int && d.mantraAksharaCount > 0 && d.mantraAksharaCount <= 2147483647 &&
+        count(d.targetJapaCount) && d.targetJapaCount > 0 && count(d.currentJapaCount) &&
+        d.currentJapaCount <= d.targetJapaCount && d.isActive is bool && d.isCompleted is bool &&
+        d.isCompleted == (d.currentJapaCount == d.targetJapaCount) &&
+        (d.completedAtMillis == null || (d.isCompleted && d.completedAtMillis >= d.startedAtMillis));
+    }
+    function validProgress(d) {
+      return d.keys().hasOnly(['totalSessions', 'correctSessions', 'scoreSum', 'bestScore', 'daily',
+        'sessionProjectionVersion', 'sessionProjectionRevision', 'syncCheckpoints', 'updatedAt', 'projectionInvalidRecords', 'legacyDatePolicy']) &&
+        d.sessionProjectionVersion is int && d.sessionProjectionVersion == 2 && count(d.sessionProjectionRevision) &&
+        count(d.totalSessions) && count(d.correctSessions) && d.correctSessions <= d.totalSessions &&
+        d.scoreSum is number && d.scoreSum >= 0 && d.scoreSum <= d.totalSessions && score(d.bestScore) &&
+        d.daily is map && d.daily.size() <= 60 &&
+        (!('projectionInvalidRecords' in d) || count(d.projectionInvalidRecords)) &&
+        (!('legacyDatePolicy' in d) || d.legacyDatePolicy == 'ledger-date-or-UTC') &&
+        (!('syncCheckpoints' in d) || (d.syncCheckpoints is map && d.syncCheckpoints.size() <= 100)) &&
+        (!('updatedAt' in d) || d.updatedAt == request.time);
+    }
+
     // --- selfTargets/{uid} -----------------------------------------------------
     // One doc mirroring the user's ACTIVE self-set recitation target so it can be
     // restored after a reinstall / device switch. Strictly private: only the owner
     // may read or write (parent visibility goes through the goals system instead).
     match /selfTargets/{uid} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid && validTarget(request.resource.data);
     }
 
     // --- purashcharana/{uid} ---------------------------------------------------
@@ -398,7 +460,9 @@ service cloud.firestore {
     // count built over years survives reinstall / device switch. Strictly private: only the
     // owner may read or write. Parents see a child's effort through goals/ and progress/.
     match /purashcharana/{uid} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid && validVow(request.resource.data);
+      allow delete: if false;
     }
 
     // --- progress/{uid} --------------------------------------------------------
@@ -412,15 +476,25 @@ service cloud.firestore {
         request.auth.uid == uid ||
         isApprovedLink(request.auth.uid, uid)
       );
-      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid &&
+        (validProgress(request.resource.data) ||
+         (request.resource.data.keys().hasOnly(['sessionProjectionVersion', 'sessionProjectionRevision']) &&
+          request.resource.data.sessionProjectionVersion == 1 && request.resource.data.sessionProjectionRevision == 0));
+      // Legacy bootstrap first freezes old writers, then scans canonical records.
+      // Preserve the old value for its private repair archive; only these two fields may change.
+      allow update: if isSignedIn() && request.auth.uid == uid &&
+        !('sessionProjectionVersion' in resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sessionProjectionVersion', 'sessionProjectionRevision']) &&
+        request.resource.data.sessionProjectionVersion == 1 && request.resource.data.sessionProjectionRevision == 0;
       // Cutover is permanent. Old anonymous increments cannot corrupt a repaired summary.
       allow update: if isSignedIn() && request.auth.uid == uid &&
+        validProgress(request.resource.data) &&
         (!('sessionProjectionVersion' in resource.data) ||
           (request.resource.data.sessionProjectionVersion >= resource.data.sessionProjectionVersion &&
            (request.resource.data.sessionProjectionRevision > resource.data.sessionProjectionRevision ||
             (request.resource.data.sessionProjectionRevision == resource.data.sessionProjectionRevision &&
              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['syncCheckpoints', 'updatedAt'])))));
-      allow delete: if isSignedIn() && request.auth.uid == uid && !('sessionProjectionVersion' in resource.data);
+      allow delete: if false;
     }
   }
 }

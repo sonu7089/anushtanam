@@ -2,6 +2,10 @@
 
 [← Back to index](README.md)
 
+> Reviewed and remediated in source on 2026-09-14. See [implementation, audit
+> corrections, tests and rollout requirements](03-implementation.md). The findings
+> below are the original audit, not current closure status.
+
 **Files reviewed:** `backend/firebase/functions/index.js` (65 lines),
 `messages.js` (373), `message-policy.js` (43)
 
