@@ -121,6 +121,13 @@ private fun PracticeGuideContent(onDismiss: () -> Unit, onPractice: (() -> Unit)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            GuideSection(R.string.guide_anushtaanam_title, R.string.guide_anushtaanam_summary,
+                expanded = R.string.guide_anushtaanam_title in expandedSections,
+                onToggle = { onToggleSection(R.string.guide_anushtaanam_title) }) {
+                GuideParagraph(R.string.guide_anushtaanam_body)
+                GuideParagraph(R.string.guide_anushtaanam_story)
+                GuideParagraph(R.string.guide_anushtaanam_daily)
+            }
             GuideSection(R.string.guide_methods_title, R.string.guide_methods_summary,
                 expanded = R.string.guide_methods_title in expandedSections,
                 onToggle = { onToggleSection(R.string.guide_methods_title) }) {

@@ -6,6 +6,11 @@
     <string name="guide_how">How to practise</string>
     <string name="guide_reminder">Repeat mentally, at a steady pace.</string>
     <string name="guide_intro">Take a moment to settle in. Let each repetition have its own time.</string>
+    <string name="guide_anushtaanam_title">What Anushtaanam means</string>
+    <string name="guide_anushtaanam_summary">A little time to know yourself</string>
+    <string name="guide_anushtaanam_body">Anushtaanam is a practice you do for yourself, to know who you truly are. This app draws on Advaita: the understanding that Jivatma, the self within each of us, and Paramatma, the divine, are one.</string>
+    <string name="guide_anushtaanam_story">Think of a parent playing hide and seek with a child. The parent hides, the child searches, and the search ends in a hug. In this picture, Paramatma is the parent and Jivatma is the child. The body, life and universe are part of maya, the appearance of being separate. Finding each other means recognising a oneness that was always there.</string>
+    <string name="guide_anushtaanam_daily">Your daily japa gives you a simple way to explore this for yourself. Sit comfortably, repeat the mantra in your mind and give it your attention. When your thoughts wander, gently return. There is time to learn.</string>
     <string name="guide_methods_title">Three ways to repeat the mantra</string>
     <string name="guide_methods_summary">Aloud, softly, or in your mind</string>
     <string name="guide_vaikhari">Vaikhari</string>

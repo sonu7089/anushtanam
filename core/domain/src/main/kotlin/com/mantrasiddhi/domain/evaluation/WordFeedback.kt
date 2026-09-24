@@ -18,7 +18,7 @@ enum class WordFeedback(val message: String) {
     /**
      * Reference word was completely skipped.
      */
-    MISSING("This word was skipped — try to include it"),
+    MISSING("Try to include this word on your next recitation"),
 
     /**
      * Extra word was inserted by the user.
@@ -33,5 +33,5 @@ enum class WordFeedback(val message: String) {
     /**
      * Word is correct but out of order.
      */
-    SWAPPED("Words may be in wrong order — check sequence")
+    SWAPPED("Try listening once more to hear the order of the words")
 }

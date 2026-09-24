@@ -50,7 +50,7 @@
     <string name="wisdom_swara_body">In Vedic chanting, the pitch rises and falls in a pattern called swara. Listen to a short part of the recording and try it slowly. A teacher can help you learn the details.</string>
 
     <string name="wisdom_trikala_title">A pause at three times of day</string>
-    <string name="wisdom_trikala_body">Sandhya Vandan brings prayer into the morning, midday, and evening. The app uses the sun times in your chosen location to help you remember. Start with a routine you can return to.</string>
+    <string name="wisdom_trikala_body">Sandhya Vandan makes room for Anushtaanam in the morning, midday and evening. A few quiet minutes to turn your attention inward. The app follows the sun times in your chosen location to help you remember.</string>
 
     <string name="wisdom_mala_title">Counting with a mala</string>
     <string name="wisdom_mala_body">A mala has 108 beads to help you keep count as you recite. In the app, each accepted recitation adds to your total. Take your time with the words; the count can wait.</string>
@@ -329,13 +329,13 @@
     <!-- Sandhya Vandan -->
     <string name="title_sandhya">Sandhya Vandan</string>
     <string name="home_sandhya_title">Sandhya Vandan</string>
-    <string name="home_sandhya_subtitle">Prayer times and reminders for your day</string>
+    <string name="home_sandhya_subtitle">Time for Anushtaanam, with gentle reminders</string>
 
     <!-- Notification channel + content -->
     <string name="sandhya_channel_name">Sandhya Vandan reminders</string>
-    <string name="sandhya_channel_desc">Daily prompts to perform Sandhya Vandan at sunrise, solar noon, and sunset.</string>
+    <string name="sandhya_channel_desc">Reminders for your Anushtaanam at sunrise, midday and sunset.</string>
     <string name="sandhya_notif_title">Time for %1$s</string>
-    <string name="sandhya_notif_text">%1$s is around %2$s. A moment for your daily prayer.</string>
+    <string name="sandhya_notif_text">%1$s is around %2$s. Take a little time for your Anushtaanam.</string>
     <string name="sandhya_mark_done">Mark as done</string>
 
     <!-- Parent sankalpa notification (posted when a parent sets a sankalpa for a child) -->
@@ -386,11 +386,11 @@
 
     <!-- Metrics -->
     <string name="sandhya_metrics_title">Your routine</string>
-    <string name="sandhya_metrics_empty">Mark your prayers observed to see your routine here.</string>
-    <string name="sandhya_adherence_label">Prayers completed</string>
-    <string name="sandhya_total_observed">%1$d prayers completed</string>
-    <string name="sandhya_streak_full_label">All three prayers</string>
-    <string name="sandhya_streak_any_label">At least one prayer</string>
+    <string name="sandhya_metrics_empty">Mark each Sandhya when you finish. Your routine will appear here.</string>
+    <string name="sandhya_adherence_label">Sandhya sessions completed</string>
+    <string name="sandhya_total_observed">%1$d Sandhya sessions completed</string>
+    <string name="sandhya_streak_full_label">All three Sandhya sessions</string>
+    <string name="sandhya_streak_any_label">At least one Sandhya session</string>
     <string name="sandhya_streak_days">%1$d days</string>
     <string name="sandhya_streak_best">Best: %1$d days</string>
     <string name="sandhya_ontime_label">On time</string>
@@ -398,7 +398,7 @@
     <string name="sandhya_punctuality_ontime">Usually right on time</string>
     <string name="sandhya_punctuality_early">Usually %1$d min early</string>
     <string name="sandhya_punctuality_late">Usually %1$d min late</string>
-    <string name="sandhya_most_consistent">Your most regular prayer: %1$s</string>
+    <string name="sandhya_most_consistent">You practise most regularly at %1$s</string>
     <string name="sandhya_per_period_title">By time of day</string>
     <string name="sandhya_per_period_value">%1$d / %2$d (%3$d%%)</string>
     <string name="sandhya_trend_title">Last 7 days</string>
@@ -657,9 +657,9 @@
     <string name="lotus_children_description">See how your children are doing and where a little help may be welcome.</string>
     <string name="lotus_recitation_intro">Take your time with each japa.</string>
     <string name="lotus_practice_intro">Let\'s practise together.</string>
-    <string name="lotus_sandhya_intro">A few moments for prayer.</string>
+    <string name="lotus_sandhya_intro">A few moments for Anushtaanam.</string>
     <string name="lotus_purashcharana_intro">A commitment to come back to.</string>
-    <string name="sandhya_trend_day_description">%1$s: %2$d prayers completed, %3$d scheduled</string>
+    <string name="sandhya_trend_day_description">%1$s: %2$d Sandhya sessions completed, %3$d scheduled</string>
     <string name="voice_model_title_check_unavailable">Let’s try listening</string>
     <string name="voice_model_body_check_unavailable">Your phone could not confirm whether its Hindi speech pack is ready. You can try listening or check your voice input settings. The app will request offline recognition; your phone’s speech service handles the request.</string>
     <string name="voice_model_try_listening">Try listening</string>
