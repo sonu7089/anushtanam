@@ -26,12 +26,12 @@
     <string name="guide_daily_body">Our mentor recommends mental repetition for daily Gayatri japa. Follow the steady pace of the reference audio. There is no need to hurry.</string>
     <string name="guide_verse_title">A verse shared by our mentor</string>
     <string name="guide_verse_summary">The Sanskrit verse and how to read it</string>
-    <string name="guide_verse_intro">Our mentor shared this verse to help us take care with spoken recitation.</string>
+    <string name="guide_verse_intro">Our mentor shared this verse to help us take care with verbal (vykari) chanting.</string>
     <string name="guide_verse_sanskrit">गीती शीघ्री शिरःकम्पी यथालिखितपाठकः ।\nअनर्थज्ञोऽल्पकण्ठश्च षडेते पाठकाधमाः ॥</string>
     <string name="guide_verse_transliteration">gītī śīghrī śiraḥkampī yathālikhitapāṭhakaḥ ।\nanarthajño\'lpakaṇṭhaśca ṣaḍete pāṭhakādhamāḥ ॥</string>
     <string name="guide_verse_source">पाणिनीयशिक्षा · Pāṇinīyaśikṣā\nSource as shared by our mentor</string>
     <string name="guide_cautions_title">Six things to be mindful of</string>
-    <string name="guide_cautions_summary">Small reminders for spoken recitation</string>
+    <string name="guide_cautions_summary">Small reminders for verbal (vykari) chanting</string>
     <string name="guide_cautions_intro">These notes follow the meanings shared by our mentor. Your teacher can help you understand how they apply in your tradition.</string>
     <string name="guide_caution_song_title">Keep to the sounds you were taught</string>
     <string name="guide_caution_song_term">Gītī · Singing the recitation</string>
@@ -50,8 +50,8 @@
     <string name="guide_caution_meaning_body">Ask your teacher to walk you through the meaning of the mantra. You can return to it as you learn, a little at a time.</string>
     <string name="guide_caution_voice_title">Ask your teacher about the voice</string>
     <string name="guide_caution_voice_term">Alpakaṇṭhaḥ · Reciting in a low tone</string>
-    <string name="guide_caution_voice_body">Our mentor shared “low tone” as the meaning here. Ask your teacher how this applies to spoken recitation. It is not a request to chant louder or to give up silent mental japa.</string>
-    <string name="guide_cautions_context">The verse concerns spoken recitation. For daily mental japa, you can continue silently, as our mentor recommends.</string>
+    <string name="guide_caution_voice_body">Our mentor shared “low tone” as the meaning here. Ask your teacher how this applies to verbal (vykari) chanting. It is not a request to chant louder or to give up silent mental japa.</string>
+    <string name="guide_cautions_context">The verse concerns verbal (vykari) chanting. For daily mental japa, you can continue silently, as our mentor recommends.</string>
     <string name="guide_quality_note">You may hear the words Uttamam, Madhyamam and Adhamam in this teaching. Our mentor uses them to describe the quality of recitation. They are not labels for you or your devotion.</string>
     <string name="guide_app_title">Practising with Anushtanam</string>
     <string name="guide_app_body">In Sandhya, you can count mental or soft repetitions yourself, or record your count afterwards. You do not need the microphone.\n\nUse Practice to listen and learn the pronunciation. The Japa tab listens to spoken repetitions. Listening to the reference audio does not add to your count.</string>
