@@ -57,7 +57,7 @@ import com.mantrasiddhi.data.local.entity.UserProfileEntity
         com.mantrasiddhi.data.local.entity.IdentityRepairEntity::class,
         com.mantrasiddhi.data.local.entity.ChangedRecordEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 abstract class MantraSiddhiDatabase : RoomDatabase() {
@@ -356,6 +356,12 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_17_18: Migration = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recitation_sessions ADD COLUMN assessmentJson TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         // User profiles are created by account/onboarding flows. Database initialization
         // must never schedule demo writes against IDs that can belong to real users.
         fun buildDatabase(
@@ -379,7 +385,7 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 }
             }
             .addCallback(ChangedRecordJournal)
-            // Contiguous v1 to v17 migration chain. No destructive fallback: a missing or
+            // Contiguous v1 to v18 migration chain. No destructive fallback: a missing or
             // broken migration must fail loudly in testing rather than silently wipe
             // a published user's recitation history, targets, Sandhya logs, and the
             // years of japa recorded against a Purashcharana.
@@ -399,7 +405,8 @@ abstract class MantraSiddhiDatabase : RoomDatabase() {
                 MIGRATION_13_14,
                 MIGRATION_14_15,
                 MIGRATION_15_16,
-                MIGRATION_16_17
+                MIGRATION_16_17,
+                MIGRATION_17_18
             )
             .build()
         }

@@ -65,6 +65,7 @@ test('erasure resumes after partial failure, removes nested data and all relatio
     'accountDeletionRequests/owner': { state: 'pending' }, 'users/owner': { role: 'PARENT' },
     'users/child': { role: 'CHILD' }, 'users/owner/japaEntries/e/revisions/r': { secret: true },
     'users/owner/practiceRecords/session_one': session(1), 'users/owner/backupChanges/practice_session_one': { value: session(1) },
+    'users/owner/accountRecords/preference_theme_mode': { secret: true },
     'users/owner/private/messaging': { fcmToken: 'secret' }, 'users/owner/projectionRepairs/a': { secret: true },
     'progress/owner': {}, 'selfTargets/owner': {}, 'purashcharana/owner': {}, 'familyInviteState/owner': {},
     'links/owner_child': { parentUid: 'owner', childUid: 'child' }, 'goals/g': { parentUid: 'owner', childUid: 'child' },
@@ -90,38 +91,12 @@ test('erasure resumes after partial failure, removes nested data and all relatio
   assert.equal((await admin.doc('accountDeletionRequests/owner').get()).get('state'), 'complete');
 });
 
-test('retention strips canonical and orphan feed speech, preserves scores, and prevents re-upload', async () => {
-  const now = Date.now();
-  const old = session(now - RETENTION_MS - 1000);
-  const recent = session(now, { id: 'recent' });
-  await admin.doc('users/owner/practiceRecords/session_one').set(old);
-  await admin.doc('users/owner/practiceRecords/session_recent').set(recent);
-  await admin.doc('users/owner/backupChanges/practice_orphan').set({ type: 'practice', id: 'orphan', value: old });
-  await redactSpeechPage(admin, 'practiceRecords', { FieldValue, FieldPath }, now);
-  await redactSpeechPage(admin, 'backupChanges', { FieldValue, FieldPath }, now);
-  const expected = { ...old, transcription: '', wordScoresJson: '' };
-  assert.deepEqual((await admin.doc('users/owner/practiceRecords/session_one').get()).data(), expected);
-  assert.deepEqual((await admin.doc('users/owner/backupChanges/practice_session_one').get()).get('value'), expected);
-  assert.deepEqual((await admin.doc('users/owner/backupChanges/practice_orphan').get()).get('value'), expected);
-  assert.deepEqual((await admin.doc('users/owner/practiceRecords/session_recent').get()).data(), recent);
-  await assertFails(publish(db('other'), 'other', 'practice', old));
-  await assertSucceeds(publish(db('other'), 'other', 'practice', expected));
-  await assertFails(publish(db(), 'owner', 'practice', old));
-});
-
-test('retention resumes past a full page with equal timestamps and does not recreate deleted account data', async () => {
-  const now = Date.now(), createdAt = now - RETENTION_MS - 1000;
-  const batch = admin.batch();
-  for (let i = 0; i < 201; i++) {
-    const id = String(i).padStart(3, '0');
-    batch.set(admin.doc(`users/owner/practiceRecords/session_${id}`), session(createdAt, { id }));
-  }
-  batch.set(admin.doc('accountDeletionRequests/deleting'), { state: 'pending' });
-  batch.set(admin.doc('users/deleting/practiceRecords/session_one'), session(createdAt));
-  await batch.commit();
-  assert.equal(await redactSpeechPage(admin, 'practiceRecords', { FieldValue, FieldPath }, now), true);
-  assert.equal(await redactSpeechPage(admin, 'practiceRecords', { FieldValue, FieldPath }, now), false);
-  for (const row of (await admin.collection('users/owner/practiceRecords').get()).docs) assert.equal(row.get('transcription'), '');
-  assert.equal((await admin.doc('users/deleting/backupChanges/practice_session_one').get()).exists, false);
-  assert.deepEqual((await admin.doc('privacyMaintenance/practiceRecords').get()).data(), {});
+test('full history accepts old offline speech and maintenance leaves details intact', async () => {
+  const old = session(Date.now() - 2 * RETENTION_MS, { assessmentJson: JSON.stringify({ schemaVersion: 1, confidence: .8 }) });
+  await assertSucceeds(publish(db(), 'owner', 'practice', old));
+  assert.equal(await redactSpeechPage(admin, 'practiceRecords', { FieldValue, FieldPath }), false);
+  assert.equal(await redactSpeechPage(admin, 'backupChanges', { FieldValue, FieldPath }), false);
+  assert.deepEqual((await admin.doc('users/owner/practiceRecords/session_one').get()).data(), old);
+  assert.deepEqual((await admin.doc('users/owner/backupChanges/practice_session_one').get()).get('value'), old);
+  await assertFails(publish(db(), 'owner', 'practice', { ...old, assessmentJson: '{}' }));
 });

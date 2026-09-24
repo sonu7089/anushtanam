@@ -6,6 +6,8 @@
  */
 package com.mantrasiddhi.data.repository
 
+import androidx.room.withTransaction
+
 import com.mantrasiddhi.data.local.dao.UserDao
 import com.mantrasiddhi.data.local.entity.UserProfileEntity
 import com.mantrasiddhi.domain.model.UserProfile
@@ -20,7 +22,9 @@ import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val accountRecords: com.mantrasiddhi.data.sync.AccountRecordStore? = null,
+    private val database: com.mantrasiddhi.data.local.MantraSiddhiDatabase? = null
 ) : UserRepository {
 
     override fun getAll(): Flow<List<UserProfile>> {
@@ -45,6 +49,16 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun hasPractice(id: Long): Boolean = userDao.hasPractice(id)
 
     override suspend fun insert(user: UserProfile): Long = withContext(ioDispatcher) {
-        userDao.insert(UserProfileEntity.fromDomain(user))
+        suspend fun save(): Long {
+            val old = if (user.id > 0) userDao.getById(user.id) else null
+            val id = userDao.insert(UserProfileEntity.fromDomain(user))
+            if (old != null && old.firebaseUid == user.firebaseUid &&
+                (old.name != user.name || old.avatarIndex != user.avatarIndex || old.useGooglePhoto != user.useGooglePhoto)) {
+                accountRecords?.put(user.firebaseUid ?: "local:${user.id}", "profile", mapOf(
+                    "name" to user.name, "avatarIndex" to user.avatarIndex, "useGooglePhoto" to user.useGooglePhoto))
+            }
+            return id
+        }
+        if (database != null) database.withTransaction { save() } else save()
     }
 }

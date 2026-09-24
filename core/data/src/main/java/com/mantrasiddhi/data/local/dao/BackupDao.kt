@@ -9,6 +9,10 @@ data class BackupReviewRow(val id: String, val firstPayload: String, val secondP
 
 @Dao
 interface BackupDao {
+    @Query("SELECT * FROM backup_queue_state WHERE uid = :uid AND `key` LIKE 'account:record:%'")
+    fun observeAccountRecords(uid: String): Flow<List<BackupQueueState>>
+    @Query("SELECT * FROM backup_queue_state WHERE uid = :uid AND `key` LIKE 'account:record:%'")
+    suspend fun accountRecords(uid: String): List<BackupQueueState>
     @Query("SELECT * FROM changed_records WHERE userId = :userId AND kind IN ('entry','target','vow','session','log','change') ORDER BY kind, recordId LIMIT 200")
     suspend fun changed(userId: Long): List<ChangedRecordEntity>
     @Delete suspend fun clearChanged(record: ChangedRecordEntity)

@@ -12,6 +12,7 @@ internal object BackupRecordValidator {
         require(!value.containsKey("schemaVersion") || value.integer("schemaVersion") == 1L) { "Unsupported schema version" }
         value.identifier("id")
         when (type) {
+            "account" -> require(AccountRecordPolicy.validate(documentId, value) == null) { "Invalid account record" }
             "entry" -> entry(value)
             "goal" -> goal(value)
             "practice" -> practice(value)
@@ -64,7 +65,12 @@ internal object BackupRecordValidator {
         when (d["type"]) {
             "session" -> {
                 d.fields("type id entryId mantraId mode overallScore wordScoresJson transcription isCorrect durationMs createdAt correctness completeness pronunciation",
-                    "projectionDate projectionZoneId childGoalEligible")
+                    "projectionDate projectionZoneId childGoalEligible assessmentJson")
+                if ("assessmentJson" in d) {
+                    d.string("assessmentJson", 199999)
+                    val detail = runCatching { org.json.JSONObject(d.text("assessmentJson")) }.getOrNull()
+                    require(detail?.optInt("schemaVersion") == 1) { "Invalid assessment detail version" }
+                }
                 if (d.keys.any { it in setOf("projectionDate", "projectionZoneId", "childGoalEligible") }) {
                     d.string("projectionZoneId", 200); d.bool("childGoalEligible")
                     val zone = ZoneId.of(d.text("projectionZoneId"))

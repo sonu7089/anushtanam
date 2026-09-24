@@ -2,6 +2,15 @@
 
 [← Back to index](README.md)
 
+## Retention update — 24 September 2026
+
+The product owner requested full-history synchronization. The current deployed rules
+and privacy functions retain speech details until account deletion; the 365-day P-03
+implementation described below is historical and has been superseded. Account deletion
+and its retries remain active. The public policy now describes account settings,
+selected reminder coordinates, unfinished drafts, detailed evaluations, and full-history
+retention. See [deployment evidence](../full-account-sync.md#production-deployment--24-september-2026).
+
 ## Implementation review — 14 September 2026
 
 The findings below are the original audit, not a description of the current code.

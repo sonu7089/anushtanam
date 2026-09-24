@@ -2,9 +2,9 @@
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { getFirestore, FieldValue, FieldPath, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
-const { eraseAccount, redactSpeechPage } = require("./privacy-service");
+const { eraseAccount } = require("./privacy-service");
 
 // Rules authenticate the request and require a fresh sign-in. The document is also
 // a barrier against old ID tokens and concurrent sync while erasure is running.
@@ -23,11 +23,7 @@ exports.maintainPrivacy = onSchedule({ schedule: "every 60 minutes", region: "us
     try { await eraseAccount(db, getAuth(), request.id, { FieldValue, Timestamp }); }
     catch (_) { failed = true; console.error("Account erasure requires retry"); }
   }
-  for (const group of ["practiceRecords", "backupChanges"]) {
-    for (let page = 0; page < 20; page++) {
-      if (!await redactSpeechPage(db, group, { FieldValue, FieldPath })) break;
-    }
-  }
+  // Full practice details remain available for account restore. No age-based redaction.
   const completed = await db.collection("accountDeletionRequests").where("purgeAfter", "<=", Timestamp.now()).limit(100).get();
   for (const request of completed.docs) await request.ref.delete();
   if (failed) throw new Error("Account erasure requires retry");

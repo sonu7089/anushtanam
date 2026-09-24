@@ -1,3 +1,17 @@
+## Full account sync, 24 September 2026
+
+The full-account backup rules and both privacy functions are deployed to
+`anushtanam-shastralife`. Private `accountRecords` now support settings and drafts;
+session records support detailed evaluation snapshots. Hourly privacy maintenance
+continues account-deletion retries without age-based speech redaction.
+See [deployment verification](../../docs/full-account-sync.md#production-deployment--24-september-2026).
+
+The [privacy policy](https://anushtanam-shastralife.web.app/privacy-policy.html) and
+[account-deletion page](https://anushtanam-shastralife.web.app/delete-account.html)
+are published through Firebase Hosting. The predeploy script copies the same source
+documents bundled by Android. To update these pages, edit `playstore-assets/*.html`
+and run `firebase deploy --only hosting --project anushtanam-shastralife` here.
+
 ## Performance step 02, 12 September 2026
 
 The checked-in rules now validate backup schemas and child goal progress, and require atomic canonical/feed publication in both directions. **These stricter rules were deployed to `anushtanam-shastralife` on 12 September 2026 at approximately 13:46 IST, at the user's request.** See [deployment evidence and compatibility considerations](../../doc/perf/step-02-validation.md). Existing cloud records were not rewritten or backfilled. Run `npm run test:perf` for the focused rejection regressions; `firebase.perf.json` provides separate loopback ports for physical-device recovery tests.

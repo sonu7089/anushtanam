@@ -695,7 +695,7 @@
     <string name="profile_use_google_photo">Use my Google photo</string>
     <string name="profile_photo_hint">Turn this off to show your initial instead.</string>
     <string name="profile_save_failed">We could not save that choice. Please try again.</string>
-    <string name="account_backup_note">Your active goal and Purashcharana count can sync when you are online. Detailed practice history and Sandhya records stay on this phone.</string>
+    <string name="account_backup_note">Your saved practice, detailed results, goals, Sandhya records, unfinished counts, and settings sync to your account when you are online.</string>
     <string name="google_role_mismatch">This Google account already belongs to a different kind of profile. Please use your own Google account, or go back and open the right sign-in page.</string>
     <string name="child_google_hint">Use your own Google account. Already have an ID? Sign in below, then add Google in Settings to keep your practice together.</string>
     <string name="child_use_id">Or use your ID and PIN</string>

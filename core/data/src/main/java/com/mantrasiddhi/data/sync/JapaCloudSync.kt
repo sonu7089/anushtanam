@@ -22,7 +22,8 @@ class JapaCloudSync @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
     private val outbox: CloudSyncOutbox,
-    private val backup: PracticeBackupStore
+    private val backup: PracticeBackupStore,
+    private val accountBackup: AccountBackup? = null
 ) {
     private val restoreLock = Mutex()
     private val projections = SessionProjectionSync(firestore, auth)
@@ -47,12 +48,14 @@ class JapaCloudSync @Inject constructor(
 
     suspend fun importOwnedProfile(userId: Long) {
         val uid = database.userDao().getById(userId)?.firebaseUid ?: return
+        accountBackup?.capture(userId, uid)
         backup.capture(userId) { auth.currentUser?.uid == uid }
         schedule()
     }
 
     suspend fun capture(uid: String) {
         val user = database.userDao().getByFirebaseUid(uid) ?: return
+        accountBackup?.capture(user.id, uid)
         backup.capture(user.id) { auth.currentUser?.uid == uid }
         if (database.cloudSyncDao().hasPending(uid)) schedule()
     }
@@ -85,6 +88,7 @@ class JapaCloudSync @Inject constructor(
         }
         val owner = firestore.collection("users").document(uid)
         val collection = when (kind) {
+            SyncKind.ACCOUNT_RECORD -> "accountRecords"
             SyncKind.JAPA_ENTRY -> "japaEntries"
             SyncKind.JAPA_GOAL -> "japaGoals"
             SyncKind.PRACTICE_RECORD -> "practiceRecords"
@@ -121,6 +125,13 @@ class JapaCloudSync @Inject constructor(
                 publish("conflict", conflictId!!, conflict)
             }
             when (kind) {
+                SyncKind.ACCOUNT_RECORD -> {
+                    require(AccountRecordPolicy.validate(documentId, payload) == null)
+                    if (AccountRecordPolicy.newer(payload, old)) {
+                        transaction.set(ref, payload)
+                        publish("account", documentId, payload)
+                    }
+                }
                 SyncKind.JAPA_ENTRY -> {
                     // Keep rejected revisions too, so a competing edit is never lost.
                     if (revisionRef != null && !revisionExists) transaction.set(revisionRef, payload)
@@ -158,11 +169,11 @@ class JapaCloudSync @Inject constructor(
         projections.ensureReady(uid)
         val owner = firestore.collection("users").document(uid)
         val merger = JapaReplicaMerger(database)
-        val restorer = BackupRecordRestorer(database, backup)
+        val restorer = BackupRecordRestorer(database, backup, accountBackup)
         suspend fun accept(doc: com.google.firebase.firestore.DocumentSnapshot, collection: String) {
             val data = doc.data ?: emptyMap()
             if (collection != "backupChanges") {
-                val type = when (collection) { "japaGoals" -> "goal"; "japaEntries" -> "entry"; "practiceRecords" -> "practice"; else -> "conflict" }
+                val type = when (collection) { "japaGoals" -> "goal"; "japaEntries" -> "entry"; "practiceRecords" -> "practice"; "accountRecords" -> "account"; else -> "conflict" }
                 restorer.apply(uid, user.id, "$collection/${doc.id}", type, doc.id, data, { auth.currentUser?.uid == uid })
             } else {
                 val type = data["type"] as? String ?: ""
@@ -175,6 +186,18 @@ class JapaCloudSync @Inject constructor(
             }
         }
         markRestorePending(uid)
+        // Existing installations may already have passed the original history bootstrap.
+        if (database.backupDao().queued(uid, "account:bootstrapped") != "1") {
+            var accountQuery: Query = owner.collection("accountRecords").orderBy(com.google.firebase.firestore.FieldPath.documentId()).limit(200)
+            while (true) {
+                check(auth.currentUser?.uid == uid)
+                val page = accountQuery.get(Source.SERVER).awaitResult().documents
+                database.withTransaction { for (doc in page) accept(doc, "accountRecords") }
+                if (page.size < 200) break
+                accountQuery = accountQuery.startAfter(page.last())
+            }
+            database.backupDao().putQueued(BackupQueueState(uid, "account:bootstrapped", "1"))
+        }
         if (database.backupDao().state(uid)?.bootstrapped != true) {
             // One compatibility pass for records written before the change feed existed.
             for (collection in listOf("japaGoals", "japaEntries", "practiceRecords", "japaConflicts")) {
@@ -229,6 +252,7 @@ class JapaCloudSync @Inject constructor(
         database.withTransaction {
             check(auth.currentUser?.uid == uid)
             merger.merge(user.id, emptyList(), emptyList(), { auth.currentUser?.uid == uid })
+            accountBackup?.reconcileDraft(user.id)
             enqueue(user.id)
             val pending = database.cloudSyncDao().hasPending(uid)
             val incomplete = database.backupDao().quarantineCount(uid) > 0

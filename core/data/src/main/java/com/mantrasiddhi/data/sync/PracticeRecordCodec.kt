@@ -10,10 +10,10 @@ internal object PracticeRecordCodec {
         "wordScoresJson" to row.wordScoresJson, "transcription" to row.transcription,
         "isCorrect" to row.isCorrect, "durationMs" to row.durationMs, "createdAt" to row.createdAt,
         "correctness" to row.correctness, "completeness" to row.completeness, "pronunciation" to row.pronunciation
-    ) + if (row.projectionDate != null) mapOf(
+    ) + (if (row.projectionDate != null) mapOf(
         "projectionDate" to row.projectionDate, "projectionZoneId" to row.projectionZoneId,
         "childGoalEligible" to row.childGoalEligible
-    ) else emptyMap()
+    ) else emptyMap()) + if (row.assessmentJson.isNotEmpty()) mapOf("assessmentJson" to row.assessmentJson) else emptyMap()
 
     fun session(value: Map<String, Any?>, userId: Long, localId: Long) = RecitationSessionEntity(
         id = localId, userId = userId, stableId = value.text("id"), mantraId = value.text("mantraId"),
@@ -23,7 +23,7 @@ internal object PracticeRecordCodec {
         createdAt = value.number("createdAt"), correctness = value.score("correctness"),
         completeness = value.score("completeness"), pronunciation = value.score("pronunciation"), acceptedEntryId = value["entryId"] as? String,
         projectionDate = value["projectionDate"] as? String, projectionZoneId = value["projectionZoneId"] as? String,
-        childGoalEligible = value["childGoalEligible"] as? Boolean
+        childGoalEligible = value["childGoalEligible"] as? Boolean, assessmentJson = value["assessmentJson"] as? String ?: ""
     )
 
     fun log(row: SandhyaLogEntity) = mapOf(

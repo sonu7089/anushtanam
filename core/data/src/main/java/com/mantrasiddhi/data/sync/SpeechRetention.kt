@@ -2,13 +2,12 @@ package com.mantrasiddhi.data.sync
 
 import com.mantrasiddhi.data.local.entity.RecitationSessionEntity
 
-/** Cloud speech details expire; scores, occurrence time and session identity remain immutable. */
+/** Full history is retained. Compatibility accepts redactions made by older server releases. */
 internal object SpeechRetention {
     const val PERIOD_MS = 365L * 24 * 60 * 60 * 1000
 
-    fun forUpload(value: Map<String, Any?>, now: Long = System.currentTimeMillis()): Map<String, Any?> =
-        if (value["type"] == "session" && value.number("createdAt") <= now - PERIOD_MS)
-            value + mapOf("transcription" to "", "wordScoresJson" to "") else value
+    @Suppress("UNUSED_PARAMETER")
+    fun forUpload(value: Map<String, Any?>, now: Long = System.currentTimeMillis()): Map<String, Any?> = value
 
     fun compatible(old: RecitationSessionEntity, incoming: RecitationSessionEntity,
         now: Long = System.currentTimeMillis()): Boolean {

@@ -36,5 +36,7 @@ data class RecitationSession(
     val pronunciation: Double = overallScore,
     val createdAt: Long = System.currentTimeMillis(),
     /** Retain this identity when retrying a save. Assessments are immutable. */
-    val stableId: String = java.util.UUID.randomUUID().toString()
+    val stableId: String = java.util.UUID.randomUUID().toString(),
+    /** Complete versioned evaluation detail; blank for assessments made by older releases. */
+    val assessmentJson: String = ""
 )

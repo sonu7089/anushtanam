@@ -25,6 +25,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import com.mantrasiddhi.data.sync.AccountRecordStore
+import com.mantrasiddhi.data.sync.AccountRecordSnapshot
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,7 +55,8 @@ data class SandhyaSettings(
  */
 @Singleton
 class SandhyaPreferences @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val accountRecords: AccountRecordStore? = null
 ) {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sandhya_prefs")
 
@@ -68,7 +73,12 @@ class SandhyaPreferences @Inject constructor(
         val KEY_USER_ID = longPreferencesKey("sandhya_user_id")
     }
 
-    val settings: Flow<SandhyaSettings> = context.dataStore.data.map { prefs ->
+    val settings: Flow<SandhyaSettings> = combine(context.dataStore.data,
+        accountRecords?.observe() ?: flowOf(AccountRecordSnapshot(null))) { prefs, snapshot ->
+        val cloud = snapshot.records.takeIf { snapshot.uid == accountRecords?.currentUid }.orEmpty()
+        val signedIn = accountRecords?.currentUid != null
+        @Suppress("UNCHECKED_CAST")
+        val savedRegion = cloud["preference_sandhya_region"]?.get("value") as? Map<String, Any?>
         val region = if (prefs[KEY_REGION_ID] != null) {
             SandhyaRegion(
                 id = prefs[KEY_REGION_ID]!!,
@@ -81,17 +91,22 @@ class SandhyaPreferences @Inject constructor(
             SandhyaRegions.DEFAULT
         }
         SandhyaSettings(
-            enabled = prefs[KEY_ENABLED] ?: false,
-            region = region,
+            enabled = if (signedIn) cloud["preference_sandhya_enabled"]?.get("value") as? Boolean ?: false else prefs[KEY_ENABLED] ?: false,
+            region = if (!signedIn) region else savedRegion?.let {
+                SandhyaRegion(it["id"] as String, it["name"] as String,
+                    (it["latitude"] as Number).toDouble(), (it["longitude"] as Number).toDouble(), it["zoneId"] as String)
+            } ?: SandhyaRegions.DEFAULT,
             userId = prefs[KEY_USER_ID] ?: 0L,
-            preparationEnabled = prefs[KEY_PREPARATION] ?: true,
-            eventEnabled = prefs[KEY_EVENT] ?: true
+            preparationEnabled = if (signedIn) cloud["preference_sandhya_preparation"]?.get("value") as? Boolean ?: true else prefs[KEY_PREPARATION] ?: true,
+            eventEnabled = if (signedIn) cloud["preference_sandhya_event"]?.get("value") as? Boolean ?: true else prefs[KEY_EVENT] ?: true
         )
     }.distinctUntilChanged()
 
     val permissionAsked = context.dataStore.data.map { it[KEY_PERMISSION_ASKED] ?: false }
     suspend fun markPermissionAsked() { context.dataStore.edit { it[KEY_PERMISSION_ASKED] = true } }
     suspend fun setStage(stage: com.mantrasiddhi.domain.model.SandhyaReminderStage, enabled: Boolean) {
+        val key = if (stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.PREPARATION) KEY_PREPARATION else KEY_EVENT
+        if (accountRecords?.preference(key.name, enabled) == true) return
         context.dataStore.edit { it[if (stage == com.mantrasiddhi.domain.model.SandhyaReminderStage.PREPARATION) KEY_PREPARATION else KEY_EVENT] = enabled }
     }
     private fun deliveryKey(userId: Long, period: SandhyaPeriod, stage: com.mantrasiddhi.domain.model.SandhyaReminderStage) =
@@ -113,13 +128,23 @@ class SandhyaPreferences @Inject constructor(
 
     suspend fun current(): SandhyaSettings = settings.first()
 
-    fun minimums(userId: Long): Flow<SandhyaMinimums> = context.dataStore.data.map { prefs ->
-        fun value(period: SandhyaPeriod) = prefs[minimumKey(userId, period)] ?: period.minimumJapa
+    fun minimums(userId: Long): Flow<SandhyaMinimums> = combine(context.dataStore.data,
+        accountRecords?.observe() ?: flowOf(AccountRecordSnapshot(null))) { prefs, snapshot ->
+        val cloud = snapshot.records.takeIf { snapshot.uid == accountRecords?.currentUid }.orEmpty()
+        val signedIn = accountRecords?.currentUid != null && accountRecords.owner(userId) == accountRecords.currentUid
+        fun value(period: SandhyaPeriod) = if (signedIn)
+            (cloud["preference_minimum_${period.name}"]?.get("value") as? Number)?.toLong() ?: period.minimumJapa
+            else prefs[minimumKey(userId, period)] ?: period.minimumJapa
         SandhyaMinimums(value(SandhyaPeriod.PRATAH), value(SandhyaPeriod.MADHYAHNA), value(SandhyaPeriod.SAYAM))
     }
 
     suspend fun setMinimums(userId: Long, minimums: SandhyaMinimums) {
         require(userId > 0)
+        val records = accountRecords
+        if (records?.currentUid != null && records.owner(userId) == records.currentUid) {
+            for (period in SandhyaPeriod.entries) records.preference("minimum_${period.name}", minimums[period])
+            return
+        }
         context.dataStore.edit { prefs ->
             SandhyaPeriod.entries.forEach { prefs[minimumKey(userId, it)] = minimums[it] }
         }
@@ -129,10 +154,12 @@ class SandhyaPreferences @Inject constructor(
         longPreferencesKey("minimum_${userId}_${period.name}")
 
     suspend fun setEnabled(enabled: Boolean) {
+        if (accountRecords?.preference(KEY_ENABLED.name, enabled) == true) return
         context.dataStore.edit { it[KEY_ENABLED] = enabled }
     }
 
     suspend fun setRegion(region: SandhyaRegion) {
+        if (accountRecords?.preference("sandhya_region", region.cloudValue()) == true) return
         context.dataStore.edit { prefs ->
             prefs[KEY_REGION_ID] = region.id
             prefs[KEY_REGION_NAME] = region.displayName
@@ -145,4 +172,29 @@ class SandhyaPreferences @Inject constructor(
     suspend fun setUserId(userId: Long) {
         context.dataStore.edit { it[KEY_USER_ID] = userId }
     }
+
+    suspend fun seedCloud(uid: String, userId: Long) {
+        val records = accountRecords ?: return
+        val owner = stringPreferencesKey("cloud_settings_legacy_owner")
+        var snapshot: Preferences? = null
+        context.dataStore.edit { prefs ->
+            if (prefs[owner] == null) prefs[owner] = uid
+            if (prefs[owner] == uid) snapshot = prefs.toPreferences()
+        }
+        val prefs = snapshot ?: return
+        for (key in listOf(KEY_ENABLED, KEY_PREPARATION, KEY_EVENT)) prefs[key]?.let {
+            records.put(uid, "preference_${key.name}", mapOf("value" to it), seed = true)
+        }
+        for (period in SandhyaPeriod.entries) prefs[minimumKey(userId, period)]?.let {
+            records.put(uid, "preference_minimum_${period.name}", mapOf("value" to it), seed = true)
+        }
+        if (prefs[KEY_REGION_ID] != null) {
+            val region = SandhyaRegion(prefs[KEY_REGION_ID]!!, prefs[KEY_REGION_NAME] ?: SandhyaRegions.DEFAULT.displayName,
+                prefs[KEY_LAT] ?: SandhyaRegions.DEFAULT.latitude, prefs[KEY_LON] ?: SandhyaRegions.DEFAULT.longitude, prefs[KEY_ZONE] ?: "")
+            records.put(uid, "preference_sandhya_region", mapOf("value" to region.cloudValue()), seed = true)
+        }
+    }
+
+    private fun SandhyaRegion.cloudValue() = mapOf("id" to id, "name" to displayName,
+        "latitude" to latitude, "longitude" to longitude, "zoneId" to zoneId)
 }

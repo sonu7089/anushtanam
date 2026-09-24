@@ -20,13 +20,14 @@
 <body>
 
 <h1>Privacy Policy for Anushtanam</h1>
-<p class="updated">Last updated: 14 September 2026</p>
+<p class="updated">Last updated: 24 September 2026</p>
 
 <div class="callout">
   <strong>Summary:</strong> Anushtanam is a mantra practice app. Reciting,
   pronunciation feedback and reminders happen on your device. If you choose to create
-  an account, some data (such as your email, profile name, and practice goals) is stored securely in
-  the cloud using Google Firebase so features like parent–child linking and goal sync can work. We do
+  an account, your profile, saved practice and detailed results, goals, settings, chosen reminder
+  location, and unfinished count entries are stored in Google Firebase so they can be restored and
+  synced across your devices. Family linking shares the relevant profile and progress information. We do
   not use advertising, and we do not sell your data.
 </div>
 
@@ -45,7 +46,7 @@
   <li><strong>Speech and pronunciation feedback:</strong> Recitation is processed by your device's
       on-device speech recognition. Audio is not recorded, stored, or uploaded.</li>
   <li><strong>Approximate location:</strong> Used only in an on-device calculation of local sunrise
-      and sunset times for Sandhya reminders. It is not transmitted or stored off your device.</li>
+      and sunset times for Sandhya reminders. When signed in, your chosen region, approximate coordinates, and timezone are also saved privately to your account so reminder settings can be restored on another device.</li>
   <li><strong>Practice on your phone:</strong> Your recitation history and progress are stored in a
       private database on your device. When you sign in, saved practice and performance records also sync to your account.</li>
 </ul>
@@ -76,6 +77,16 @@
     <td>Your account ID and family invitation codes. Older child codes may stay until you delete the account.</td>
     <td>To manage accounts and to link a parent to a child profile.</td>
     <td>Firebase Authentication and Cloud Firestore.</td>
+  </tr>
+  <tr>
+    <td>App and reminder settings, chosen region and approximate coordinates, avatar preference, and unfinished count drafts</td>
+    <td>To restore your choices and resume unfinished entries across your devices.</td>
+    <td>Private account records in Cloud Firestore and your phone.</td>
+  </tr>
+  <tr>
+    <td>Detailed evaluation results, including word and line feedback, speech confidence, and available acoustic/pitch metrics</td>
+    <td>To preserve your full practice results and learning history.</td>
+    <td>Private practice records in Cloud Firestore and your phone. Raw audio is not uploaded.</td>
   </tr>
   <tr>
     <td>Practice goals (targets, recitation counts, reward description, completion status)</td>
@@ -110,12 +121,16 @@
   profile saved only on this phone, we ask you to choose the profile and show the account it will belong to.
   Saved practice from the connected profile syncs automatically to that account, including japa counts,
   corrections, Sandhya history, goals, recitation scores, word results, transcripts and practice time.
+  App preferences, custom minimum counts, reminder settings and chosen location, profile display
+  choices, and unfinished count entries also sync. Detailed results include the speech-confidence
+  and pronunciation information available for each assessment. Device permissions remain local;
+  signing in on another phone does not grant microphone, location, or notification permission there.
   These records can be restored when you sign in on another phone. Detailed performance records are
   private to the account; linked family views continue to use their existing progress summaries.
 </p>
 <p>
   We use the data above only to provide the app's features: creating and securing accounts, linking a
-  parent to a child profile, syncing practice goals, and sending reminders/notifications. We do not use
+  parent to a child profile, syncing and restoring practice and settings, and sending reminders/notifications. We do not use
   it for advertising or profiling, and we do not sell it.
 </p>
 
@@ -148,13 +163,11 @@
 
 <h2>7. Data retention and deletion</h2>
 <p>
-  The words recognised during your practice and individual word scores are due for removal from
-  your online history after 365 days. We check for older details every hour, including copies used
-  to restore your practice on another phone. A large amount of saved history may take longer to clear.
-  Older practice added to your account leaves out these speech details.
-  Your overall scores, practice dates, counts and goals stay until you delete your account.
-  Speech details are also removed from your phone when it next syncs those records.
-  A phone that stays offline may keep them until it syncs or you clear the app's storage.
+  Your recognised practice words, individual word scores, detailed evaluation results,
+  practice dates, counts, goals, preferences, and unfinished count drafts remain in your account
+  until you delete it. They are restored when you sign in on another device.
+  Details already removed by an earlier retention policy cannot be recovered.
+  Clearing app storage removes the local copy; account deletion removes the online copy.
 </p>
 <p>
   To delete your account, open Settings &gt; Your account and privacy &gt; Delete my account, or email

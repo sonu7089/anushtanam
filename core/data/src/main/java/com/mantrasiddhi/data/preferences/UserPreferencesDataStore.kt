@@ -19,6 +19,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import com.mantrasiddhi.data.sync.AccountRecordStore
+import com.mantrasiddhi.data.sync.AccountRecordSnapshot
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,7 +30,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 @Singleton
 class UserPreferencesDataStore @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val accountRecords: AccountRecordStore? = null
 ) {
     companion object {
         private val KEY_THEME = stringPreferencesKey("theme_mode")
@@ -58,49 +63,75 @@ class UserPreferencesDataStore @Inject constructor(
             it.key.name.startsWith(FIREBASE_LOCAL_ID_PREFIX) && it.value == localId
         }?.key?.name?.removePrefix(FIREBASE_LOCAL_ID_PREFIX)
 
-    val themeModeFlow: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[KEY_THEME] ?: "SYSTEM"
+    private fun <T> setting(key: Preferences.Key<T>, fallback: T): Flow<T> = combine(
+        context.dataStore.data, accountRecords?.observe() ?: flowOf(AccountRecordSnapshot(null))
+    ) { prefs, snapshot ->
+        val cloud = snapshot.records.takeIf { snapshot.uid == accountRecords?.currentUid }.orEmpty()
+        @Suppress("UNCHECKED_CAST")
+        if (accountRecords?.currentUid != null) {
+            val value = cloud["preference_${key.name}"]?.get("value")
+            (if (fallback is Double && value is Number) value.toDouble() as T else value as? T) ?: fallback
+        }
+        else prefs[key] ?: fallback
     }
 
-    val languageDisplayFlow: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[KEY_LANGUAGE_DISPLAY] ?: "BOTH"
-    }
+    val themeModeFlow: Flow<String> = setting(KEY_THEME, "SYSTEM")
 
-    val recitationSensitivityFlow: Flow<Double> = context.dataStore.data.map { preferences ->
-        preferences[KEY_RECITATION_SENSITIVITY] ?: 0.85
-    }
+    val languageDisplayFlow: Flow<String> = setting(KEY_LANGUAGE_DISPLAY, "BOTH")
+
+    val recitationSensitivityFlow: Flow<Double> = setting(KEY_RECITATION_SENSITIVITY, 0.85)
 
     /** Emits whether the user has explicitly persisted a recitation-sensitivity value. */
-    val recitationSensitivityIsSetFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences.contains(KEY_RECITATION_SENSITIVITY)
+    val recitationSensitivityIsSetFlow: Flow<Boolean> = combine(context.dataStore.data,
+        accountRecords?.observe() ?: flowOf(AccountRecordSnapshot(null))) { prefs, snapshot ->
+        val cloud = snapshot.records.takeIf { snapshot.uid == accountRecords?.currentUid }.orEmpty()
+        if (accountRecords?.currentUid != null) cloud.containsKey("preference_recitation_sensitivity")
+        else prefs.contains(KEY_RECITATION_SENSITIVITY)
     }
 
     /** Whether the opt-in Advanced/Vedic (swara/pitch) mode is enabled. Default off. */
-    val advancedVedicModeFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[KEY_ADVANCED_VEDIC_MODE] ?: false
-    }
+    val advancedVedicModeFlow: Flow<Boolean> = setting(KEY_ADVANCED_VEDIC_MODE, false)
 
     suspend fun setThemeMode(mode: String) {
+        if (accountRecords?.preference(KEY_THEME.name, mode) == true) return
         context.dataStore.edit { preferences ->
             preferences[KEY_THEME] = mode
         }
     }
 
     suspend fun setLanguageDisplay(display: String) {
+        if (accountRecords?.preference(KEY_LANGUAGE_DISPLAY.name, display) == true) return
         context.dataStore.edit { preferences ->
             preferences[KEY_LANGUAGE_DISPLAY] = display
         }
     }
 
     suspend fun setRecitationSensitivity(sensitivity: Double) {
+        if (accountRecords?.preference(KEY_RECITATION_SENSITIVITY.name, sensitivity) == true) return
         context.dataStore.edit { preferences ->
             preferences[KEY_RECITATION_SENSITIVITY] = sensitivity
         }
     }
 
     suspend fun setAdvancedVedicMode(enabled: Boolean) {
+        if (accountRecords?.preference(KEY_ADVANCED_VEDIC_MODE.name, enabled) == true) return
         context.dataStore.edit { preferences ->
             preferences[KEY_ADVANCED_VEDIC_MODE] = enabled
+        }
+    }
+
+    /** Claim legacy device preferences once; a different account starts with its own defaults. */
+    suspend fun seedCloud(uid: String) {
+        val records = accountRecords ?: return
+        val owner = stringPreferencesKey("cloud_settings_legacy_owner")
+        var snapshot: Preferences? = null
+        context.dataStore.edit { prefs ->
+            if (prefs[owner] == null) prefs[owner] = uid
+            if (prefs[owner] == uid) snapshot = prefs.toPreferences()
+        }
+        val prefs = snapshot ?: return
+        for (key in listOf(KEY_THEME, KEY_LANGUAGE_DISPLAY, KEY_RECITATION_SENSITIVITY, KEY_ADVANCED_VEDIC_MODE)) {
+            prefs.asMap()[key]?.let { records.put(uid, "preference_${key.name}", mapOf("value" to it), seed = true) }
         }
     }
 }

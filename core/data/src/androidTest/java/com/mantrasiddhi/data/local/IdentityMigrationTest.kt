@@ -21,10 +21,10 @@ class IdentityMigrationTest {
         MantraSiddhiDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
     private val migrations = with(MantraSiddhiDatabase) { arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17) }
+        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18) }
 
     @Test fun everySupportedStartingVersionPreservesMixedHistoryThroughProductionChain() {
-        for (version in 1..16) {
+        for (version in 1..17) {
             val name = "identity-chain-$version-${UUID.randomUUID()}"
             try {
                 // v1-v3 predate committed Room exports. Reconstruct only their documented
@@ -55,10 +55,11 @@ class IdentityMigrationTest {
                         "period" to "SAYAM", "quantity" to 108, "revision" to 1, "createdAtMillis" to 100, "targetId" to null, "vowId" to null,
                         "source" to "SANDHYA", "sessionId" to null, "updatedAtMillis" to 100, "operationId" to "manual"))
                 }
-                helper.runMigrationsAndValidate(name, 17, true, *migrations).use { db ->
+                helper.runMigrationsAndValidate(name, 18, true, *migrations).use { db ->
                     assertEquals("v$version profiles", 2L, number(db, "SELECT COUNT(*) FROM user_profiles"))
                     assertEquals(2L, number(db, "SELECT COUNT(*) FROM recitation_sessions"))
                     assertEquals(10000L, number(db, "SELECT SUM(durationMs) FROM recitation_sessions"))
+                    assertEquals(2L, number(db, "SELECT COUNT(*) FROM recitation_sessions WHERE assessmentJson = ''"))
                     assertEquals(4L, number(db, "SELECT COUNT(*) FROM targets"))
                     assertEquals(32L, number(db, "SELECT currentRecitationCount FROM targets WHERE id=2"))
                     assertEquals(108L, number(db, "SELECT currentRecitationCount FROM targets WHERE id=3"))
@@ -74,7 +75,7 @@ class IdentityMigrationTest {
                 }
                 // Open/reopen through the actual production builder as well as the schema helper.
                 repeat(2) { MantraSiddhiDatabase.buildDatabase(context, name).let { db ->
-                    try { assertEquals(17, db.openHelper.writableDatabase.version) } finally { db.close() }
+                    try { assertEquals(18, db.openHelper.writableDatabase.version) } finally { db.close() }
                 } }
             } finally { context.deleteDatabase(name) }
         }

@@ -8,10 +8,12 @@ import org.junit.jupiter.api.Test
 class PracticeRecordCodecTest {
     @Test fun `all performance fields survive serialization and a new local profile`() {
         val original = RecitationSessionEntity(42, 7, "gayatri", "PRACTICE", .81,
-            "om:0.91,tat:0.72", "om tat", false, 23456, 1789000000000, .82, .83, .79, "stable-session")
-        val wire = CloudSyncPolicy.decode(JSONObject(PracticeRecordCodec.session(original, null)).toString())
+            "om:0.91,tat:0.72", "om tat", false, 23456, 1789000000000, .82, .83, .79, "stable-session",
+            assessmentJson = """{"schemaVersion":1,"confidence":0.7,"words":[{"score":0.9,"pacingRatio":1.2}]}""")
+        val wire = CloudSyncPolicy.decode(BackupFingerprint.encode(PracticeRecordCodec.session(original, null)))
         assertEquals(original.copy(id = 9, userId = 17), PracticeRecordCodec.session(wire, 17, 9))
         assertFalse(wire.containsKey("userId"))
+        assertNull(BackupRecordValidator.validate("practice", "session_stable-session", wire))
     }
 
     @Test fun `corrections preserve large integer counts and milestone results`() {

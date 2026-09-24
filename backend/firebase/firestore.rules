@@ -340,6 +340,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Mutable preferences and drafts are private to their owner, including children.
+    match /users/{uid}/accountRecords/{recordId} {
+      function validAccountRecord(d) {
+        return d.keys().hasAll(['id', 'updatedAtMillis', 'operationId', 'deleted', 'dataJson']) &&
+          d.keys().hasOnly(['id', 'updatedAtMillis', 'operationId', 'deleted', 'dataJson']) &&
+          d.id == recordId && recordId.matches('[A-Za-z0-9_-]{1,200}') &&
+          (recordId == 'profile' || recordId.matches('draft_[A-Za-z0-9_-]+') ||
+           recordId in ['preference_theme_mode', 'preference_language_display',
+             'preference_recitation_sensitivity', 'preference_advanced_vedic_mode',
+             'preference_sandhya_enabled', 'preference_sandhya_preparation', 'preference_sandhya_event',
+             'preference_sandhya_region', 'preference_minimum_PRATAH', 'preference_minimum_MADHYAHNA', 'preference_minimum_SAYAM']) &&
+          millis(d.updatedAtMillis) && identity(d.operationId) && d.deleted is bool &&
+          (!d.deleted || recordId.matches('draft_[A-Za-z0-9_-]+')) &&
+          d.dataJson is string && d.dataJson.size() >= 2 && d.dataJson.size() < 200000;
+      }
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && validAccountRecord(request.resource.data) &&
+        published(uid, 'account', recordId, request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == uid && validAccountRecord(request.resource.data) &&
+        published(uid, 'account', recordId, request.resource.data) &&
+        (request.resource.data == resource.data ||
+         (!resource.data.deleted && request.resource.data.deleted) ||
+         (request.resource.data.deleted == resource.data.deleted && request.resource.data.updatedAtMillis > 0 &&
+          (request.resource.data.updatedAtMillis > resource.data.updatedAtMillis ||
+           (request.resource.data.updatedAtMillis == resource.data.updatedAtMillis && request.resource.data.operationId > resource.data.operationId))));
+      allow delete: if false;
+    }
+
     // Full performance records are private to their owner, including children.
     match /users/{uid}/practiceRecords/{recordId} {
       function validRecord(d) {
@@ -347,7 +375,8 @@ service cloud.firestore {
           (d.type == 'session' && d.keys().hasOnly(['type', 'id', 'entryId', 'mantraId', 'mode',
             'overallScore', 'wordScoresJson', 'transcription', 'isCorrect', 'durationMs', 'createdAt',
             'correctness', 'completeness', 'pronunciation', 'schemaVersion',
-            'projectionDate', 'projectionZoneId', 'childGoalEligible']) &&
+            'projectionDate', 'projectionZoneId', 'childGoalEligible', 'assessmentJson']) &&
+            (!('assessmentJson' in d) || (d.assessmentJson is string && d.assessmentJson.size() < 200000)) &&
             (!('projectionDate' in d) && !('projectionZoneId' in d) && !('childGoalEligible' in d) ||
               (d.projectionDate is string && d.projectionDate.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
                zone(d.projectionZoneId) && d.childGoalEligible is bool &&
@@ -412,8 +441,8 @@ service cloud.firestore {
 
     // Feed contents must match the canonical record in the same atomic write.
     function retainedSpeech(d) {
-      return d.type != 'session' || d.createdAt > request.time.toMillis() - 31536000000 ||
-        (d.transcription == '' && d.wordScoresJson == '');
+      // Full account history is kept until the owner requests account deletion.
+      return true;
     }
 
     match /users/{uid}/backupChanges/{changeId} {
@@ -421,7 +450,8 @@ service cloud.firestore {
         return (d.type == 'entry' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaEntries/$(d.id)).data) ||
           (d.type == 'goal' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaGoals/$(d.id)).data) ||
           (d.type == 'practice' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/practiceRecords/$(d.id)).data) ||
-          (d.type == 'conflict' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaConflicts/$(d.id)).data);
+          (d.type == 'conflict' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/japaConflicts/$(d.id)).data) ||
+          (d.type == 'account' && d.value == getAfter(/databases/$(database)/documents/users/$(uid)/accountRecords/$(d.id)).data);
       }
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn() && request.auth.uid == uid &&

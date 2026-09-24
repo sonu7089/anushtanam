@@ -11,9 +11,10 @@ class SpeechRetentionTest {
         wordScoresJson = "om:0.9", transcription = "om", isCorrect = true,
         durationMs = 1000, createdAt = createdAt, stableId = "session-one")
 
-    @Test fun `expiry removes only speech from old offline uploads at the boundary`() {
+    @Test fun `old offline uploads retain full speech at and beyond the former expiry boundary`() {
         val value = PracticeRecordCodec.session(session(), null)
-        assertEquals(value + mapOf("transcription" to "", "wordScoresJson" to ""), SpeechRetention.forUpload(value, now))
+        assertEquals(value, SpeechRetention.forUpload(value, now))
+        assertEquals(value, SpeechRetention.forUpload(value, now + SpeechRetention.PERIOD_MS))
         assertEquals(value, SpeechRetention.forUpload(value, now - 1))
         assertEquals("om", value["transcription"])
     }

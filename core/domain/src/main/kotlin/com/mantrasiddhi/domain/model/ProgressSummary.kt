@@ -25,8 +25,8 @@ data class DayAggregate(
  * Compact cloud mirror of a user's headline progress stats (`progress/{uid}` in
  * Firestore). Totals plus a rolling per-day map (capped at
  * [DAILY_KEY_CAP] most recent day keys) — enough to rebuild the Progress-tab
- * overview cards and 7-day charts after a reinstall or device switch. Detailed
- * session history stays device-local by design.
+ * overview cards and 7-day charts. Full session history is also backed up separately
+ * in private practiceRecords, so this summary cap does not discard historical data.
  *
  * Day keys are ISO local dates (`yyyy-MM-dd`, device timezone), so lexicographic
  * order equals chronological order.

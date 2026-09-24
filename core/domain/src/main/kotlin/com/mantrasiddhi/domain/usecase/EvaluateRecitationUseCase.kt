@@ -91,7 +91,9 @@ class EvaluateRecitationUseCase @Inject constructor(
         }
         val swara = analyzeSwara(audio, config)
         val evaluation = MantraEvaluator.toEvaluation(assessment).copy(swara = swara)
-        saveSession(userId, mode, transcription, recitationTimeMs, assessment)
+        val snapshot = com.mantrasiddhi.domain.evaluation.AssessmentSnapshot.encode(assessment, hypotheses,
+            confidence, acoustic, swara, audio != null && !audio.isEmpty, config)
+        saveSession(userId, mode, transcription, recitationTimeMs, assessment, snapshot)
         recordDiagnostics(transcription, assessment, acoustic, audio)
 
         // Session persistence also commits eligible goal credit in the same transaction.
@@ -118,7 +120,8 @@ class EvaluateRecitationUseCase @Inject constructor(
         mode: RecitationMode,
         transcription: String,
         recitationTimeMs: Long,
-        assessment: RecitationAssessment
+        assessment: RecitationAssessment,
+        snapshot: String
     ) {
         val wordScores = assessment.wordResults.associate { it.referenceWord to it.score.toDouble() }
         val session = RecitationSession(
@@ -132,7 +135,8 @@ class EvaluateRecitationUseCase @Inject constructor(
             durationMs = recitationTimeMs,
             correctness = assessment.correctness.score.toDouble(),
             completeness = assessment.completeness.score.toDouble(),
-            pronunciation = assessment.pronunciation.score.toDouble()
+            pronunciation = assessment.pronunciation.score.toDouble(),
+            assessmentJson = snapshot
         )
         recitationRepository.saveSession(session)
     }

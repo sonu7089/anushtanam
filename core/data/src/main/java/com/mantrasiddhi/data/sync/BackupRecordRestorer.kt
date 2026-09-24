@@ -8,7 +8,8 @@ import java.math.BigInteger
 import org.json.JSONObject
 
 /** Caller owns the page transaction: accepted rows, quarantine and cursor commit together. */
-internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, private val backup: PracticeBackupStore) {
+internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, private val backup: PracticeBackupStore,
+    private val accountBackup: AccountBackup? = null) {
     suspend fun apply(uid: String, userId: Long, source: String, type: String, id: String,
         value: Map<String, Any?>, ownerStillActive: () -> Boolean, envelopeError: String? = null): Boolean {
         check(ownerStillActive())
@@ -20,6 +21,7 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
             return false
         }
         when (type) {
+            "account" -> requireNotNull(accountBackup) { "Account restore is not configured" }.merge(uid, userId, value)
             "entry" -> JapaReplicaMerger(database).merge(userId, emptyList(), listOf(value), ownerStillActive, project = false)
             "goal" -> JapaReplicaMerger(database).merge(userId, listOf(value), emptyList(), ownerStillActive, project = false)
             "practice" -> backup.merge(userId, value)
@@ -33,7 +35,7 @@ internal class BackupRecordRestorer(private val database: MantraSiddhiDatabase, 
             }
         }
         database.backupDao().clearQuarantine(uid, source)
-        val collection = when (type) { "entry" -> "japaEntries"; "goal" -> "japaGoals"; "practice" -> "practiceRecords"; else -> "japaConflicts" }
+        val collection = when (type) { "entry" -> "japaEntries"; "goal" -> "japaGoals"; "practice" -> "practiceRecords"; "account" -> "accountRecords"; else -> "japaConflicts" }
         database.backupDao().clearQuarantine(uid, "$collection/$id")
         return true
     }

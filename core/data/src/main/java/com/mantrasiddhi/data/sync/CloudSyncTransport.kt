@@ -20,7 +20,7 @@ class CloudSyncTransport @Inject constructor(
         require(events.all { it.uid == uid } && events.zipWithNext().all { (a, b) -> a.id < b.id })
         check(auth.currentUser?.uid == uid)
         val japaEvents = events.filter { it.kind in setOf(SyncKind.JAPA_ENTRY, SyncKind.JAPA_GOAL,
-            SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION) }
+            SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION, SyncKind.ACCOUNT_RECORD) }
         // Anonymous historical deltas cannot be safely attributed. Canonical bootstrap
         // repairs them instead of risking a second increment beside session delivery.
         val legacy = events.filterNot { it in japaEvents || it.kind in setOf(SyncKind.PROGRESS, SyncKind.CHILD_GOAL) }

@@ -40,7 +40,8 @@ data class RecitationSessionEntity(
     /** Occurrence metadata for durable cloud counting; null denotes pre-v16 history. */
     val projectionDate: String? = null,
     val projectionZoneId: String? = null,
-    val childGoalEligible: Boolean? = null
+    val childGoalEligible: Boolean? = null,
+    @ColumnInfo(defaultValue = "''") val assessmentJson: String = ""
 ) {
     fun toDomain(): RecitationSession {
         return RecitationSession(
@@ -56,7 +57,7 @@ data class RecitationSessionEntity(
             correctness = correctness,
             completeness = completeness,
             pronunciation = pronunciation,
-            createdAt = createdAt, stableId = stableId
+            createdAt = createdAt, stableId = stableId, assessmentJson = assessmentJson
         )
     }
 
@@ -82,7 +83,7 @@ data class RecitationSessionEntity(
                 createdAt = domain.createdAt,
                 correctness = domain.correctness,
                 completeness = domain.completeness,
-                pronunciation = domain.pronunciation, stableId = domain.stableId
+                pronunciation = domain.pronunciation, stableId = domain.stableId, assessmentJson = domain.assessmentJson
             )
         }
 

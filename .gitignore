@@ -13,6 +13,9 @@ out/
 
 # Local configurations
 local.properties
+backend/firebase/privacy-public/
+backend/firebase/.firebase/
+backend/firebase/functions/.env.*
 
 # Built artifacts
 *.apk

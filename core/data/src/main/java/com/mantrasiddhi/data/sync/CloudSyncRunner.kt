@@ -77,7 +77,7 @@ class CloudSyncRunner @Inject constructor(
                     if (batch.isNotEmpty() && auth.currentUser?.uid == uid) {
                         val acknowledged = withTimeoutOrNull(20_000L) {
                             val backupKinds = setOf(SyncKind.JAPA_ENTRY, SyncKind.JAPA_GOAL,
-                                SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION)
+                                SyncKind.PRACTICE_RECORD, SyncKind.CONFLICT_RESOLUTION, SyncKind.ACCOUNT_RECORD)
                             val legacy = batch.filter { it.kind !in backupKinds }
                             if (legacy.isNotEmpty()) {
                                 transport.deliver(legacy)
