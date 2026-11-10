@@ -28,7 +28,7 @@ activityCompose = "1.9.0"
 # 1.1.7 is the 16 KB-page-size-compliant build of libdatastore_shared_counter.so.
 # Do NOT bump to 1.2.0 — it regressed 16 KB ELF alignment (flutter/flutter#182898).
 datastore = "1.1.7"
-json = "20231013"
+json = "20260719"
 # JSON DOM only (Json.parseToJsonElement); no @Serializable codegen, so the
 # kotlinx-serialization compiler plugin is deliberately NOT applied.
 kotlinxSerialization = "1.6.3"
