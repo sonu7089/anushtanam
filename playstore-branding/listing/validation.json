@@ -1,0 +1,17 @@
+[
+  {
+    "field": "title",
+    "characters": 24,
+    "limit": 30
+  },
+  {
+    "field": "shortDescription",
+    "characters": 74,
+    "limit": 80
+  },
+  {
+    "field": "fullDescription",
+    "characters": 2087,
+    "limit": 4000
+  }
+]

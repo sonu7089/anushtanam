@@ -1,0 +1,48 @@
+{
+  "screenshots": [
+    {
+      "export": "upload/phone-screenshots/01-daily-practice.png",
+      "source": "docs/ui-review/home-light-goal-sync.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    },
+    {
+      "export": "upload/phone-screenshots/02-mental-japa.png",
+      "source": "docs/ui-review/sandhya-counter-light-simple-counts.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    },
+    {
+      "export": "upload/phone-screenshots/03-personal-goals.png",
+      "source": "docs/ui-review/targets-light-goals-redesign.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    },
+    {
+      "export": "upload/phone-screenshots/04-sandhya-reminders.png",
+      "source": "docs/ui-review/settings-sandhya-dark-mf-six-grouped.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    },
+    {
+      "export": "upload/phone-screenshots/05-teachings-and-notes.png",
+      "source": "docs/ui-review/messages-light-mf-ten-polished.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    },
+    {
+      "export": "upload/phone-screenshots/06-dark-theme.png",
+      "source": "docs/ui-review/home-dark-goal-sync.png",
+      "kind": "existing Android design-review capture with fixture data",
+      "treatment": "Unaltered UI image placed in an HTML layout. Status bar and bottom system area clipped by the frame. No UI text or values changed."
+    }
+  ],
+  "artwork": [
+    "frontend/android/design/artwork/masters/lotus_emblem.png",
+    "frontend/android/design/artwork/masters/lotus_morning.png"
+  ],
+  "fonts": [
+    "Newsreader",
+    "DM Sans"
+  ]
+}

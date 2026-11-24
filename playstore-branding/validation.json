@@ -1,0 +1,75 @@
+{
+  "created": "2026-09-24",
+  "assets": [
+    {
+      "file": "upload/phone-screenshots/01-daily-practice.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 571122
+    },
+    {
+      "file": "upload/phone-screenshots/02-mental-japa.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 108131
+    },
+    {
+      "file": "upload/phone-screenshots/03-personal-goals.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 120572
+    },
+    {
+      "file": "upload/phone-screenshots/04-sandhya-reminders.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 153432
+    },
+    {
+      "file": "upload/phone-screenshots/05-teachings-and-notes.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 696614
+    },
+    {
+      "file": "upload/phone-screenshots/06-dark-theme.png",
+      "width": 1080,
+      "height": 1920,
+      "channels": 3,
+      "bytes": 578067
+    },
+    {
+      "file": "upload/feature-graphic-1024x500.png",
+      "width": 1024,
+      "height": 500,
+      "channels": 3,
+      "bytes": 597241
+    },
+    {
+      "file": "upload/app-icon-512.png",
+      "width": 512,
+      "height": 512,
+      "channels": 4,
+      "bytes": 101931
+    },
+    {
+      "file": "brand/logo-lockup-light.png",
+      "width": 1600,
+      "height": 560,
+      "channels": 3,
+      "bytes": 127274
+    },
+    {
+      "file": "brand/logo-lockup-dark.png",
+      "width": 1600,
+      "height": 560,
+      "channels": 3,
+      "bytes": 128712
+    }
+  ]
+}

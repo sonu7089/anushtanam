@@ -1,0 +1,23 @@
+app-icon-512.png
+A pale lotus on a soft rose background, matching the Anushtanam app icon.
+
+feature-graphic-1024x500.png
+A lotus in morning light beside the words A little time. A daily practice.
+
+01-daily-practice.png
+Daily japa, practice options and progress toward a personal goal on the Home screen.
+
+02-mental-japa.png
+Mental japa counter with a saved count, a resume button and an option to save the session.
+
+03-personal-goals.png
+A Gayatri Mantra goal showing 36 of 108 japa completed, with a past goal below.
+
+04-sandhya-reminders.png
+Dark Sandhya settings with a chosen region, morning, midday and evening counts, and daily reminders.
+
+05-teachings-and-notes.png
+The Messages screen with a gentle note about giving daily practice time and attention.
+
+06-dark-theme.png
+Home in dark mode, with the lotus artwork, daily japa count and personal goal.
